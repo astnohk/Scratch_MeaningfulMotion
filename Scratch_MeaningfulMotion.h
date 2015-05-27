@@ -30,18 +30,20 @@
 #define MEANINGFUL_FAILURE 0
 
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+// C++
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <iostream>
+#include <list>
+#include <string>
 #include "pnm.h"
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
-#include <unistd.h>
 
 
 #define REGEXP_MAX_DIGITS 10
@@ -110,119 +112,152 @@
 
 
 
-typedef struct SIZE_{
+class ERROR
+{
+	private:
+		std::string FunctionName;
+		std::string ErrorFunctionName;
+		std::string ValueName;
+		std::string FileName;
+	public:
+		ERROR();
+		// Error data set
+		void Function(const char *name);
+		void ErrorFunction(const char *name);
+		void Value(const char *name);
+		void File(const char *name);
+		// Error output
+		void Others(const char *error);
+		void Malloc(void);
+		void FunctionFail(void);
+		void PointerNull(void);
+		void ImageSize(void);
+		void FileRead(void);
+		void FileWrite(void);
+};
+
+
+
+struct SIZE
+{
 	int width;
 	int height;
-} SIZE;
-#define SIZE_ZERO (SIZE){0, 0}
+	SIZE(void);
+	SIZE(int w, int h);
+	void reset(void);
+};
 
-typedef struct COORDINATE_{
+struct COORDINATE
+{
 	int x;
 	int y;
-} COORDINATE;
-#define COORDINATE_ZERO (COORDINATE){0, 0}
+	COORDINATE(void);
+	COORDINATE(int ix, int iy);
+};
 
-
-typedef struct FRAGMENT_{
+struct FRAGMENT
+{
 	int start;
 	int end;
 	double Pr;
-	struct FRAGMENT_ *next;
-} FRAGMENT;
+	FRAGMENT *next;
+	FRAGMENT(void);
+	FRAGMENT(int s, int e, double prob, FRAGMENT *p);
+};
 
-typedef struct {
+struct SEGMENT
+{
 	int n; /* Start point x */
 	int m; /* Start point y */
 	int x; /* End point x */
 	int y; /* End point y */
 	double Pr; /* Probability */
-} SEGMENT;
-#define SEGMENT_NULL (SEGMENT){0, 0, 0, 0, 0.0}
+	SEGMENT(void);
+	SEGMENT(int stx, int sty, int endx, int endy, double prob);
+};
 
-typedef struct SEGMENTS_LIST_{
-	int n;
-	int m;
-	int x;
-	int y;
-	double Pr;
-	struct SEGMENTS_LIST_ *next;
-} SEGMENTS_LIST;
-#define SEGMENTS_LIST_NULL (SEGMENTS_LIST){0, 0, 0, 0, 0.0, NULL}
-
-typedef struct {
+struct LINEPOLE
+{
 	double r;
 	double theta;
 	double cos;
 	double sin;
-} LINEPOLE;
+	LINEPOLE(void);
+	LINEPOLE(double rad, double th, double icos, double isin);
+};
 
-typedef struct FILTER_PARAM_{
+struct FILTER_PARAM
+{
 	int type;
-	struct SIZE_ size;
+	SIZE size;
 	double std_deviation;
 	double epsilon;
-} FILTER_PARAM;
+	FILTER_PARAM(void);
+	void ChangeFilter(char type);
+};
 #define NUM_FILTER_TYPE 3
 #define FILTER_ID_UNDEFINED 0
 #define FILTER_ID_EPSILON 1
 #define FILTER_ID_GAUSSIAN 2
 
-#define FILTER_PARAM_NULL (FILTER_PARAM){0, (SIZE){0, 0}, .0, .0}
-#define EPSILON_PARAM_DEFAULT (FILTER_PARAM){FILTER_ID_EPSILON, EPSILONFILTER_SIZE, .0, EPSILONFILTER_EPSILON}
-#define GAUSSIAN_PARAM_DEFAULT (FILTER_PARAM){FILTER_ID_GAUSSIAN, GAUSSIAN_SIZE, GAUSSIAN_STD_DEVIATION, .0}
-
-
-/* AffineMotion.c */
-typedef struct {
+struct VECTOR_2D
+{
 	double x;
 	double y;
-} VECTOR_2D;
-#define VECTOR_2D_ZERO (VECTOR_2D){.0, .0}
+	VECTOR_2D(void);
+	VECTOR_2D(double ix, double iy);
+};
 
 #define TUPLE_VECTOR_SIZE 6
-typedef struct {
+struct TUPLE_VEC_SCALAR{
 	double vector[TUPLE_VECTOR_SIZE];
 	double scalar;
-} TUPLE_VEC_SCALAR;
-#define TUPLE_VEC_SCALAR_NULL (TUPLE_VEC_SCALAR){{.0, .0, .0, .0, .0, .0}, .0}
+	TUPLE_VEC_SCALAR(void);
+	TUPLE_VEC_SCALAR operator+(TUPLE_VEC_SCALAR tup);
+	TUPLE_VEC_SCALAR operator*(double C);
+	double operator*(TUPLE_VEC_SCALAR tup);
+	double norm(SIZE W_l);
+};
 
-typedef struct OPTICALFLOW_PARAM_{
+struct OPTICALFLOW_PARAM
+{
 	int Level;
-	struct SIZE_ WindowSize;
+	SIZE WindowSize;
 	int IRLS_Iter_Max;
 	double IRLS_Convergence_Threshold;
 	double IRLS_Min_C;
-} OPTICALFLOW_PARAM;
-//#define OPTICALFLOW_PARAM_DEFAULT (OPTICALFLOW_PARAM){4, (SIZE){17, 17}, 5, .1, 8}
+	OPTICALFLOW_PARAM(void);
+};
 #define OPTICALFLOW_PARAM_DEFAULT (OPTICALFLOW_PARAM){1, (SIZE){25, 25}, 1600, 1.0E-20, 8}
-/* /AffineMotion.c */
 
 
-/* MultipleMotion.c */
 #define NUM_AFFINE_PARAMETER 6
-typedef struct VECTOR_AFFINE_
+struct VECTOR_AFFINE
 {
 	double a[NUM_AFFINE_PARAMETER];
-} VECTOR_AFFINE;
+	VECTOR_AFFINE(void);
+};
 
-typedef struct MULTIPLE_MOTION_PARAM_
+struct MULTIPLE_MOTION_PARAM
 {
 	int Level;
-	struct SIZE_ WindowSize;
+	SIZE WindowSize;
 	int IRLS_Iter_Max;
 	double IRLS_Min_Threshold;
 	double lambdaD;
 	double lambdaS;
 	double sigmaD;
 	double sigmaS;
-} MULTIPLE_MOTION_PARAM;
+	MULTIPLE_MOTION_PARAM(void);
+};
 #define MULTIPLE_MOTION_PARAM_DEFAULT (MULTIPLE_MOTION_PARAM){4, (SIZE){25, 25}, 16, 0.0001, 5, 1, 12.72, 2.121}
 /* /MultipleMotion.c */
 
 
-typedef struct OPTIONS_{
+struct OPTIONS
+{
 	SIZE ResampleSize;
-	char *ResampleMethod;
+	std::string ResampleMethod;
 	int mode;
 	int Max_Length;
 	int Max_Output_Length;
@@ -234,9 +269,10 @@ typedef struct OPTIONS_{
 	double p;
 	double ep;
 	double Exclusive_Max_Radius;
-	struct OPTICALFLOW_PARAM_ OpticalFlow_Param;
-	struct MULTIPLE_MOTION_PARAM_ MultipleMotion_Param;
-} OPTIONS;
+	OPTICALFLOW_PARAM OpticalFlow_Param;
+	MULTIPLE_MOTION_PARAM MultipleMotion_Param;
+	OPTIONS(void);
+};
 /* Mode Options */
 #define MODE_OUTPUT_FILTERED_IMAGE 0x0010
 #define MODE_OUTPUT_BINARY_IMAGE 0x0020
@@ -253,7 +289,8 @@ typedef struct OPTIONS_{
 
 /* X11 structures */
 /* * X11 Plotting Parameters */
-typedef struct X11_PARAM_ {
+struct X11_PARAM
+{
 	int Int_interval;
 	int Latitude;
 	int Longitude;
@@ -265,39 +302,46 @@ typedef struct X11_PARAM_ {
 	short RotateSwitch;
 	short ModeSwitch;
 	short FillSwitch;
-} X11_PARAM;
+	X11_PARAM(void);
+};
 
-typedef struct {
+struct SEGMENT_X11
+{
 	XPoint start;
 	XPoint end;
-} SEGMENT_X11;
+	SEGMENT_X11(void);
+};
 
-typedef struct COORDINATE_3D_ {
+struct COORDINATE_3D
+{
 	float x;
 	float y;
 	float z;
-} COORDINATE_3D;
+	COORDINATE_3D(void);
+	COORDINATE_3D(float ix, float iy, float iz);
+};
 
-typedef struct XPLOT_ {
+struct XPLOT
+{
 	XPoint point;
 	double z;
-} XPLOT;
-#define COORDINATE_3D_ZERO (COORDINATE_3D){.0, .0, .0}
+	XPLOT(void);
+};
 /* /X11 structures */
 
 
-extern char *Progress[NUM_PROGRESS];
-extern char Progress_End[];
+extern const std::string Progress[NUM_PROGRESS];
+extern const std::string Progress_End;
 
 
 
 
 
 /* Prototype of functions */
-int Scratch_MeaningfulA(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
+int Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
 
 /* Memory Libraries */
-void list_free(SEGMENTS_LIST *plist);
+void list_free(std::list<SEGMENT>* plist);
 void segments_free(FRAGMENT *segments);
 
 /* Mathematical Libraries */
@@ -327,7 +371,7 @@ double* DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterP
 
 /* Meaningful Alignments */
 SEGMENT* AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
-int AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENTS_LIST *list_start, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length);
+int AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_start, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length);
 SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
 
 /* Plotting */

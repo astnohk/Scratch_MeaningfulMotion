@@ -1,7 +1,6 @@
-#include "Scratch_MeaningfulA.h"
+#include "Scratch_MeaningfulMotion.h"
 
-
-char *Progress[NUM_PROGRESS] = {
+const std::string Progress[NUM_PROGRESS] = {
     "",        "\x1b[1C",  "\x1b[2C",  "\x1b[3C",  "\x1b[4C",
     "\x1b[5C",  "\x1b[6C",  "\x1b[7C",  "\x1b[8C",  "\x1b[9C",
     "\x1b[10C", "\x1b[11C", "\x1b[12C", "\x1b[13C", "\x1b[14C",
@@ -15,7 +14,7 @@ char *Progress[NUM_PROGRESS] = {
     "\x1b[50C", "\x1b[51C", "\x1b[52C", "\x1b[53C", "\x1b[54C",
     "\x1b[55C", "\x1b[56C", "\x1b[57C", "\x1b[58C", "\x1b[59C",
     "\x1b[60C", "\x1b[61C", "\x1b[62C", "\x1b[63C"};
-char Progress_End[] = "\x1b[64C|";
+const std::string Progress_End = "\x1b[64C|";
 
 
 
@@ -23,7 +22,7 @@ char Progress_End[] = "\x1b[64C|";
 int
 main(int argc, char *argv[])
 {
-	char help[]=
+	const char help[] =
 	    "\n"
 	    "     - Line Scratch Detection by Meaningful Alignments -\n"
 	    "\n"
@@ -68,8 +67,8 @@ main(int argc, char *argv[])
 	    "      --exclusive                    : use Exclusive Principle to remove redundant lines\n"
 	    "      --superimpose   [color]        : superimpose the segments on original image with colors (red, green, blue)\n"
 	    "\n";
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	std::string ErrorFunctionName;
+	std::string ErrorValueName;
 	int errors = 0;
 
 	char *delimiter = NULL;
@@ -78,10 +77,10 @@ main(int argc, char *argv[])
 	char *OutputName = NULL;
 	int Start = 0;
 	int End = 0;
-	OPTIONS Options = OPTIONS_DEFAULT;
-	FILTER_PARAM FilterParam = EPSILON_PARAM_DEFAULT;
+	OPTIONS Options;
+	FILTER_PARAM FilterParam;
 	char Superimpose_Color[8];
-	char *Superimpose_Color_List[OVERLAY_COLOR_PATTERNS] = {"red", "green", "blue"};
+	const std::string Superimpose_Color_List[OVERLAY_COLOR_PATTERNS] = {"red", "green", "blue"};
 
 	int inf = 0, outf = 0;
 	char *strtmp = NULL;
@@ -193,9 +192,9 @@ main(int argc, char *argv[])
 					} else {
 						i++;
 						if (strcmp(argv[i], "Epsilon") == 0) {
-							FilterParam = EPSILON_PARAM_DEFAULT;
+							FilterParam.ChangeFilter('e');
 						} else if (strcmp(argv[i], "Gaussian") == 0) {
-							FilterParam = GAUSSIAN_PARAM_DEFAULT;
+							FilterParam.ChangeFilter('g');
 						}
 					}
 				} else if (strcmp(argv[i], "--gauss_stddev") == 0) {
@@ -306,7 +305,7 @@ main(int argc, char *argv[])
 							errors |= OPTION_INCORRECT;
 						}
 						for (k = 0; k < OVERLAY_COLOR_PATTERNS; k++){
-							if (strcmp(argv[i], Superimpose_Color_List[k]) == 0) {
+							if (strcmp(argv[i], Superimpose_Color_List[k].c_str()) == 0) {
 								Options.Superimpose = k + 1;
 								break;
 							}
@@ -435,11 +434,11 @@ main(int argc, char *argv[])
 
 	if (Options.Superimpose != 0) {
 		strcpy(argv[outf] + strlen(argv[outf]) - PPM_EXTENSION_LENGTH, "ppm");
-		printf("Output as %s line Superimpose on Original image\nChange output filename to \"%s\" due to --superimpose option\n", Superimpose_Color_List[(Options.Superimpose - 1) % OVERLAY_COLOR_PATTERNS], argv[outf]);
+		printf("Output as %s line Superimpose on Original image\nChange output filename to \"%s\" due to --superimpose option\n", Superimpose_Color_List[(Options.Superimpose - 1) % OVERLAY_COLOR_PATTERNS].c_str(), argv[outf]);
 	}
 	InputName = regexp(argv[inf]);
 	OutputName = regexp(argv[outf]);
-	if (Scratch_MeaningfulA(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam)
+	if (Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam)
 	    != MEANINGFUL_SUCCESS) {
 		fprintf(stderr, "*** FATAL main error - There are some error on Scratch_MeaningfulA() ***\n");
 		free(InputName);
@@ -455,10 +454,10 @@ main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 /* Error */
 ErrorMalloc:
-	fprintf(stderr, "*** FATAL main error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
+	fprintf(stderr, "*** FATAL main error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName.c_str(), ErrorFunctionName.c_str());
 	goto ErrorReturn;
 ErrorFunctionFailed:
-	fprintf(stderr, "*** FATAL main error - Function %s() failed to comput (%s) ***\n", ErrorFunctionName, ErrorValueName);
+	fprintf(stderr, "*** FATAL main error - Function %s() failed to comput (%s) ***\n", ErrorFunctionName.c_str(), ErrorValueName.c_str());
 ErrorReturn:
 	free(OutputName);
 	free(InputName);
