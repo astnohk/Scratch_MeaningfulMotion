@@ -40,15 +40,13 @@ FRAGMENT::FRAGMENT(void)
 	start = 0;
 	end = 0;
 	Pr = .0;
-	next = NULL;
 }
 
-FRAGMENT::FRAGMENT(int s, int e, double prob, FRAGMENT *p)
+FRAGMENT::FRAGMENT(int s, int e, double prob)
 {
 	start = s;
 	end = e;
 	Pr = prob;
-	next = p;
 }
 
 SEGMENT::SEGMENT(void)
@@ -132,10 +130,21 @@ TUPLE_VEC_SCALAR::TUPLE_VEC_SCALAR(void)
 
 OPTICALFLOW_PARAM::OPTICALFLOW_PARAM(void) : WindowSize(25, 25)
 {
-	Level = 4;
-	IRLS_Iter_Max = 16;
-	IRLS_Convergence_Threshold = 1.0E-4;
-	IRLS_Min_C = 1.0E-20;
+	Level = 5;
+	IRLS_Iter_Max = 1600;
+	IRLS_Convergence_Threshold = 1.0E-20;
+	IRLS_Min_C = 8;
+}
+
+MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
+{
+	Level = 5;
+	IRLS_Iter_Max = 300;
+	Error_Min_Threshold = 1.0E-6;
+	lambdaD = 5;
+	lambdaS = 1;
+	sigmaD = 12.72;
+	sigmaS = 2.121;
 }
 
 OPTIONS::OPTIONS(void) : ResampleMethod("z-hold")

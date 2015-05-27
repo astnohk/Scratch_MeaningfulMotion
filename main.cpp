@@ -440,7 +440,7 @@ main(int argc, char *argv[])
 	OutputName = regexp(argv[outf]);
 	if (Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam)
 	    != MEANINGFUL_SUCCESS) {
-		fprintf(stderr, "*** FATAL main error - There are some error on Scratch_MeaningfulA() ***\n");
+		fprintf(stderr, "*** FATAL main error - There are some error on Scratch_MeaningfulMotion() ***\n");
 		free(InputName);
 		InputName = NULL;
 		free(OutputName);

@@ -11,7 +11,7 @@
 
 
 VECTOR_2D* MultipleMotion_OpticalFlow(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam);
-int IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS);
+int IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold);
 
 VECTOR_2D Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS);
 VECTOR_2D sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double sigmaD, double sigmaS);

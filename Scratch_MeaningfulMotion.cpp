@@ -250,7 +250,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			for (i = 0; i < size_res.width * size_res.height; i++) {
 				pnm_out.img[i] = (int)round(filtered[i]);
 			}
-			delete filtered[];
+			delete[] filtered;
 			filtered = NULL;
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			/* Computte and output Multiple Motion Affine Parameters by method of M.J.Black */
@@ -379,7 +379,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 						goto ExitError;
 					}
 					printf("- Reduced to (%d) EP-Maximal Meaningful Segments\n", Num_Segments);
-					delete MaximalSegments[];
+					delete[] MaximalSegments;
 					MaximalSegments = EPSegments;
 					EPSegments = NULL;
 				}
@@ -428,14 +428,14 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				ShowSegments_X11(pnm_orig.img, size_orig, size, pnm_orig.maxint, MaximalSegments, Num_Segments);
 				/* /X11 Plotting */
 
-				delete segments[];
+				delete[] segments;
 				segments = NULL;
-				delete angles[];
+				delete[] angles;
 				angles = NULL;
-				delete MaximalSegments[];
+				delete[] MaximalSegments;
 				MaximalSegments = NULL;
 			}
-			delete scratches[];
+			delete[] scratches;
 			scratches = NULL;
 		}
 		// Write
@@ -450,14 +450,16 @@ Write:
 			    && MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums) == MEANINGFUL_FAILURE) {
 				Error.ErrorFunction("MultipleMotion_Affine_write");
 				Error.Value("MultipleMotions_Affine");
-				goto ErrorFunctionFailed;
+				Error.FunctionFail();
+				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			if (pnmdouble_isNULL(&pnmd_prev) == PNM_FALSE
 			    && MultipleMotion_write(MultipleMotion_u, size_orig, OutputNameNums) == MEANINGFUL_FAILURE) {
 				Error.ErrorFunction("MultipleMotion_write");
 				Error.Value("MultipleMotions_u");
-				goto ErrorFunctionFailed;
+				Error.FunctionFail();
+				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW_AFFINE_PARAMETER) != 0) {
 			if (pnmdouble_isNULL(&pnmd_prev) == PNM_FALSE
@@ -475,9 +477,9 @@ Write:
 				goto ExitError;
 			}
 		}
-		delete MultipleMotion_u[];
+		delete[] MultipleMotion_u;
 		MultipleMotion_u = NULL;
-		delete OpticalFlow_Affine[];
+		delete[] OpticalFlow_Affine;
 		OpticalFlow_Affine = NULL;
 		pnmdouble_free(&pnmd_prev);
 		if (pnmdouble_isNULL(&pnmd_in) == 0) {
@@ -495,27 +497,25 @@ Write:
 	pnmfree(&pnm_in);
 	pnmfree(&pnm_res);
 	pnmfree(&pnm_orig);
-	delete k_list[];
-	delete Pr_table[];
-	delete OutputNameNums[];
-	delete InputNameNums[];
-	size = SIZE_ZERO;
+	delete[] k_list;
+	delete[] Pr_table;
+	delete[] OutputNameNums;
+	delete[] InputNameNums;
 	atan2_div_pi_table(0, 0, &size);
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
-	delete segments[];
-	delete EPSegments[];
-	delete MaximalSegments[];
-	delete angles[];
-	delete binary[];
-	delete scratches[];
-	delete k_list[];
-	delete Pr_table[];
-	delete OutputNameNums[];
-	delete InputNameNums[];
-	delete filtered[];
-	size = SIZE_ZERO;
+	delete[] segments;
+	delete[] EPSegments;
+	delete[] MaximalSegments;
+	delete[] angles;
+	delete[] binary;
+	delete[] scratches;
+	delete[] k_list;
+	delete[] Pr_table;
+	delete[] OutputNameNums;
+	delete[] InputNameNums;
+	delete[] filtered;
 	atan2_div_pi_table(0, 0, &size);
 	pnmfree(&pnm_out);
 	pnmfree(&pnm_in);

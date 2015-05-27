@@ -1,33 +1,6 @@
 #include "Scratch_MeaningfulA.h"
 
 
-/* Memory Allocation Library */
-void
-list_free(SEGMENTS_LIST *plist)
-{
-	SEGMENTS_LIST *plist_del = NULL;
-
-	while (plist != NULL) {
-		plist_del = plist;
-		plist = plist->next;
-		free(plist_del);
-		plist_del = NULL;
-	}
-}
-
-
-void
-segments_free(FRAGMENT *segments)
-{
-	FRAGMENT *seg_del = NULL;
-
-	while (segments != NULL) {
-		seg_del = segments;
-		segments = segments->next;
-		free(seg_del);
-		seg_del = NULL;
-	}
-}
 
 
 /* Strings Library */

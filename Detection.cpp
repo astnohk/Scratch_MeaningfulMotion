@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulA.h"
+#include "Scratch_MeaningfulMotion.h"
 
 #define DEBUG_FILTER
 
@@ -7,13 +7,12 @@
 double*
 DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("DetectScratch");
 
 	double *img = NULL;
 	double *scratches = NULL;
 	double *Ig = NULL;
-	SIZE size = SIZE_ZERO;
+	SIZE size;
 	int x, y, m, n;
 	double Im, Il, Ir;
 #if defined(DEBUG_FILTER)
@@ -22,10 +21,14 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 
 	size.width = (int)pnm->width;
 	size.height = (int)pnm->height;
-	if ((img = (double *)calloc((size_t)size.height * size.width, sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "scratches";
-		goto ErrorMalloc;
+	try {
+		img = new double[size.height * size.width];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("scratches");
+		Error.Malloc();
+		goto ExitError;
 	}
 	for (m = 0; m < size.height * size.width; m++) {
 		img[m] = (double)pnm->img[m];
@@ -35,17 +38,19 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 		case FILTER_ID_EPSILON: /* Epsilon Filter */
 			printf("* Epsilon filtering on input\n");
 			if ((Ig = EpsilonFilter(img, size, FilterParam)) == NULL) {
-				ErrorFunctionName = "EpsilonFilter";
-				ErrorValueName = "*Ig";
-				goto ErrorFunctionFailed;
+				Error.Function("EpsilonFilter");
+				Error.Value("*Ig");
+				Error.FunctionFail();
+				goto ExitError;
 			}
 			break;
 		case FILTER_ID_GAUSSIAN: /* Gaussian Filter */
 			printf("* Gaussian filtering on input\n");
 			if ((Ig = Gaussian(img, size, FilterParam)) == NULL) {
-				ErrorFunctionName = "Gaussian";
-				ErrorValueName = "*Ig";
-				goto ErrorFunctionFailed;
+				Error.Function("Gaussian");
+				Error.Value("*Ig");
+				Error.FunctionFail();
+				goto ExitError;
 			}
 			break;
 		default:
@@ -53,9 +58,10 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 	}
 #if defined(DEBUG_FILTER)
 	if (pnmnew(&pnm_out, PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm->maxint) != PNM_FUNCTION_SUCCESS) {
-		ErrorFunctionName = "pnmnew";
-		ErrorValueName = "pnm_out";
-		goto ErrorMalloc;
+		Error.Function("pnmnew");
+		Error.Value("pnm_out");
+		Error.Malloc();
+		goto ExitError;
 	}
 	for (m = 0; m < size.height * size.width; m++)
 		pnm_out.img[m] = (int)Ig[m];
@@ -69,9 +75,10 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 		Ig = NULL;
 	} else {
 		if ((scratches = (double *)calloc((size_t)size.height * size.width, sizeof(double))) == NULL) {
-			ErrorFunctionName = "calloc";
-			ErrorValueName = "scratches";
-			goto ErrorMalloc;
+			Error.Function("calloc");
+			Error.Value("scratches");
+			Error.Malloc();
+			goto ExitError;
 		}
 #pragma omp parallel for private(x, m, n, Im, Il, Ir)
 		for (y = 0; y < size.height; y++) {
@@ -97,24 +104,14 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 			}
 		}
 	}
-	free(Ig);
-	Ig = NULL;
-	free(img);
-	img = NULL;
+	delete[] Ig;
+	delete[] img;
 	return scratches;
 // Errors
-ErrorMalloc:
-	fprintf(stderr, "*** DetectScratch error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
-	goto ErrorReturn;
-ErrorFunctionFailed:
-	fprintf(stderr, "*** DetectScratch() error - %s() exited with FAILURE signal ***\n", ErrorFunctionName);
-ErrorReturn:
-	free(Ig);
-	Ig = NULL;
-	free(scratches);
-	scratches = NULL;
-	free(img);
-	img = NULL;
+ExitError:
+	delete[] Ig;
+	delete[] scratches;
+	delete[] img;
 	return NULL;
 }
 
@@ -122,18 +119,17 @@ ErrorReturn:
 SEGMENT*
 AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_Segments, int Max_Length, int Max_Output_Length)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
-	char *ErrorDescription = "";
+	ERROR Error("AlignedSegment_vertical");
+	std::string ErrorDescription;
+
 	double rad_offset = M_PI * (0.5 - 0.5 / (double)DIV_ANGLE_VERTICAL);
 	double tan_list[DIV_ANGLE];
 	int r, m, n, x, y;
 	int L;
 	double dx, dy;
-	SEGMENT *coord_array = NULL;
-	SEGMENTS_LIST coord_list = SEGMENTS_LIST_NULL;
-	SEGMENTS_LIST *plist = NULL;
-	SEGMENTS_LIST *plist_del = NULL;
+	SEGMENT *array_segment = NULL;
+	std::list<SEGMENT> list_segment;
+	std::list<SEGMENT>::iterator itr_segment;
 	double progress;
 	int current_count;
 
@@ -152,7 +148,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	}
 	progress = .0;
 	current_count = 0;
-	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End);
+	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) private(r, x, y, dx, dy)
 	for (n = 0; n < size.width; n++) {
 		for (r = 0; r < DIV_ANGLE; r++) {
@@ -165,7 +161,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 				dy = round(-n * tan_list[r]);
 			}
 			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
-			if (AlignedCheck(angles, size, k_list, Pr_table, &coord_list, l_min, 0, n, x, y, Max_Length, Max_Output_Length)
+			if (AlignedCheck(angles, size, k_list, Pr_table, &list_segment, l_min, 0, n, x, y, Max_Length, Max_Output_Length)
 			    != MEANINGFUL_SUCCESS) {
 				ErrorDescription = "Occured at Upper side to Other 3 sides";
 				n = size.width;
@@ -180,7 +176,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 				dy = size.height - 1 + round((size.width - 1 - n) * tan_list[r]);
 			}
 			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
-			if (AlignedCheck(angles, size, k_list, Pr_table, &coord_list, l_min, size.height - 1, n, x, y, Max_Length, Max_Output_Length)
+			if (AlignedCheck(angles, size, k_list, Pr_table, &list_segment, l_min, size.height - 1, n, x, y, Max_Length, Max_Output_Length)
 			    != MEANINGFUL_SUCCESS) {
 				ErrorDescription = "Occured at Bottom side to Other 3 sides";
 				n = size.width;
@@ -191,65 +187,58 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 				current_count++;
 				if (round((double)current_count / (DIV_ANGLE * size.width) * 1000.0) > progress) {
 					progress = round((double)current_count / (DIV_ANGLE * size.width) * 1000.0); // Take account of Overflow
-					printf("\r %5.1f%% |%s#\x1b[1A\n", progress * 0.1, Progress[NUM_PROGRESS * current_count / (DIV_ANGLE * size.width + 1)]);
+					printf("\r %5.1f%% |%s#\x1b[1A\n", progress * 0.1, Progress[NUM_PROGRESS * current_count / (DIV_ANGLE * size.width + 1)].c_str());
 				}
 			}
 		}
 	}
-	if (ErrorDescription[0] !='\0') {
-		goto ErrorOthers;
+	if (ErrorDescription.empty() != false) {
+		Error.Others(ErrorDescription.c_str());
+		goto ExitError;
 	}
 	printf("\nComplete!\n");
-	plist = coord_list.next;
+	// Count the number of segments
 	L = 0;
-	while (plist) {
+	for (itr_segment = list_segment.begin();
+	    itr_segment != list_segment.end();
+	    itr_segment++) {
 		L++;
-		plist = plist->next;
 	}
-	if ((coord_array = (SEGMENT *)calloc((size_t)L, sizeof(SEGMENT))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "coord_array";
-		goto ErrorMalloc;
+	try {
+		array_segment = new SEGMENT[L];
 	}
-	plist = coord_list.next;
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("array_coord");
+		Error.Malloc();
+		goto ExitError;
+	}
+	itr_segment = list_segment.begin();
 	for (m = 0; m < L; m++) {
-		coord_array[m] = (SEGMENT){plist->n, plist->m, plist->x, plist->y, plist->Pr};
-		plist_del = plist;
-		plist = plist->next;
-		free(plist_del);
+		array_segment[m] = *itr_segment;
+		itr_segment++;
 	}
-	plist_del = NULL;
 	*Num_Segments = L;
-	return coord_array;
-// Errors
-ErrorMalloc:
-	fprintf(stderr, "*** AlignedSegment_vertical() error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
-	goto ErrorReturn;
-ErrorOthers:
-	fprintf(stderr, "*** AlignedSegment_vertical() error - %s ***\n", ErrorDescription);
-ErrorReturn:
-	free(coord_array);
-	coord_array = NULL;
-	list_free(coord_list.next);
-	coord_list.next = NULL;
+	list_segment.clear();
+	return array_segment;
+// Error
+ExitError:
+	delete[] array_segment;
+	list_segment.clear();
 	return NULL;
 }
 
 
 int
-AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENTS_LIST *list_start, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length)
+AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_segment, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
-
-	FRAGMENT List_Segments = {0, 0, 0.0, NULL};
-	FRAGMENT *psegments = NULL;
-	FRAGMENT *seg_ref_prev = NULL;
-	FRAGMENT *seg_ref = NULL;
-	FRAGMENT *seg_current_prev = NULL;
-	FRAGMENT *seg_current = NULL;
-	FRAGMENT *pseg_del = NULL;
-	SEGMENTS_LIST *plist = NULL;
+	ERROR Error("AlignedCheck");
+	std::list<FRAGMENT> list_fragment;
+	std::list<FRAGMENT>::iterator itr_fragment;
+	std::list<FRAGMENT>::iterator fragment_ref;
+	std::list<FRAGMENT>::iterator fragment_cur;
+	FRAGMENT fragment_data;
+	SEGMENT segment_data;
 	double Pr_max, Pr_new;
 	double aligned_angle;
 	int L;
@@ -269,7 +258,6 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENTS_
 	}
 	dx = (x - n) / (double)(L - 1.0);
 	dy = (y - m) / (double)(L - 1.0);
-	psegments = NULL;
 	for (t_start = 0; t_start <= L - l_min; t_start++) {
 		tmpx = (int)round(dx * t_start + n);
 		tmpx = tmpx >= 0 ? (tmpx < size.width ? tmpx : size.width - 1) : 0;
@@ -284,13 +272,8 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENTS_
 				if (Max_Length > 0) {
 					if (t_end_max > 0 && t_end_max - t_start + 1 <= Max_Length && t_end - t_start + 1 > Max_Length) {
 						// The length of the segment EXCEEDS the length limit
-						if ((psegments = (FRAGMENT *)malloc(sizeof(FRAGMENT))) == NULL) {
-							ErrorFunctionName = "malloc";
-							ErrorValueName = "psegments";
-							goto ErrorMalloc;
-						}
-						*psegments = (FRAGMENT){t_start, t_end_max, Pr_max, List_Segments.next};
-						List_Segments.next = psegments;
+						fragment_data = (FRAGMENT){t_start, t_end_max, Pr_max};
+						list_fragment.push_front(fragment_data);
 						// Reset "t_end_max" but keep "Pr_max" to search the Longer Segments as if the process not limited by Length.
 						t_end_max = 0;
 					}
@@ -325,104 +308,69 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENTS_
 				}
 			}
 			if (t_end_max > 0) {
-				if ((psegments = (FRAGMENT *)malloc(sizeof(FRAGMENT))) == NULL) {
-					ErrorFunctionName = "malloc";
-					ErrorValueName = "psegments";
-					goto ErrorMalloc;
-				}
-				*psegments = (FRAGMENT){t_start, t_end_max, Pr_max, List_Segments.next};
-				List_Segments.next = psegments;
+				fragment_data = (FRAGMENT){t_start, t_end_max, Pr_max};
+				list_fragment.push_front(fragment_data);
 			}
 		}
 	}
 	// Maximal Meaningfulness
-	pseg_del = NULL;
-	seg_ref_prev = &List_Segments;
-	seg_ref = List_Segments.next;
-	while (seg_ref != NULL) {
-		seg_current_prev = &List_Segments;
-		seg_current = List_Segments.next;
-		while (seg_ref != NULL && seg_current != NULL) {
-			if (seg_ref == seg_current) {
-				seg_current_prev = seg_current;
-				seg_current = seg_current->next;
+	for (fragment_ref = list_fragment.begin();
+	    fragment_ref != list_fragment.end();
+	    fragment_ref++) {
+		fragment_cur = list_fragment.begin();
+		while (fragment_cur != list_fragment.end()) {
+			if (fragment_cur->start < 0 || fragment_cur == fragment_ref) {
+				fragment_cur++;
 				continue;
 			}
-			if (seg_ref->start <= seg_current->start && seg_current->end <= seg_ref->end) {
-				if (seg_ref->Pr <= seg_current->Pr) {
-					pseg_del = seg_current;
-					seg_current_prev->next = seg_current = pseg_del->next;
-					if (pseg_del == seg_ref_prev) {
-						seg_ref_prev = seg_current_prev;
-					}
+			if (fragment_ref->start <= fragment_cur->start && fragment_cur->end <= fragment_ref->end) {
+				// Delete the fragment which has higher probability
+				if (fragment_ref->Pr <= fragment_cur->Pr) {
+					fragment_cur->start = -1; // used as Flag of erase
+					fragment_cur++;
 				} else {
-					pseg_del = seg_ref;
-					seg_ref_prev->next = seg_ref = pseg_del->next;
-					if (pseg_del == seg_current_prev) {
-						seg_current_prev = seg_ref_prev;
-					}
+					fragment_ref->start = -1; // used as Flag of erase
+					fragment_ref++;
 				}
-				free(pseg_del);
-				pseg_del = NULL;
-			} else if (seg_current->start <= seg_ref->start && seg_ref->end <= seg_current->end) {
-				if (seg_current->Pr <= seg_ref->Pr) {
-					pseg_del = seg_ref;
-					seg_ref_prev->next = seg_ref = pseg_del->next;
-					if (pseg_del == seg_current_prev) {
-						seg_current_prev = seg_ref_prev;
-					}
+			} else if (fragment_cur->start <= fragment_ref->start && fragment_ref->end <= fragment_cur->end) {
+				if (fragment_cur->Pr <= fragment_ref->Pr) {
+					fragment_ref->start = -1;
+					fragment_ref++;
 				} else {
-					pseg_del = seg_current;
-					seg_current_prev->next = seg_current = pseg_del->next;
-					if (pseg_del == seg_ref_prev) {
-						seg_ref_prev = seg_current_prev;
-					}
+					fragment_cur->start = -1;
+					fragment_cur++;
 				}
-				free(pseg_del);
-				pseg_del = NULL;
 			} else {
-				seg_current_prev = seg_current;
-				seg_current = seg_current->next;
+				fragment_cur++;
+			}
+			if (fragment_ref == list_fragment.end()){
+				break;
 			}
 		}
-		seg_current_prev = NULL;
-		seg_current = NULL;
-		if (seg_ref != NULL) {
-			seg_ref_prev = seg_ref;
-			seg_ref = seg_ref->next;
-		}
 	}
-	seg_ref_prev = NULL;
-	seg_ref = NULL;
 	// Write out to coord_list
-	psegments = List_Segments.next;
-	while (psegments != NULL) {
+	for (itr_fragment = list_fragment.begin();
+	    itr_fragment != list_fragment.end();
+	    itr_fragment++) {
+		if (itr_fragment->start < 0) {
+			continue;
+		}
 		// If Max_Output_Length <= 0 then Do NOT Limit The Length of Segments
 		if (Max_Output_Length <= 0
-		    || ((Max_Output_Length > 0) && (psegments->end - psegments->start + 1) <= Max_Output_Length)) {
-			if ((plist = (SEGMENTS_LIST *)malloc(sizeof(SEGMENTS_LIST))) == NULL) {
-				ErrorFunctionName = "malloc";
-				ErrorValueName = "plist";
-				goto ErrorMalloc;
-			}
+		    || (itr_fragment->end - itr_fragment->start + 1) <= Max_Output_Length) {
 #pragma omp critical
 			{
-				*plist = (SEGMENTS_LIST){(int)round(n + dx * psegments->start), (int)round(m + dy * psegments->start), (int)round(n + dx * psegments->end), (int)round(m + dy * psegments->end), psegments->Pr, list_start->next};
-				list_start->next = plist;
+				segment_data = (SEGMENT){
+				    (int)round(n + dx * itr_fragment->start),
+				    (int)round(m + dy * itr_fragment->start),
+				    (int)round(n + dx * itr_fragment->end),
+				    (int)round(m + dy * itr_fragment->end),
+				    itr_fragment->Pr};
+				list_segment->push_front(segment_data);
 			}
 		}
-		pseg_del = psegments;
-		psegments = psegments->next;
-		List_Segments.next = psegments;
-		free(pseg_del);
-		pseg_del = NULL;
 	}
+	list_fragment.clear();
 	return MEANINGFUL_SUCCESS;
-// Errors
-ErrorMalloc:
-	fprintf(stderr, "*** AlignedCheck() error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
-	segments_free(List_Segments.next);
-	List_Segments.next = NULL;
-	return MEANINGFUL_FAILURE;
 }
 

@@ -4,13 +4,16 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-#include "Scratch_MeaningfulA.h"
+#include "Scratch_MeaningfulMotion.h"
 #include "MultiResolution.h"
 #include "OpticalFlow_MultipleMotion.h"
 
 
+/* IRLS parameters */
+#define IRLS_ITER_MAX 512
+
 /* define for debug */
-#define SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_ERROR
+#define SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
 /* /define for debug */
 
 
@@ -69,6 +72,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOT
 	}
 
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
+		printf("\nLevel %d :\n", level);
 		size_img_res.width = floor(size_img.width * pow_int(0.5, level));
 		size_img_res.height = floor(size_img.height * pow_int(0.5, level));
 		for (i = 0; i < size_img.width * size_img.height; i++) {
@@ -76,7 +80,8 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOT
 			u[i].y *= 2.0;
 		}
 		IRLS_MultipleMotion_OpticalFlow(u, grad_It_levels[level], I_dt_levels[level], size_img_res,
-		    MotionParam.lambdaD, MotionParam.lambdaS, MotionParam.sigmaD, MotionParam.sigmaS);
+		    MotionParam.lambdaD, MotionParam.lambdaS, MotionParam.sigmaD, MotionParam.sigmaS,
+		    MotionParam.IRLS_Iter_Max, MotionParam.Error_Min_Threshold);
 	}
 	free(grad_It_levels);
 	free(I_dt_levels);
@@ -103,13 +108,13 @@ ErrorReturn:
 
 
 int
-IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
+IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold)
 {
-#define IRLS_ITER_MAX 300
 	char *FunctionName = "IRLS";
 	VECTOR_2D *u_np1 = NULL;
-	VECTOR_2D sup;
-	VECTOR_2D dE;
+	VECTOR_2D sup = VECTOR_2D_ZERO;
+	VECTOR_2D dE = VECTOR_2D_ZERO;
+	double E = 0.0;
 	int site;
 	double myu_max;
 	double omega;
@@ -119,12 +124,11 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*u_np1) ***\n", FunctionName);
 		return MEANINGFUL_FAILURE;
 	}
-	printf("initialE = %e\n", Error_MultipleMotion(u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS));
-	for (n = 0; n < IRLS_ITER_MAX; n++) {
-		//myu_max = cos(M_PI / (n + 2.0)); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
-		myu_max = 1.0 - pow_int(0.9, n + 1); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
-		if (fabs(myu_max) < 1.0E-6) {
-			myu_max = 1.0E-6;
+	for (n = 0; n < IterMax; n++) {
+		myu_max = cos(M_PI / (n + 2.0)); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
+		//myu_max = 1.0 - pow_int(0.9, n + 1); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
+		if (fabs(myu_max) < 1.0E-50) {
+			myu_max = 1.0E-50;
 		}
 		omega = 2.0 * (1.0 - sqrt(1.0 - POW2(myu_max))) / POW2(myu_max);
 		for (site = 0; site < size_img.width * size_img.height; site++) { /* Calc for all sites */
@@ -136,9 +140,13 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 		for (site = 0; site < size_img.width * size_img.height; site++) { /* Calc for all sites */
 			u[site] = u_np1[site];
 		}
-#ifdef SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_ERROR
-		if ((n & 0x0F) == 0) {
-			printf("E(%4d) = %e\n", n, Error_MultipleMotion(u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS));
+		E = Error_MultipleMotion(u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+#ifdef SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
+		if ((n & 0x3F) == 0) {
+			printf("E(%4d) = %e\n", n, E);
+		}
+		if (E < ErrorMinThreshold) {
+			break;
 		}
 #endif
 	}

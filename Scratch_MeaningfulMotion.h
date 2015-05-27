@@ -120,10 +120,9 @@ class ERROR
 		std::string ValueName;
 		std::string FileName;
 	public:
-		ERROR();
 		// Error data set
+		ERROR(const char *name);
 		void Function(const char *name);
-		void ErrorFunction(const char *name);
 		void Value(const char *name);
 		void File(const char *name);
 		// Error output
@@ -160,9 +159,8 @@ struct FRAGMENT
 	int start;
 	int end;
 	double Pr;
-	FRAGMENT *next;
 	FRAGMENT(void);
-	FRAGMENT(int s, int e, double prob, FRAGMENT *p);
+	FRAGMENT(int s, int e, double prob);
 };
 
 struct SEGMENT
@@ -228,8 +226,6 @@ struct OPTICALFLOW_PARAM
 	double IRLS_Min_C;
 	OPTICALFLOW_PARAM(void);
 };
-#define OPTICALFLOW_PARAM_DEFAULT (OPTICALFLOW_PARAM){1, (SIZE){25, 25}, 1600, 1.0E-20, 8}
-
 
 #define NUM_AFFINE_PARAMETER 6
 struct VECTOR_AFFINE
@@ -241,18 +237,14 @@ struct VECTOR_AFFINE
 struct MULTIPLE_MOTION_PARAM
 {
 	int Level;
-	SIZE WindowSize;
 	int IRLS_Iter_Max;
-	double IRLS_Min_Threshold;
+	double Error_Min_Threshold;
 	double lambdaD;
 	double lambdaS;
 	double sigmaD;
 	double sigmaS;
 	MULTIPLE_MOTION_PARAM(void);
 };
-#define MULTIPLE_MOTION_PARAM_DEFAULT (MULTIPLE_MOTION_PARAM){4, (SIZE){25, 25}, 16, 0.0001, 5, 1, 12.72, 2.121}
-/* /MultipleMotion.c */
-
 
 struct OPTIONS
 {
@@ -283,9 +275,6 @@ struct OPTIONS
 #define PLOT_NEGATE 0x01
 #define PLOT_AS_RESAMPLE 0x02
 #define PLOT_RESAMPLED_IMG_ONLY 0x04
-
-#define OPTIONS_DEFAULT (OPTIONS){SIZE_ZERO, "z-hold", 0, 0, 0, MEANINGFUL_FALSE, 0, 0, SCRATCH_MED_THRESHOLD, SCRATCH_AVG_THRESHOLD, DIR_PROBABILITY, EPSILON, EXCLUSIVE_PRINCIPLE_MAX_RADIUS, OPTICALFLOW_PARAM_DEFAULT, MULTIPLE_MOTION_PARAM_DEFAULT}
-
 
 /* X11 structures */
 /* * X11 Plotting Parameters */
@@ -340,10 +329,6 @@ extern const std::string Progress_End;
 /* Prototype of functions */
 int Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
 
-/* Memory Libraries */
-void list_free(std::list<SEGMENT>* plist);
-void segments_free(FRAGMENT *segments);
-
 /* Mathematical Libraries */
 double pow_int(double x, int a);
 double atan2_div_pi_table(int y, int x, SIZE *size);
@@ -371,7 +356,7 @@ double* DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterP
 
 /* Meaningful Alignments */
 SEGMENT* AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
-int AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_start, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length);
+int AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_segment, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length);
 SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
 
 /* Plotting */

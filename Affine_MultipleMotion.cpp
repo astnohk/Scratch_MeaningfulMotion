@@ -34,7 +34,6 @@ MultipleMotion_Affine(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOTION_P
 		ErrorValue = "Itp1";
 		goto ErrorPointerNull;
 	}
-MotionParam.Level = 3;
 
 	/* Make Pyramid */
 	if ((It_levels = Pyramider(It, size_img, MotionParam.Level)) == NULL) {
@@ -64,11 +63,14 @@ MotionParam.Level = 3;
 		u.a[i] = .0;
 	}
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
+		printf("\nLevel %d :\n", level);
 		u.a[0] *= 2;
 		u.a[3] *= 2;
 		size_img_res.width = floor(size_img.width * pow_int(0.5, level));
 		size_img_res.height = floor(size_img.height * pow_int(0.5, level));
-		IRLS_MultipleMotion_Affine(&u, grad_It_levels[level], I_dt_levels[level], size_img_res, MotionParam.sigmaD);
+		IRLS_MultipleMotion_Affine(&u, grad_It_levels[level], I_dt_levels[level], size_img_res,
+		    MotionParam.sigmaD,
+		    MotionParam.IRLS_Iter_Max, MotionParam.Error_Min_Threshold);
 	}
 	free(grad_It_levels);
 	free(I_dt_levels);
@@ -94,18 +96,18 @@ ErrorReturn:
 
 
 int
-IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD)
+IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
-#define IRLS_ITER_MAX 160
 	VECTOR_AFFINE u_np1;
 	VECTOR_AFFINE sup;
 	VECTOR_AFFINE dE;
+	double E = 0.0;
 	double myu_max;
 	double omega;
 	int i, n;
 
 	printf("sigmaD = %e\n", sigmaD);
-	for (n = 0; n < IRLS_ITER_MAX; n++) {
+	for (n = 0; n < IterMax; n++) {
 		myu_max = cos(M_PI / (n + 1.0)); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
 		if (fabs(myu_max) < 1.0E-10) {
 			myu_max = 1.0E-10;
@@ -124,8 +126,13 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SI
 			}
 		}
 		*u = u_np1;
-		printf("u = [% e, % e, % e, % e, % e, % e]\n", u->a[0], u->a[1], u->a[2], u->a[3], u->a[4], u->a[5]);
-		//printf("E = %e\n", Error_Affine(u, Img_g, Img_t, size_img, sigmaD));
+		E = Error_Affine(u, Img_g, Img_t, size_img, sigmaD);
+		if ((n & 0x3F) == 0) {
+			printf("E(%4d) = %e,  u = [%.4e, %.4e, %.4e, %.4e, %.4e, %.4e]\n", n, E, u->a[0], u->a[1], u->a[2], u->a[3], u->a[4], u->a[5]);
+		}
+		if (E < ErrorMinThreshold) {
+			break;
+		}
 	}
 	return MEANINGFUL_SUCCESS;
 }

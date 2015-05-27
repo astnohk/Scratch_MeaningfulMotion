@@ -3,14 +3,13 @@
 
 
 
-void
-ERROR::Function(const char *name)
+ERROR::ERROR(const char *name)
 {
 	FunctionName = name;
 }
 
 void
-ERROR::ErrorFunction(const char *name)
+ERROR::Function(const char *name)
 {
 	ErrorFunctionName = name;
 }
