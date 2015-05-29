@@ -5,6 +5,8 @@
 int*
 PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate)
 {
+	ERROR Error("PlotSegment");
+
 	int *segments = NULL;
 	int Foreground = PLOT_INTENSITY_MAX;
 	double scale_x, scale_y;
@@ -15,7 +17,7 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 	int i, t;
 
 	if ((segments = (int *)calloc((size_t)size_out.height * size_out.width, sizeof(int))) == NULL) {
-		fprintf(stderr, "calloc error on PlotSegment() (*segments)\n");
+		Error.Others("calloc error on PlotSegment() (*segments)");
 		return NULL;
 	}
 	scale_x = (double)size_out.width / size.width;
@@ -51,49 +53,53 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 int
 Superimposer(PNM *pnm_out, PNM *pnm_in, int *Plot, SIZE size, int Color, int Negate)
 {
-	char *FunctionName = "Superimposer";
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
-
+	ERROR Error("Superimposer");
 	int i;
 	int tmp;
 
 	if (pnm_out == NULL) {
-		ErrorValueName = "pnm_out";
-		goto ErrorPointerNull;
+		Error.Value("pnm_out");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (pnm_in == NULL) {
-		ErrorValueName = "pnm_in";
-		goto ErrorPointerNull;
+		Error.Value("pnm_in");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (pnm_isNULL(pnm_in) == PNM_TRUE) {
-		ErrorValueName = "pnm_in";
-		goto ErrorValueIncorrect;
+		Error.Value("pnm_in");
+		Error.ValueIncorrect();
+		goto ExitError;
 	} else if (Plot == NULL) {
-		ErrorValueName = "Plot";
-		goto ErrorPointerNull;
+		Error.Value("Plot");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (size.width <= 0 || size.height <= 0) {
-		ErrorValueName = "size";
-		goto ErrorValueIncorrect;
+		Error.Value("size");
+		Error.ValueIncorrect();
+		goto ExitError;
 	}
 
 	if (pnm_isNULL(pnm_out) == PNM_FALSE) {
-		fprintf(stderr, "*** %s() warning - Output (struct PNM) pnm_out is NOT NULL or NOT initialized ***\n", FunctionName);
+		Error.OthersWarning("Output (struct PNM) pnm_out is NOT NULL or NOT initialized");
 		pnmfree(pnm_out);
 	}
 	tmp = pnm_isRGB(pnm_in);
 	if (tmp == PNM_FUNCTION_ERROR) {
-		fprintf(stderr, "*** %s() error - Cannot check whether the input image is RGB or not. (Possibly (*pnm_in) is NULL) ***\n", FunctionName);
-		goto ErrorReturn;
+		Error.Others("Cannot check whether the input image is RGB or not. (Possibly (*pnm_in) is NULL)");
+		goto ExitError;
 	} else if (tmp == PNM_TRUE) {
 		if (pnmcp(pnm_out, pnm_in) != PNM_FUNCTION_SUCCESS) {
-			ErrorFunctionName = "pnmcp";
-			ErrorValueName = "(pnm_in -> pnm_out)";
-			goto ErrorFunctionFailed;
+			Error.Function("pnmcp");
+			Error.Value("(pnm_in -> pnm_out)");
+			Error.FunctionFail();
+			goto ExitError;
 		}
 	} else {
 		if (pnm_Gray2RGB(pnm_out, pnm_in) != PNM_FUNCTION_SUCCESS) {
-			ErrorFunctionName = "pnmcp_Gray2RGB";
-			ErrorValueName = "(pnm_in -> pnm_out)";
-			goto ErrorFunctionFailed;
+			Error.Function("pnmcp_Gray2RGB");
+			Error.Value("(pnm_in -> pnm_out)");
+			Error.FunctionFail();
+			goto ExitError;
 		}
 	}
 	pnm_out->desc = PORTABLE_PIXMAP_BINARY;
@@ -163,15 +169,7 @@ Superimposer(PNM *pnm_out, PNM *pnm_in, int *Plot, SIZE size, int Color, int Neg
 	}
 	return MEANINGFUL_SUCCESS;
 /* Error */
-ErrorFunctionFailed:
-	fprintf(stderr, "*** %s() error - %s() failed to compute (%s) ***\n", FunctionName, ErrorFunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorValueIncorrect:
-	fprintf(stderr, "*** %s() error - The variable (%s) has incorrect value ***\n", FunctionName, ErrorValueName);
-ErrorReturn:
+ExitError:
 	pnmfree(pnm_out);
 	return MEANINGFUL_FAILURE;
 }

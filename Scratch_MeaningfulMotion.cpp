@@ -9,8 +9,7 @@
 int
 Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam)
 {
-	ERROR Error;
-	Error.Function("Scratch_MeaningfulMotion()");
+	ERROR Error("Scratch_MeaningfulMotion()");
 	char Bars[] = "------------------------------------------------";
 
 	const std::string FilterNames[] = {"undefined", "Epsilon", "Gaussian"};
@@ -55,7 +54,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		InputNameNums = new char[InputNameLength + 1u];
 	}
 	catch (std::bad_alloc bad) {
-		Error.ErrorFunction("new");
+		Error.Function("new");
 		Error.Value("InputNameNums");
 		Error.Malloc();
 		goto ExitError;
@@ -64,7 +63,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		OutputNameNums = new char[OutputNameLength + 1u];
 	}
 	catch (std::bad_alloc bad) {
-		Error.ErrorFunction("new");
+		Error.Function("new");
 		Error.Value("OutputNameNums");
 		Error.Malloc();
 		goto ExitError;
@@ -78,7 +77,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		}
 		if (pnmread(&pnm_orig, InputNameNums) == PNM_FUNCTION_ERROR) {
 			fprintf(stderr, "*** Scratch_MeaningfulA error - Failed to read the PNM file \"%s\" ***\n", InputNameNums);
-			Error.ErrorFunction("pnmread");
+			Error.Function("pnmread");
 			Error.File(InputNameNums);
 			Error.FileRead();
 			goto ExitError;
@@ -119,26 +118,26 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		if (size_res.width > 0 || size_res.height > 0) { /* Resample */
 			size = size_res;
 			if (pnm_int2double(&pnmd_in, &pnm_orig, 1.0, NULL) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_int2double");
+				Error.Function("pnm_int2double");
 				Error.Value("(pnmd_orig -> pnmd_in)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			if (pnm_resize(&pnmd_out, &pnmd_in, size_res.width, size_res.height, Options.ResampleMethod.c_str()) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_resize");
+				Error.Function("pnm_resize");
 				Error.Value("(pnmd_in -> pnmd_out)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			pnmdouble_free(&pnmd_in);
 			if (pnm_double2int(&pnm_res, &pnmd_out, 1.0, "round", NULL) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_double2int");
+				Error.Function("pnm_double2int");
 				Error.Value("(pnmd_out -> pnm_res)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			if (pnm_double2int(&pnm_in, &pnmd_out, 1.0, "round", NULL) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_double2int");
+				Error.Function("pnm_double2int");
 				Error.Value("(pnmd_out -> pnm_in)");
 				Error.FunctionFail();
 				goto ExitError;
@@ -146,7 +145,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			pnmdouble_free(&pnmd_out);
 		} else {
 			if (pnmcp(&pnm_in, &pnm_orig) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnmcp");
+				Error.Function("pnmcp");
 				Error.Value("(pnm_orig -> pnm_in)");
 				Error.FunctionFail();
 				goto ExitError;
@@ -155,7 +154,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		if ((Options.PlotOptions & PLOT_RESAMPLED_IMG_ONLY) != 0) {
 			/* Just output only the resampled image */
 			if (pnmcp(&pnm_out, &pnm_in) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnmcp");
+				Error.Function("pnmcp");
 				Error.Value("(pnm_in -> pnm_out)");
 				Error.FunctionFail();
 				goto ExitError;
@@ -167,13 +166,13 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			printf("* Convert the image to grayscale before applying Meaningful Alignments.\n");
 			printf("Convert...   ");
 			if (pnm_int2double(&pnmd_in, &pnm_in, 1.0, NULL) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_int2double");
+				Error.Function("pnm_int2double");
 				Error.Value("(pnm_in -> pnmd_in)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			if (pnm_RGB2Gray(&pnmd_out, &pnmd_in) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_RGB2Gray");
+				Error.Function("pnm_RGB2Gray");
 				Error.Value("(pnmd_in -> pnmd_out)");
 				Error.FunctionFail();
 				goto ExitError;
@@ -181,7 +180,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			pnmdouble_free(&pnmd_in);
 			pnmfree(&pnm_in);
 			if (pnm_double2int(&pnm_in, &pnmd_out, 1.0, "round", NULL) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnm_double2int");
+				Error.Function("pnm_double2int");
 				Error.Value("(pnmd_out -> pnm_in)");
 				Error.FunctionFail();
 				goto ExitError;
@@ -235,14 +234,14 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			printf("* Filtering\n");
 			filtered = DetectScratch(&pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_NOT_DETECTION);
 			if (filtered == NULL) {
-				Error.ErrorFunction("DetectScratch");
+				Error.Function("DetectScratch");
 				Error.Value("filtered");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			printf("* Output Filtered Image\n");
 			if (pnmnew(&pnm_out, PORTABLE_GRAYMAP_BINARY, size_res.width, size_res.height, pnm_in.maxint) != PNM_FUNCTION_SUCCESS) {
-				Error.ErrorFunction("pnmnew");
+				Error.Function("pnmnew");
 				Error.Value("pnm_out");
 				Error.Malloc();
 				goto ExitError;
@@ -279,7 +278,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Optical Flow Affine Parameters by method of J.M.Odobez\n");
 				OpticalFlow_Affine = OpticalFlow_AffineParamet(pnmd_prev.imgd, pnmd_in.imgd, size_orig, Options.OpticalFlow_Param);
 				if (OpticalFlow_Affine == NULL) {
-					Error.ErrorFunction("OpticalFlow_RMR");
+					Error.Function("OpticalFlow_RMR");
 					Error.Value("OpticalFlow_Affine");
 					Error.FunctionFail();
 					goto ExitError;
@@ -290,7 +289,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			printf("* Detect Scratch like vertical lines\n");
 			scratches = DetectScratch(&pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_DETECTION);
 			if (scratches == NULL) {
-				Error.ErrorFunction("DetectScratch");
+				Error.Function("DetectScratch");
 				Error.Value("scratches");
 				Error.FunctionFail();
 				goto ExitError;
@@ -302,7 +301,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			if ((Options.mode & MODE_OUTPUT_BINARY_IMAGE) != 0) {
 				// Output Scratch Map without Meaningful Alignments
 				if (pnmcp(&pnm_out, &pnm_in) != PNM_FUNCTION_SUCCESS) {
-					Error.ErrorFunction("pnmcp");
+					Error.Function("pnmcp");
 					Error.Value("(pnm_in -> pnm_out)");
 					Error.FunctionFail();
 					goto ExitError;
@@ -315,7 +314,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 						Pr_table = new double[(maxMN + 1) * (maxMN + 1)];
 					}
 					catch (std::bad_alloc bad) {
-						Error.ErrorFunction("new");
+						Error.Function("new");
 						Error.Value("Pr_table");
 						Error.Malloc();
 						goto ExitError;
@@ -345,7 +344,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					printf("* Compute k_list\n");
 					k_list = Calc_k_l(size, Options.p, Options.ep);
 					if (k_list == NULL) {
-						Error.ErrorFunction("Calc_k_l");
+						Error.Function("Calc_k_l");
 						Error.Value("k_list");
 						Error.FunctionFail();
 						goto ExitError;
@@ -355,7 +354,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Direction Field\n");
 				angles = DerivativeAngler(scratches, size);
 				if (angles ==NULL) {
-					Error.ErrorFunction("Derivation");
+					Error.Function("Derivation");
 					Error.Value("angles");
 					Error.FunctionFail();
 					goto ExitError;
@@ -363,7 +362,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Segments and Maximal Meaningfulness\n");
 				MaximalSegments = AlignedSegment_vertical(angles, size, k_list, l_min, Pr_table, &Num_Segments, Options.Max_Length, Options.Max_Output_Length);
 				if (MaximalSegments == NULL) {
-					Error.ErrorFunction("AlignedSegment_vertical");
+					Error.Function("AlignedSegment_vertical");
 					Error.Value("MaximalSegments");
 					Error.FunctionFail();
 					goto ExitError;
@@ -373,7 +372,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					printf("* Delete Redundant Segments by Exclusive Principle\n");
 					EPSegments = ExclusivePrinciple(angles, size, k_list, Pr_table, MaximalSegments, &Num_Segments, Options.Exclusive_Max_Radius);
 					if (EPSegments == NULL) {
-						Error.ErrorFunction("ExclusivePrinciple");
+						Error.Function("ExclusivePrinciple");
 						Error.Value("EPSegments");
 						Error.FunctionFail();
 						goto ExitError;
@@ -390,7 +389,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("\n");
 				segments = PlotSegment(MaximalSegments, Num_Segments, size, size_out, Options.PlotOptions & PLOT_NEGATE);
 				if (segments == NULL) {
-					Error.ErrorFunction("PlotSegment");
+					Error.Function("PlotSegment");
 					Error.Value("segments");
 					Error.FunctionFail();
 					goto ExitError;
@@ -399,14 +398,14 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					printf("* Superimpose plot image on original image\n");
 					if ((Options.PlotOptions & PLOT_AS_RESAMPLE) != 0) {
 						if (Superimposer(&pnm_out, &pnm_res, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
-							Error.ErrorFunction("Superimposer");
+							Error.Function("Superimposer");
 							Error.Value("pnm_out");
 							Error.FunctionFail();
 							goto ExitError;
 						}
 					} else {
 						if (Superimposer(&pnm_out, &pnm_orig, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
-							Error.ErrorFunction("Superimposer");
+							Error.Function("Superimposer");
 							Error.Value("pnm_out");
 							Error.FunctionFail();
 							goto ExitError;
@@ -414,7 +413,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					}
 				} else {
 					if (pnmnew(&pnm_out, PORTABLE_GRAYMAP_BINARY, size_out.width, size_out.height, pnm_orig.maxint) != PNM_FUNCTION_SUCCESS) {
-						Error.ErrorFunction("pnmnew");
+						Error.Function("pnmnew");
 						Error.Value("pnm_out");
 						Error.Malloc();
 						goto ExitError;
@@ -448,7 +447,7 @@ Write:
 		if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			if (pnmdouble_isNULL(&pnmd_prev) == PNM_FALSE
 			    && MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums) == MEANINGFUL_FAILURE) {
-				Error.ErrorFunction("MultipleMotion_Affine_write");
+				Error.Function("MultipleMotion_Affine_write");
 				Error.Value("MultipleMotions_Affine");
 				Error.FunctionFail();
 				goto ExitError;
@@ -456,7 +455,7 @@ Write:
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			if (pnmdouble_isNULL(&pnmd_prev) == PNM_FALSE
 			    && MultipleMotion_write(MultipleMotion_u, size_orig, OutputNameNums) == MEANINGFUL_FAILURE) {
-				Error.ErrorFunction("MultipleMotion_write");
+				Error.Function("MultipleMotion_write");
 				Error.Value("MultipleMotions_u");
 				Error.FunctionFail();
 				goto ExitError;
@@ -464,14 +463,14 @@ Write:
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW_AFFINE_PARAMETER) != 0) {
 			if (pnmdouble_isNULL(&pnmd_prev) == PNM_FALSE
 			    && OpticalFlow_write(OpticalFlow_Affine, size_orig, OutputNameNums) == MEANINGFUL_FAILURE) {
-				Error.ErrorFunction("OpticalFlow_write");
+				Error.Function("OpticalFlow_write");
 				Error.Value("OpticalFlow_Affine");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 		} else {
 			if (pnmwrite(&pnm_out, OutputNameNums) == PNM_FUNCTION_ERROR) {
-				Error.ErrorFunction("pnmwrite");
+				Error.Function("pnmwrite");
 				Error.File(OutputNameNums);
 				Error.FileWrite();
 				goto ExitError;

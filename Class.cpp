@@ -8,6 +8,12 @@ ERROR::ERROR(const char *name)
 	FunctionName = name;
 }
 
+const char *
+ERROR::OutputFunctionName(void)
+{
+	return FunctionName.c_str();
+}
+
 void
 ERROR::Function(const char *name)
 {
@@ -33,6 +39,12 @@ ERROR::Others(const char *error)
 }
 
 void
+ERROR::OthersWarning(const char *error)
+{
+	fprintf(stderr, "*** %s() warning - %s ***\n", FunctionName.c_str(), error);
+}
+
+void
 ERROR::Malloc(void)
 {
 	fprintf(stderr, "*** %s() error - Cannot allocate memory for (*%s) ***\n", FunctionName.c_str(), ValueName.c_str());
@@ -48,6 +60,12 @@ void
 ERROR::PointerNull(void)
 {
 	fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName.c_str(), ValueName.c_str());
+}
+
+void
+ERROR::ValueIncorrect(void)
+{
+	fprintf(stderr, "*** %s() error - The value (%s) is invalid value ***\n", FunctionName.c_str(), ValueName.c_str());
 }
 
 void

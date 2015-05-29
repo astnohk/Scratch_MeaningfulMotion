@@ -122,14 +122,17 @@ class ERROR
 	public:
 		// Error data set
 		ERROR(const char *name);
+		const char* OutputFunctionName(void);
 		void Function(const char *name);
 		void Value(const char *name);
 		void File(const char *name);
 		// Error output
 		void Others(const char *error);
+		void OthersWarning(const char *error);
 		void Malloc(void);
 		void FunctionFail(void);
 		void PointerNull(void);
+		void ValueIncorrect(void);
 		void ImageSize(void);
 		void FileRead(void);
 		void FileWrite(void);
@@ -340,7 +343,7 @@ double* Gaussian(double *img, SIZE size, FILTER_PARAM Param);
 double* EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param);
 double HorizontalMedian(double *img, int N, int x, int y, int width);
 double* DerivativeAngler(double *img, SIZE size);
-VECTOR_2D* Derivator(double *Image, SIZE size, char *Type);
+VECTOR_2D* Derivator(double *Image, SIZE size, const char *Type);
 double* Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size);
 double* Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring);
 int IndexOfMirroring(int x, int size);

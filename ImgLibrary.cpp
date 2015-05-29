@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulA.h"
+#include "Scratch_MeaningfulMotion.h"
 
 //#define SHOW_GAUSSIAN_FILTER
 
@@ -6,6 +6,8 @@
 double
 HorizontalMedian(double *img, int img_width, int x, int y, int width)
 {
+	ERROR Error("HorizontalMedian");
+
 	double *array = NULL;
 	int L = 0;
 	int m_s, m_e;
@@ -23,7 +25,7 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 		m_e = width / 2;
 	}
 	if ((array = (double *)calloc((size_t)(m_e - m_s + 1), sizeof(double))) == NULL) {
-		fprintf(stderr, "HorizontalMedian() error - Cannot allocate memory for (*array) by calloc() ***\n");
+		Error.Others("Cannot allocate memory for (*array) by calloc()");
 		return 0;
 	}
 	for (m = m_s; m < m_e; m++) {
@@ -53,10 +55,7 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 double*
 EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
-	int ErrorValue = 0;
-	double ErrorValueDouble = .0;
+	ERROR Error("EpsilonFilter");
 
 	double *Epsilon = NULL;
 	int filter_width_2 = (int)floor(Param.size.width / 2.0);
@@ -69,26 +68,31 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 	int tmp;
 
 	if (Param.epsilon < .0) {
-		ErrorValueName = "epsilon";
-		ErrorValueDouble = Param.epsilon;
-		goto ErrorIncorrectValueDouble;
+		Error.Value("epsilon");
+		Error.ValueIncorrect();
+		goto ExitError;
 	} else if (Param.size.width <= 0 || Param.size.width % 2 == 0) {
-		ErrorValueName = "Param.size.width";
-		ErrorValue = Param.size.width;
-		goto ErrorIncorrectValue;
+		Error.Value("Param.size.width");
+		Error.ValueIncorrect();
+		goto ExitError;
 	} else if (Param.size.height <= 0 || Param.size.height % 2 == 0) {
-		ErrorValueName = "Param.size.height";
-		ErrorValue = Param.size.height;
-		goto ErrorIncorrectValue;
+		Error.Value("Param.size.height");
+		Error.ValueIncorrect();
+		goto ExitError;
 	} else if (img == NULL) {
-		ErrorValueName = "img";
-		goto ErrorPointerNull;
+		Error.Value("img");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
-	if ((Epsilon = (double *)calloc((size_t)(size.width * size.height), sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "Epsilon";
-		goto ErrorMalloc;
+	try {
+		Epsilon = new double[size.width * size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Epsilon");
+		Error.Malloc();
+		goto ExitError;
 	}
 #pragma omp parallel for private(x, fx, fy, n, m, center, tmp)
 	for (y = 0; y < size.height; y++) {
@@ -142,19 +146,8 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 		}
 	}
 	return Epsilon;
-/* Error */
-ErrorMalloc:
-	fprintf(stderr, "*** EpsilonFilter() error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** EpsilonFilter() error - The pointer (*%s) is NULL ***\n", ErrorValueName);
-	goto ErrorReturn;
-ErrorIncorrectValue:
-	fprintf(stderr, "*** EpsilonFilter() error - The variable (%s) has incorrect value (%d) ***\n", ErrorValueName, ErrorValue);
-	goto ErrorReturn;
-ErrorIncorrectValueDouble:
-	fprintf(stderr, "*** EpsilonFilter() error - The variable (%s) has incorrect value (%f) ***\n", ErrorValueName, ErrorValueDouble);
-ErrorReturn:
+// Error
+ExitError:
 	free(Epsilon);
 	return NULL;
 }
@@ -163,8 +156,8 @@ ErrorReturn:
 double*
 Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("Gaussian");
+
 	double *blurred = NULL;
 	double *Gauss = NULL;
 	int filter_width_2 = 0;
@@ -184,10 +177,14 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	}
 	filter_width_2 = Param.size.width / 2;
 	filter_height_2 = Param.size.height / 2;
-	if ((Gauss = (double *)calloc((size_t)(Param.size.width * Param.size.height), sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "Gauss";
-		goto ErrorMalloc;
+	try {
+		Gauss = new double[Param.size.width * Param.size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Gauss");
+		Error.Malloc();
+		goto ExitError;
 	}
 	sum = 0;
 #if defined(SHOW_GAUSSIAN_FILTER)
@@ -240,10 +237,14 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	for (m = 0; m < Param.size.width * Param.size.height; m++) {
 		Gauss[m] /= sum;
 	}
-	if ((blurred = (double *)calloc((size_t)(size.height * size.width), sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "blurred";
-		goto ErrorMalloc;
+	try {
+		blurred = new double[size.height * size.width];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("blurred");
+		Error.Malloc();
+		goto ExitError;
 	}
 #pragma omp parallel for private(n, x, y, i, j, tmp)
 	for (m = 0; m < size.height; m++) {
@@ -293,12 +294,9 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	Gauss = NULL;
 	return blurred;
 // Errors
-ErrorMalloc:
-	fprintf(stderr, "*** Gaussian() error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
+ExitError:
 	free(blurred);
-	blurred = NULL;
 	free(Gauss);
-	Gauss = NULL;
 	return NULL;
 }
 
@@ -306,8 +304,7 @@ ErrorMalloc:
 double *
 DerivativeAngler(double *img, SIZE size)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("DerivativeAngler");
 
 	VECTOR_2D *Derivative = NULL;
 	double *angles = NULL;
@@ -315,22 +312,29 @@ DerivativeAngler(double *img, SIZE size)
 	double dx, dy;
  
 	if (img == NULL) {
-		ErrorValueName = "img";
-		goto ErrorPointerNull;
+		Error.Value("img");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (size.width < 0 || size.height < 0) {
-		ErrorValueName = "size";
-		goto ErrorIncorrectValue;
+		Error.Value("size");
+		Error.ValueIncorrect();
+		goto ExitError;
 	}
 
 	if ((Derivative = Derivator(img, size, "Sobel")) == NULL) {
-		ErrorFunctionName = "Derivator";
-		ErrorValueName = "Derivative";
-		goto ErrorFunctionFailed;
+		Error.Function("Derivator");
+		Error.Value("Derivative");
+		Error.FunctionFail();
+		goto ExitError;
 	}
-	if ((angles = (double *)calloc((size_t)(size.height * size.width), sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "angles";
-		goto ErrorMalloc;
+	try {
+		angles = new double[size.height * size.width];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("angles");
+		Error.Malloc();
+		goto ExitError;
 	}
 	for (n = 0; n < size.width * size.height; n++) {
 		dx = Derivative[n].x;
@@ -348,31 +352,17 @@ DerivativeAngler(double *img, SIZE size)
 	}
 	free(Derivative);
 	return angles;
-// Errors
-ErrorMalloc:
-	fprintf(stderr, "*** DeriveAngler() error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName, ErrorFunctionName);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** DeriveAngler() error - The pointer (*%s) is NULL ***\n", ErrorValueName);
-	goto ErrorReturn;
-ErrorIncorrectValue:
-	fprintf(stderr, "*** DeriveAngler() error - The variable (%s) has incorrect value ***\n", ErrorValueName);
-	goto ErrorReturn;
-ErrorFunctionFailed:
-	fprintf(stderr, "*** DeriveAngler() error - %s() failed to compute (%s) ***\n", ErrorFunctionName, ErrorValueName);
-ErrorReturn:
+// Error
+ExitError:
 	free(angles);
-	angles = NULL;
 	return NULL;
 }
 
 
 VECTOR_2D *
-Derivator(double *Image, SIZE size, char *Type)
+Derivator(double *Image, SIZE size, const char *Type)
 {
-	char *FunctionName = "Derivation";
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("Derivator");
 
 	/* Note that convolution invert *Filter */
 	double DiffFilter_x[4] = {0.5, -0.5, 0.5, -0.5};
@@ -381,18 +371,20 @@ Derivator(double *Image, SIZE size, char *Type)
 	double SobelFilter_y[9] = {0.25, 0.5, 0.25, 0, 0, 0, -0.25, -0.5, -0.25};
 	double *Dx = NULL;
 	double *Dy = NULL;
-	SIZE size_f = SIZE_ZERO;
+	SIZE size_f;
 	double *Image_dx = NULL;
 	double *Image_dy = NULL;
 	VECTOR_2D *Derivative = NULL;
 	int x;
  
 	if (Image == NULL) {
-		ErrorValueName = "Image";
-		goto ErrorPointerNull;
+		Error.Value("Image");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (size.width < 0 || size.height < 0) {
-		ErrorValueName = "size";
-		goto ErrorIncorrectValue;
+		Error.Value("size");
+		Error.ValueIncorrect();
+		goto ExitError;
 	}
 
 	if (Type == NULL || strcmp(Type, "Normal") == 0) {
@@ -408,17 +400,21 @@ Derivator(double *Image, SIZE size, char *Type)
 		Dx = SobelFilter_x;
 		Dy = SobelFilter_y;
 	} else {
-		fprintf(stderr, "*** %s() error - Filter options incorrect '%s' ***\n", FunctionName, Type);
-		return NULL;
+		Error.Others("Filter options incorrect");
+		goto ExitError;
 	}
 
 	Image_dx = Filterer(Image, size, Dx, size_f, MEANINGFUL_FALSE);
 	Image_dy = Filterer(Image, size, Dy, size_f, MEANINGFUL_FALSE);
 
-	if ((Derivative = (VECTOR_2D *)calloc((size_t)size.width * size.height, sizeof(VECTOR_2D))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "Derivative";
-		goto ErrorMalloc;
+	try {
+		Derivative = new VECTOR_2D[size.width * size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Derivative");
+		Error.Malloc();
+		goto ExitError;
 	}
 	for (x = 0; x < size.width * size.height; x++) {
 		Derivative[x].x = Image_dx[x];
@@ -427,16 +423,8 @@ Derivator(double *Image, SIZE size, char *Type)
 	free(Image_dx);
 	free(Image_dy);
 	return Derivative;
-/* Errors */
-ErrorMalloc:
-	fprintf(stderr, "*** %s() error - Cannot allocate memory for (*%s) by %s() ***\n", FunctionName, ErrorValueName, ErrorFunctionName);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorIncorrectValue:
-	fprintf(stderr, "*** %s() error - The variable (%s) has incorrect value ***\n", FunctionName, ErrorValueName);
-ErrorReturn:
+// Error
+ExitError:
 	free(Derivative);
 	free(Image_dy);
 	free(Image_dx);
@@ -447,33 +435,31 @@ ErrorReturn:
 double *
 Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
 {
-	char *FunctionName = "Derivation_abs";
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("Derivation_abs");
 
 	double *Derivative = NULL;
 	int x;
 
 	if (Derivative_2D == NULL) {
-		ErrorValueName = "Derivative_2D";
-		goto ErrorPointerNull;
+		Error.Value("Derivative_2D");
+		Error.PointerNull();
+		goto ExitError;
 	}
-	if ((Derivative = (double *)calloc((size_t)size.width * size.height, sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "Derivative";
-		goto ErrorMalloc;
+	try {
+		Derivative = new double[size.width * size.height];
 	}
-
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Derivative");
+		Error.Malloc();
+		goto ExitError;
+	}
 	for (x = 0; x < size.width * size.height; x++) {
 		Derivative[x] = sqrt(POW2(Derivative_2D[x].x) + POW2(Derivative_2D[x].y));
 	}
 	return Derivative;
-/* Error */
-ErrorMalloc:
-	fprintf(stderr, "*** %s error - Cannot allocate memory for (*%s) by %s() ***\n", FunctionName, ErrorValueName, ErrorFunctionName);
-	return NULL;
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return NULL;
 }
 
@@ -481,8 +467,7 @@ ErrorPointerNull:
 double *
 Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 {
-	char *FunctionName = "Filterer";
-	char *ErrorValueName = "";
+	ERROR Error("Filterer");
 
 	double *Filtered = NULL;
 	SIZE center;
@@ -492,22 +477,31 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 	double sum;
 
 	if (Image == NULL) {
-		ErrorValueName = "Image";
-		goto ErrorPointerNull;
+		Error.Value("Image");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (Filter == NULL) {
-		ErrorValueName = "Filter";
-		goto ErrorPointerNull;
+		Error.Value("Filter");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (size.width < 0 || size.height < 0) {
-		ErrorValueName = "size";
-		goto ErrorIncorrectValue;
+		Error.Value("size");
+		Error.ValueIncorrect();
+		goto ExitError;
 	} else if (size_f.width < 0 || size_f.height < 0) {
-		ErrorValueName = "size_f";
-		goto ErrorIncorrectValue;
+		Error.Value("size_f");
+		Error.ValueIncorrect();
+		goto ExitError;
 	}
 
-	if ((Filtered = (double *)calloc(size.width * size.height, sizeof(double))) == NULL) {
-		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*Filtered) by calloc() ***\n", FunctionName);
-		return NULL;
+	try {
+		Filtered = new double[size.width * size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Filtered");
+		Error.Malloc();
+		goto ExitError;
 	}
 	center.width = floor(size_f.width / 2.0);
 	center.height = floor(size_f.height / 2.0);
@@ -537,12 +531,7 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 	}
 	return Filtered;
 /* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorIncorrectValue:
-	fprintf(stderr, "*** %s() error - The variable (%s) has incorrect value ***\n", FunctionName, ErrorValueName);
-ErrorReturn:
+ExitError:
 	free(Filtered);
 	return NULL;
 }

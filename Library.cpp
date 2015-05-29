@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulA.h"
+#include "Scratch_MeaningfulMotion.h"
 
 
 
@@ -7,8 +7,8 @@
 char *
 regexp(char *string)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("regexp");
+
 	char *s = string;
 	char *start_after = NULL;
 	char tmp[4 + REGEXP_MAX_DIGITS];
@@ -33,14 +33,18 @@ regexp(char *string)
 		s++;
 	}
 	if (num_sharp > REGEXP_MAX_DIGITS) {
-		fprintf(stderr, "*** regexp error - Expression digits over REGEXP_MAX_DIGITS(%d) ***\n", REGEXP_MAX_DIGITS);
+		Error.Others("Expression digits over REGEXP_MAX_DIGITS");
 		exit(EXIT_FAILURE);
 	} else if (num_sharp == 0) {
 		fprintf(stderr, "*** regexp - do nothing because the filename '%s' does not include '#' ***\n", string);
-		if ((out = (char *)calloc(strlen(string) + 1u, sizeof(char))) == NULL) {
-			ErrorFunctionName = "calloc";
-			ErrorValueName = "out";
-			goto ErrorMalloc;
+		try {
+			out = new char[strlen(string) + 1u];
+		}
+		catch (std::bad_alloc bad) {
+			Error.Function("new");
+			Error.Value("out");
+			Error.Malloc();
+			goto ExitError;
 		}
 		for (i = 0; i < strlen(string); i++) {
 			out[i] = string[i];
@@ -50,10 +54,14 @@ regexp(char *string)
 	}
 	sprintf(tmp, "%%0%ud", num_sharp);
 	length = len_before + strlen(tmp) + len_after;
-	if ((out = (char *)calloc((size_t)(length + 1), sizeof(char))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorValueName = "out";
-		goto ErrorMalloc;
+	try {
+		out = new char[length + 1];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("out");
+		Error.Malloc();
+		goto ExitError;
 	}
 	s = out;
 	for (i = 0; i < len_before; i++) {
@@ -70,9 +78,8 @@ regexp(char *string)
 	}
 	*s = '\0';
 	return out;
-//Errors
-ErrorMalloc:
-	fprintf(stderr, "*** regexp error - Cannot allocate memory for (*%s) by %s()\n", ErrorValueName, ErrorFunctionName);
+// Error
+ExitError:
 	free(out);
 	out = NULL;
 	exit(EXIT_FAILURE);
@@ -175,7 +182,7 @@ Calc_k_l(SIZE size, double p, double ep)
 		fprintf(stderr, "calloc error on Calc_k_l\n");
 		return NULL;
 	}
-	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End);
+	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) private(k_start, k0)
 	for (l = 1; l <= L; l++) {
 		k_start = floor(p * l + sqrt(C * l * (log(DIV_ANGLE) + log(size.height) + 2.0 * log(size.width) - log(ep))));
@@ -193,7 +200,7 @@ Calc_k_l(SIZE size, double p, double ep)
 			count++;
 			if (round((double)count / L * 1000.0) > progress) {
 				progress = round((double)count / L * 1000.0); // Take account of Overflow
-				printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + L)]);
+				printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + L)].c_str());
 			}
 		}
 	}

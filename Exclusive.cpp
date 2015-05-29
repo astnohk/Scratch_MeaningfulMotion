@@ -5,8 +5,8 @@
 SEGMENT*
 ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
 {
-	char *ErrorFunctionName = "";
-	char *ErrorPointerName = "";
+	ERROR Error("ExclusivePrinciple");
+
 	int *IndexMap = NULL;
 	LINEPOLE *Lines = NULL;
 	double *EPSegments_Pr = NULL;
@@ -28,15 +28,23 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	int progress_count;
 	int present_count;
 
-	if ((IndexMap = (int *)calloc((size_t)(size.height * size.width), sizeof(int))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorPointerName = "IndexMap";
-		goto ErrorMalloc;
+	try {
+		IndexMap = new int[size.height * size.width];
 	}
-	if ((Lines = (LINEPOLE *)calloc((size_t)(*Num_Segments), sizeof(LINEPOLE))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorPointerName = "Lines";
-		goto ErrorMalloc;
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("IndexMap");
+		Error.Malloc();
+		goto ExitError;
+	}
+	try {
+		Lines = new LINEPOLE[*Num_Segments];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Lines");
+		Error.Malloc();
+		goto ExitError;
 	}
 
 	/* Convert the segments Cartesian coordinates to Polar coordinates Expression */
@@ -51,7 +59,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		Lines[n_seg].sin = sin(Lines[n_seg].theta);
 		Lines[n_seg].r = MaximalSegments[n_seg].x * Lines[n_seg].cos + MaximalSegments[n_seg].y * Lines[n_seg].sin;
 	}
-	printf("* Add all pixels to the Segments Exclusively :\n  0%% |%s\x1b[1A\n", Progress_End);
+	printf("* Add all pixels to the Segments Exclusively :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
 	/* Select the segments each Pixel exclusively belongs to */
 	progress_count = 0;
 	present_count = 0;
@@ -83,21 +91,25 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 			present_count++;
 			if (NUM_PROGRESS * present_count / size.width > progress_count) {
 				progress_count = NUM_PROGRESS * (present_count - 1) / size.width; // Take account of Overflow
-				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / size.width, Progress[progress_count]);
+				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / size.width, Progress[progress_count].c_str());
 			}
 		}
 	}
 	printf("\nComplete!\n");
 	free(Lines);
 	Lines = NULL;
-	if ((EPSegments_Pr = (double *)calloc((size_t)(*Num_Segments), sizeof(double))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorPointerName = "EPSegments_Pr";
-		goto ErrorMalloc;
+	try {
+		EPSegments_Pr = new double[*Num_Segments];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("EPSegments_Pr");
+		Error.Malloc();
+		goto ExitError;
 	}
 	progress_count = 0;
 	present_count = 0;
-	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End);
+	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) private(m, n, x, y, k, L, dx, dy, d, d_triangle, aligned_angle, t, x_t, y_t) reduction(+:Num_EPSegments)
 	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
 		/* Re-meaningful segments */
@@ -141,15 +153,16 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 			present_count++;
 			if (NUM_PROGRESS * present_count / (*Num_Segments) > progress_count) {
 				progress_count = NUM_PROGRESS * (present_count - 1) / (*Num_Segments); // Take account of Overflow
-				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / (*Num_Segments), Progress[progress_count]);
+				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / (*Num_Segments), Progress[progress_count].c_str());
 			}
 		}
 	}
 	printf("\nComplete!\n");
 	if (pnmnew(&pnm, PORTABLE_GRAYMAP_ASCII, (unsigned int)size.width, (unsigned int)size.height, (unsigned int)(*Num_Segments - 1)) != PNM_FUNCTION_SUCCESS) {
-		ErrorFunctionName = "pnmnew";
-		ErrorPointerName = "pnm";
-		goto ErrorMalloc;
+		Error.Function("pnmnew");
+		Error.Value("pnm");
+		Error.Malloc();
+		goto ExitError;
 	}
 	for (x = 0; x < size.height * size.width; x++) {
 		pnm.img[x] = IndexMap[x];
@@ -161,10 +174,14 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	pnmfree(&pnm);
 	free(IndexMap);
 	IndexMap = NULL;
-	if ((MaxEPSegments = (SEGMENT *)calloc((size_t)(Num_EPSegments), sizeof(SEGMENT))) == NULL) {
-		ErrorFunctionName = "calloc";
-		ErrorPointerName = "MaxEPSegments";
-		goto ErrorMalloc;
+	try {
+		MaxEPSegments = new SEGMENT[Num_EPSegments];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("MaxEPSegments");
+		Error.Malloc();
+		goto ExitError;
 	}
 	for (n_seg = k = 0; n_seg < (*Num_Segments); n_seg++) {
 		if (EPSegments_Pr[n_seg] > 0.0) {
@@ -183,17 +200,12 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	free(EPSegments_Pr);
 	EPSegments_Pr = NULL;
 	return MaxEPSegments;
-// Errors
-ErrorMalloc:
-	fprintf(stderr, "*** ExclusivePrinciple error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorPointerName, ErrorFunctionName);
+// Error
+ExitError:
 	free(EPSegments_Pr);
-	EPSegments_Pr = NULL;
 	free(IndexMap);
-	IndexMap = NULL;
 	free(Lines);
-	Lines = NULL;
 	free(MaxEPSegments);
-	MaxEPSegments = NULL;
 	return NULL;
 }
 

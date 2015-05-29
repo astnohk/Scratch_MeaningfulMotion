@@ -22,9 +22,7 @@
 VECTOR_2D *
 MultipleMotion_OpticalFlow(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam)
 {
-	char *FunctionName = "MultipleMotion_OpticalFlow";
-	char *ErrorFunction = "";
-	char *ErrorValue = "";
+	ERROR Error("MultipleMotion_OpticalFlow");
 
 	VECTOR_2D *u = NULL;
 	double **I_dt_levels = NULL;
