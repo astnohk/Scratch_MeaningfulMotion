@@ -120,14 +120,6 @@ VECTOR_2D::VECTOR_2D(double ix, double iy)
 	y = iy;
 }
 
-TUPLE_VEC_SCALAR::TUPLE_VEC_SCALAR(void)
-{
-	for (int i = 0; i < TUPLE_VECTOR_SIZE; i++) {
-		vector[i] = .0;
-	}
-	scalar = .0;
-}
-
 OPTICALFLOW_PARAM::OPTICALFLOW_PARAM(void) : WindowSize(25, 25)
 {
 	Level = 5;
@@ -147,8 +139,9 @@ MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
 	sigmaS = 2.121;
 }
 
-OPTIONS::OPTIONS(void) : ResampleMethod("z-hold")
+OPTIONS::OPTIONS(void)
 {
+	ResampleMethod = 0;
 	mode = 0;
 	Max_Length = 0;
 	Max_Output_Length = 0;
@@ -190,11 +183,19 @@ COORDINATE_3D::COORDINATE_3D(void)
 	z = .0f;
 }
 
-COORDINATE_3D::COORDINATE_3D(float ix, float iy, float iz)
+COORDINATE_3D::COORDINATE_3D(double ix, double iy, double iz)
 {
 	x = ix;
 	y = iy;
 	z = iz;
+}
+
+void
+COORDINATE_3D::set(double sx, double sy, double sz)
+{
+	x = sx;
+	y = sy;
+	z = sz;
 }
 
 XPLOT::XPLOT(void)

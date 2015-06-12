@@ -51,25 +51,21 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 
 
 int
-Superimposer(PNM *pnm_out, PNM *pnm_in, int *Plot, SIZE size, int Color, int Negate)
+Superimposer(PNM *pnm_out, PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate)
 {
 	ERROR Error("Superimposer");
 	int i;
-	int tmp;
+	pnm_img *img_out = nullptr;
 
-	if (pnm_out == NULL) {
+	if (pnm_out == nullptr) {
 		Error.Value("pnm_out");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (pnm_in == NULL) {
-		Error.Value("pnm_in");
-		Error.PointerNull();
-		goto ExitError;
-	} else if (pnm_isNULL(pnm_in) == PNM_TRUE) {
+	} else if (pnm_in.isNULL() != false) {
 		Error.Value("pnm_in");
 		Error.ValueIncorrect();
 		goto ExitError;
-	} else if (Plot == NULL) {
+	} else if (Plot == nullptr) {
 		Error.Value("Plot");
 		Error.PointerNull();
 		goto ExitError;
@@ -79,98 +75,91 @@ Superimposer(PNM *pnm_out, PNM *pnm_in, int *Plot, SIZE size, int Color, int Neg
 		goto ExitError;
 	}
 
-	if (pnm_isNULL(pnm_out) == PNM_FALSE) {
-		Error.OthersWarning("Output (struct PNM) pnm_out is NOT NULL or NOT initialized");
-		pnmfree(pnm_out);
-	}
-	tmp = pnm_isRGB(pnm_in);
-	if (tmp == PNM_FUNCTION_ERROR) {
-		Error.Others("Cannot check whether the input image is RGB or not. (Possibly (*pnm_in) is NULL)");
-		goto ExitError;
-	} else if (tmp == PNM_TRUE) {
-		if (pnmcp(pnm_out, pnm_in) != PNM_FUNCTION_SUCCESS) {
-			Error.Function("pnmcp");
-			Error.Value("(pnm_in -> pnm_out)");
+	if (pnm_in.isRGB() != false) {
+		if (pnm_out->copy(pnm_in) == PNM_FUNCTION_ERROR) {
+			Error.Function("pnm_out->copy");
+			Error.Value("pnm_out <- pnm_in");
 			Error.FunctionFail();
 			goto ExitError;
 		}
 	} else {
-		if (pnm_Gray2RGB(pnm_out, pnm_in) != PNM_FUNCTION_SUCCESS) {
-			Error.Function("pnmcp_Gray2RGB");
-			Error.Value("(pnm_in -> pnm_out)");
+		if (pnm_out->Gray2RGB(pnm_in) == PNM_FUNCTION_ERROR) {
+			Error.Function("pnm_out->Gray2RGB");
+			Error.Value("pnm_out <- pnm_in");
 			Error.FunctionFail();
 			goto ExitError;
 		}
 	}
-	pnm_out->desc = PORTABLE_PIXMAP_BINARY;
 
-	if (pnm_in->maxint > PLOT_INTENSITY_MAX) {
+	if (pnm_in.MaxInt() > PLOT_INTENSITY_MAX) {
 		for (i = 0; i < size.width * size.height; i++) {
 			if (Plot[i] > 0) {
-				Plot[i] = (int)round(Plot[i] * ((double)pnm_in->maxint / PLOT_INTENSITY_MAX));
+				Plot[i] = (int)round(Plot[i] * ((double)pnm_in.MaxInt() / PLOT_INTENSITY_MAX));
 			}
 		}
 	}
+	img_out = pnm_out->Data();
 	switch (Color) {
-		default: /* DEFAULT is Red */
-		case RED: /* RED */
+		default: // DEFAULT is Red
+		case RED: // RED
 			if (Negate == 0) {
 				for (i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
-						pnm_out->img[i] += Plot[i];
-						if (pnm_out->img[i] > (int)pnm_out->maxint) {
-							pnm_out->img[i] = pnm_out->maxint;
+						img_out[i] += Plot[i];
+						if (img_out[i] > (int)pnm_out->MaxInt()) {
+							img_out[i] = pnm_out->MaxInt();
 						}
-						pnm_out->img[size.height * size.width + i] /= 2;
-						pnm_out->img[2 * size.height * size.width + i] /= 2;
+						img_out[size.height * size.width + i] /= 2;
+						img_out[2 * size.height * size.width + i] /= 2;
 					}
 				}
-			} else { /* Negative Superimpose */
+			} else { // Negative Superimpose
 				for (i = 0; i < size.height * size.width; i++) {
-					pnm_out->img[i] = (double)Plot[i] / pnm_out->maxint;
+					img_out[i] = (double)Plot[i] / pnm_out->MaxInt();
 				}
 			}
 			break;
-		case GREEN: /* GREEN */
+		case GREEN: // GREEN
 			if (Negate == 0) {
 				for (i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
-						pnm_out->img[i] /= 2;
-						pnm_out->img[size.height * size.width + i] += Plot[i];
-						if (pnm_out->img[size.height * size.width + i] > (int)pnm_out->maxint) {
-							pnm_out->img[size.height * size.width + i] = pnm_out->maxint;
+						img_out[i] /= 2;
+						img_out[size.height * size.width + i] += Plot[i];
+						if (img_out[size.height * size.width + i] > (int)pnm_out->MaxInt()) {
+							img_out[size.height * size.width + i] = pnm_out->MaxInt();
 						}
-						pnm_out->img[2 * size.height * size.width + i] /= 2;
+						img_out[2 * size.height * size.width + i] /= 2;
 					}
 				}
-			} else { /* Negative Superimpose */
+			} else { // Negative Superimpose
 				for (i = 0; i < size.height * size.width; i++) {
-					pnm_out->img[size.height * size.width + i] = (double)Plot[i] / pnm_out->maxint;
+					img_out[size.height * size.width + i] = (double)Plot[i] / pnm_out->MaxInt();
 				}
 			}
 			break;
-		case BLUE: /* BLUE */
+		case BLUE: // BLUE
 			if (Negate == 0) {
 				for (i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
-						pnm_out->img[i] /= 2;
-						pnm_out->img[size.height * size.width + i] /= 2;
-						pnm_out->img[2 * size.height * size.width + i] += Plot[i];
-						if (pnm_out->img[2 * size.height * size.width + i] > (int)pnm_out->maxint) {
-							pnm_out->img[2 * size.height * size.width + i] = pnm_out->maxint;
+						img_out[i] /= 2;
+						img_out[size.height * size.width + i] /= 2;
+						img_out[2 * size.height * size.width + i] += Plot[i];
+						if (img_out[2 * size.height * size.width + i] > (int)pnm_out->MaxInt()) {
+							img_out[2 * size.height * size.width + i] = pnm_out->MaxInt();
 						}
 					}
 				}
-			} else { /* Negative Superimpose */
+			} else { // Negative Superimpose
 				for (i = 0; i < size.height * size.width; i++) {
-					pnm_out->img[2 * size.height * size.width + i] = (double)Plot[i] / pnm_out->maxint;
+					img_out[2 * size.height * size.width + i] = (double)Plot[i] / pnm_out->MaxInt();
 				}
 			}
 	}
+	img_out = nullptr;
 	return MEANINGFUL_SUCCESS;
-/* Error */
+// Error
 ExitError:
-	pnmfree(pnm_out);
+	pnm_out->free();
 	return MEANINGFUL_FAILURE;
 }
 

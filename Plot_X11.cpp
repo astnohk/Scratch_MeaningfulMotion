@@ -11,9 +11,9 @@
  */
 
 
-char *ProgramName = "Scratch_MeaningfulA";
-SIZE Window_size = (SIZE){WINDOW_X_DEFAULT, WINDOW_Y_DEFAULT};
-Display *disp = NULL;
+const char *ProgramName = "Scratch_MeaningfulMotion";
+SIZE Window_size(WINDOW_X_DEFAULT, WINDOW_Y_DEFAULT);
+Display *disp = nullptr;
 Window win;
 Pixmap pix;
 GC GCmono;
@@ -29,17 +29,15 @@ double sin_a[ROTATE_ANGLE_MAX];
 int
 ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *segments, unsigned int Num_Segments)
 {
-	char *FunctionName = "ShowBounds_X11()";
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
+	ERROR Error("ShowBounds_X11");
 
 	X11_PARAM X11_Param;
-	COORDINATE_3D *Img_coord = NULL;
-	COORDINATE_3D *Img_vel = NULL;
-	XPLOT *Img_plot = NULL;
-	SEGMENT_X11 *segments_plot = NULL;
-	int *Img_index = NULL;
-	int *Img_index_tmp = NULL;
+	COORDINATE_3D *Img_coord = nullptr;
+	COORDINATE_3D *Img_vel = nullptr;
+	XPLOT *Img_plot = nullptr;
+	SEGMENT_X11 *segments_plot = nullptr;
+	int *Img_index = nullptr;
+	int *Img_index_tmp = nullptr;
 	COORDINATE_3D GaraxyCenter;
 	int loop = 0;
 	int event_state = 0;
@@ -50,54 +48,81 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	double X, Y;
 	unsigned int k;
 
-	if (segments == NULL) {
-		ErrorValueName = "segments";
-		goto ErrorPointerNull;
+	if (segments == nullptr) {
+		Error.Value("segments");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (MaxInt < 1) {
-		ErrorValueName = "MaxInt";
-		goto ErrorValueIncorrect;
+		Error.Value("MaxInt");
+		Error.ValueIncorrect();
+		goto ExitError;
 	}
 
-	/* Initialize X11 Window */
+	// Initialize X11 Window
 	if (Init_X11(&X11_Param, Img_size) == MEANINGFUL_FAILURE) {
-		ErrorFunctionName = "Init_X11()";
-		goto ErrorFunctionFailed;
+		Error.Function("Init_X11");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 
-	/* Memory Allocation */
-	if ((Img_plot = (XPLOT *)calloc((size_t)Img_size.width * Img_size.height, sizeof(XPLOT))) == NULL) {
-		ErrorFunctionName = "calloc()";
-		ErrorValueName = "Img_plot";
-		goto ErrorMalloc;
+	// Memory Allocation
+	try {
+		Img_plot = new XPLOT[Img_size.width * Img_size.height];
 	}
-	if ((segments_plot = (SEGMENT_X11 *)calloc((size_t)Num_Segments, sizeof(SEGMENT_X11))) == NULL) {
-		ErrorFunctionName = "calloc()";
-		ErrorValueName = "segments_plot";
-		goto ErrorMalloc;
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Img_plot");
+		Error.Malloc();
+		goto ExitError;
 	}
-	if ((Img_coord = (COORDINATE_3D *)calloc((size_t)Img_size.width * Img_size.height, sizeof(COORDINATE_3D))) == NULL) {
-		ErrorFunctionName = "calloc()";
-		ErrorValueName = "Img_coord";
-		goto ErrorMalloc;
+	try {
+		segments_plot = new SEGMENT_X11[Num_Segments];
 	}
-	if ((Img_vel = (COORDINATE_3D *)calloc((size_t)Img_size.width * Img_size.height, sizeof(COORDINATE_3D))) == NULL) {
-		ErrorFunctionName = "calloc()";
-		ErrorValueName = "Img_vel";
-		goto ErrorMalloc;
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("segments_plot");
+		Error.Malloc();
+		goto ExitError;
 	}
-	if ((Img_index = (int *)calloc((size_t)Img_size.width * Img_size.height, sizeof(int))) == NULL) {
-		ErrorFunctionName = "calloc()";
-		ErrorValueName = "Img_index";
-		goto ErrorMalloc;
+	try {
+		Img_coord = new COORDINATE_3D[Img_size.width * Img_size.height];
 	}
-	if ((Img_index_tmp = (int *)calloc((size_t)Img_size.width * Img_size.height, sizeof(int))) == NULL) {
-		ErrorFunctionName = "calloc()";
-		ErrorValueName = "Img_index_tmp";
-		goto ErrorMalloc;
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Img_coord");
+		Error.Malloc();
+		goto ExitError;
+	}
+	try {
+		Img_vel = new COORDINATE_3D[Img_size.width * Img_size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Img_vel");
+		Error.Malloc();
+		goto ExitError;
+	}
+	try {
+		Img_index = new int[Img_size.width * Img_size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Img_index");
+		Error.Malloc();
+		goto ExitError;
+	}
+	try {
+		Img_index_tmp = new int[Img_size.width * Img_size.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Function("new");
+		Error.Value("Img_index_tmp");
+		Error.Malloc();
+		goto ExitError;
 	}
 
-	GaraxyCenter = (COORDINATE_3D){X11_Param.Center_x, X11_Param.Center_y, X11_Param.Center_z};
-	/* Infinite Loop */
+	GaraxyCenter.set(X11_Param.Center_x, X11_Param.Center_y, X11_Param.Center_z);
+	// Infinite Loop
 	loop = 1;
 	while (loop != 0) {
 		event_state = XEventor(&X11_Param, Img_size);
@@ -108,7 +133,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		SwitchEventer(&X11_Param);
 		if (cur_mode != X11_Param.ModeSwitch) {
 			cur_mode = X11_Param.ModeSwitch;
-			/* Set initial velocity and position */
+			// Set initial velocity and position
 			switch (cur_mode) {
 				case X11_Plot_Garaxy:
 					GaraxyCenter = (COORDINATE_3D){X11_Param.Center_x, X11_Param.Center_y, X11_Param.Center_z};
@@ -155,55 +180,60 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 			}
 		}
 		switch (X11_Param.ModeSwitch) {
-			case X11_Plot_Point: /* Plot Image Intensity with Points */
+			case X11_Plot_Point: // Plot Image Intensity with Points
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
 				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
-					ErrorFunctionName = "reset_index";
-					ErrorValueName = "Img_index";
-					goto ErrorFunctionFailed;
+					Error.Function("reset_index");
+					Error.Value("Img_index");
+					Error.FunctionFail();
+					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
 				Plot_3DPoint(X11_Param, Img, Img_plot, Img_index, Img_size);
 				break;
-			case X11_Plot_Point_A_Segment: /* Plot Image Intensity with Points */
+			case X11_Plot_Point_A_Segment: // Plot Image Intensity with Points
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
 				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
-					ErrorFunctionName = "reset_index";
-					ErrorValueName = "Img_index";
-					goto ErrorFunctionFailed;
+					Error.Function("reset_index");
+					Error.Value("Img_index");
+					Error.FunctionFail();
+					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
 				Plot_3DPointANDSegment(X11_Param, Img, Img_plot, Img_index, Img_size, segments_plot, Num_Segments);
 				break;
-			case X11_Plot_Grid_A_Segment: /* Plot Image Intensity on Grid */
+			case X11_Plot_Grid_A_Segment: // Plot Image Intensity on Grid
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
 				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
-					ErrorFunctionName = "reset_index";
-					ErrorValueName = "Img_index";
-					goto ErrorFunctionFailed;
+					Error.Function("reset_index");
+					Error.Value("Img_index");
+					Error.FunctionFail();
+					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
 				Plot_3DGridANDSegment(X11_Param, Img, Img_plot, Img_index, Img_size, segments_plot, Num_Segments);
 				break;
-			case X11_Plot_Garaxy: /* Plot Image Gravity Motion (Garaxy) */
+			case X11_Plot_Garaxy: // Plot Image Gravity Motion (Garaxy)
 				TransGaraxy_3DPoint(X11_Param, Img, Img_size, Img_coord, Img_vel, GaraxyCenter, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
-					ErrorFunctionName = "reset_index";
-					ErrorValueName = "Img_index";
-					goto ErrorFunctionFailed;
+					Error.Function("reset_index");
+					Error.Value("Img_index");
+					Error.FunctionFail();
+					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
 				Plot_3DPoint(X11_Param, Img, Img_plot, Img_index, Img_size);
 				break;
-			case X11_Plot_GravityCorrupt: /* Plot Image Gravity Motion */
+			case X11_Plot_GravityCorrupt: // Plot Image Gravity Motion
 				TransGravity_3DPoint(X11_Param, Img, Img_size, Img_coord, Img_vel, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
-					ErrorFunctionName = "reset_index";
-					ErrorValueName = "Img_index";
-					goto ErrorFunctionFailed;
+					Error.Function("reset_index");
+					Error.Value("Img_index");
+					Error.FunctionFail();
+					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
 				Plot_3DPoint(X11_Param, Img, Img_plot, Img_index, Img_size);
@@ -211,7 +241,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		usleep(WAIT_TIME);
 	}
 
-	/* Freeing Resources */
+	// Freeing Resources
 	XFreeGC(disp, GCmono);
 	for (k = 0; k < RGB_COLOR; k++) {
 		XFreeGC(disp, GCcol[k]);
@@ -221,27 +251,16 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	XFreeColormap(disp, cmap);
 	XDestroyWindow(disp, win);
 	XCloseDisplay(disp);
-	free(Img_index_tmp);
-	free(Img_index);
-	free(Img_vel);
-	free(Img_coord);
-	free(segments_plot);
-	free(Img_plot);
+	delete[] Img_index_tmp;
+	delete[] Img_index;
+	delete[] Img_vel;
+	delete[] Img_coord;
+	delete[] segments_plot;
+	delete[] Img_plot;
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorMalloc:
-	fprintf(stderr, "*** %s error - Cannot allocate memory for (*%s) by %s ***\n", FunctionName, ErrorValueName, ErrorFunctionName);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorValueIncorrect:
-	fprintf(stderr, "*** %s error - The variable (%s) has incorrect value ***\n", FunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorFunctionFailed:
-	fprintf(stderr, "*** %s error - %s failed to compute (%s) ***\n", FunctionName, ErrorFunctionName, ErrorValueName);
-ErrorReturn:
-	if (disp != NULL) {
+// Error
+ExitError:
+	if (disp != nullptr) {
 		XFreeGC(disp, GCmono);
 		for (k = 0; k < RGB_COLOR; k++) {
 			XFreeGC(disp, GCcol[k]);
@@ -252,12 +271,12 @@ ErrorReturn:
 		XDestroyWindow(disp, win);
 		XCloseDisplay(disp);
 	}
-	free(Img_index_tmp);
-	free(Img_index);
-	free(Img_vel);
-	free(Img_coord);
-	free(segments_plot);
-	free(Img_plot);
+	delete[] Img_index_tmp;
+	delete[] Img_index;
+	delete[] Img_vel;
+	delete[] Img_coord;
+	delete[] segments_plot;
+	delete[] Img_plot;
 	return MEANINGFUL_FAILURE;
 }
 
@@ -265,10 +284,7 @@ ErrorReturn:
 int
 Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 {
-	char *FunctionName = "Init_X11()";
-	char *ErrorFunctionName = "";
-	char *ErrorValueName = "";
-
+	ERROR Error("Init_X11()");
 	XColor col, exact;
 	XEvent noev;
 	int i;
@@ -285,8 +301,8 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	X11_Param->ModeSwitch = 0;
 	X11_Param->FillSwitch = 0;
 
-	if ((disp = XOpenDisplay(NULL)) == NULL) {
-		fprintf(stderr, "*** %s error - Cannot open display. Abort X11 Plotting ***\n", FunctionName);
+	if ((disp = XOpenDisplay(NULL)) == nullptr) {
+		Error.Others("Cannot open display. Abort X11 Plotting");
 		return MEANINGFUL_FAILURE;
 	}
 	win = XCreateSimpleWindow(disp, RootWindow(disp, 0), 0, 0, Window_size.width, Window_size.height, 0, BlackPixel(disp, 0), WhitePixel(disp, 0));
@@ -294,59 +310,65 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	XStoreName(disp, win, ProgramName);
 	XMapWindow(disp, win);
 
-	/* Graphic Context */
+	// Graphic Context
 	GCmono = XCreateGC(disp, win, 0, 0);
 	for (i = 0; i < RGB_COLOR; i++) {
 		GCcol[i] = XCreateGC(disp, win, 0, 0);
 		GCcol_dark[i] = XCreateGC(disp, win, 0, 0);
 	}
-	/* set GC monochrome */
+	// set GC monochrome
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
-	/* Colormap */
+	// Colormap
 	cmap = DefaultColormap(disp, 0);
-	/* set GC color */
+	// set GC color
 	if (!(XAllocNamedColor(disp, cmap, "Red", &col, &exact))) {
-		ErrorFunctionName = "XAllocNamedColor";
-		ErrorValueName = "cmap (Red)";
-		goto ErrorFunctionFailed;
+		Error.Function("XAllocNamedColor");
+		Error.Value("cmap (Red)");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 	XSetForeground(disp, GCcol[0], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Green", &col, &exact))) {
-		ErrorFunctionName = "XAllocNamedColor";
-		ErrorValueName = "cmap (Green)";
-		goto ErrorFunctionFailed;
+		Error.Function("XAllocNamedColor");
+		Error.Value("cmap (Green)");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 	XSetForeground(disp, GCcol[1], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Blue", &col, &exact))) {
-		ErrorFunctionName = "XAllocNamedColor";
-		ErrorValueName = "cmap (Blue)";
-		goto ErrorFunctionFailed;
+		Error.Function("XAllocNamedColor");
+		Error.Value("cmap (Blue)");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 	XSetForeground(disp, GCcol[2], col.pixel);
-	/* set GC color dark */
+	// set GC color dark
 	if (!(XAllocNamedColor(disp, cmap, "Red", &col, &exact))) {
-		ErrorFunctionName = "XAllocNamedColor";
-		ErrorValueName = "cmap (Red)";
-		goto ErrorFunctionFailed;
+		Error.Function("XAllocNamedColor");
+		Error.Value("cmap (Red)");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 	XSetForeground(disp, GCcol_dark[0], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Green", &col, &exact))) {
-		ErrorFunctionName = "XAllocNamedColor";
-		ErrorValueName = "cmap (Green)";
-		goto ErrorFunctionFailed;
+		Error.Function("XAllocNamedColor");
+		Error.Value("cmap (Green)");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 	XSetForeground(disp, GCcol_dark[1], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Blue", &col, &exact))) {
-		ErrorFunctionName = "XAllocNamedColor";
-		ErrorValueName = "cmap (Blue)";
-		goto ErrorFunctionFailed;
+		Error.Function("XAllocNamedColor");
+		Error.Value("cmap (Blue)");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 	XSetForeground(disp, GCcol_dark[2], col.pixel);
-	/* Pixmap */
+	// Pixmap
 	pix = XCreatePixmap(disp, win, Window_size.width, Window_size.height, DefaultDepth(disp, 0));
-	/* Pass through XMapWindow() event */
+	// Pass through XMapWindow() event
 	XMaskEvent(disp, ExposureMask, &noev);
-	/* Initialize cos_a[] and sin_a[] */
+	// Initialize cos_a[] and sin_a[]
 	for (i = 0; i < ROTATE_ANGLE_MAX; i++) {
 		cos_a[i] = cos(2.0 * M_PI * (double)i / ROTATE_ANGLE_MAX);
 		sin_a[i] = sin(2.0 * M_PI * (double)i / ROTATE_ANGLE_MAX);
@@ -354,9 +376,8 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	X11_Param->RotateSwitch = 0;
 
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorFunctionFailed:
-	fprintf(stderr, "*** %s error - %s() failed to compute (%s) ***\n", FunctionName, ErrorFunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -364,7 +385,7 @@ ErrorFunctionFailed:
 int
 XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 {
-	static COORDINATE Current_Mice_Pos = COORDINATE_ZERO;
+	static COORDINATE Current_Mice_Pos;
 	XEvent event;
 	int key;
 	double dx, dy;
@@ -372,13 +393,13 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 	while (XPending(disp) != 0) {
 		XNextEvent(disp, &event);
 		switch (event.type) {
-			case ConfigureNotify: /* Window State Changes (Resize, etc.)*/
+			case ConfigureNotify: // Window State Changes (Resize, etc.)
 				Window_size.width = event.xconfigure.width;
 				Window_size.height = event.xconfigure.height;
 				XFreePixmap(disp, pix);
 				pix = XCreatePixmap(disp, win, Window_size.width, Window_size.height, DefaultDepth(disp, 0));
 				break;
-			case ButtonPress: /* Mice button */
+			case ButtonPress: // Mice button
 				if (event.xbutton.button == Button1
 				    || event.xbutton.button == Button2
 				    || event.xbutton.button == Button3) {
@@ -392,7 +413,7 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 					}
 				}
 				break;
-			case MotionNotify: /* Mice motion */
+			case MotionNotify: // Mice motion
 				if (event.xbutton.state & Button1Mask) {
 					X11_Param->Longitude -= event.xbutton.x - Current_Mice_Pos.x;
 					if (X11_Param->Longitude >= ROTATE_ANGLE_MAX) {
@@ -480,19 +501,20 @@ SwitchEventer(X11_PARAM *X11_Param)
 int
 TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample)
 {
-	const char *FunctionName = "TransRotate_3DSegment()";
-	char *ErrorValueName = "";
+	ERROR Error("TransRotate_3DSegment");
 	unsigned int n;
 	double x, y, z;
 	double Scale_x = 1.0;
 	double Scale_y = 1.0;
 
-	if (segments == NULL) {
-		ErrorValueName = "segments";
-		goto ErrorPointerNull;
-	} else if (segments_plot == NULL) {
-		ErrorValueName = "segments_plot";
-		goto ErrorPointerNull;
+	if (segments == nullptr) {
+		Error.Value("segments");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (segments_plot == nullptr) {
+		Error.Value("segments_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
 	if (Img_size_resample.width > 0) {
@@ -501,15 +523,15 @@ TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segme
 	if (Img_size_resample.height > 0) {
 		Scale_y = Img_size.height / Img_size_resample.height;
 	}
-	/* Pixel Coordinate */
+	// Pixel Coordinate
 	for (n = 0; n < Num_Segments; n++) {
-		/* Start */
+		// Start
 		x = (Scale_x * segments[n].n - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Scale_y * segments[n].m - X11_Param.Center_y) * X11_Param.Scale;
 		z = 0.0;
 		segments_plot[n].start.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
 		segments_plot[n].start.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
-		/* End */
+		// End
 		x = (Scale_x * segments[n].x - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Scale_y * segments[n].y - X11_Param.Center_y) * X11_Param.Scale;
 		z = 0.0;
@@ -517,9 +539,8 @@ TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segme
 		segments_plot[n].end.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
 	}
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -527,20 +548,20 @@ ErrorPointerNull:
 int
 TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot)
 {
-	const char *FunctionName = "TransRotate_3DPoint()";
-	char *ErrorValueName = "";
+	ERROR Error("TransRotate_3DPoint");
 	int m, n;
 	double x, y, z;
 
-	if (Img == NULL) {
-		ErrorValueName = "Img";
-		goto ErrorPointerNull;
-	} else if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
+	if (Img == nullptr) {
+		Error.Value("Img");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
-
-	/* Pixel Coordinate */
+	// Pixel Coordinate
 #pragma omp parallel for private(n, x, y, z) num_threads(8)
 	for (m = 0; m < size.height; m++) {
 		y = (m - X11_Param.Center_y) * X11_Param.Scale;
@@ -553,9 +574,8 @@ TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT 
 		}
 	}
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -563,30 +583,31 @@ ErrorPointerNull:
 int
 TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot)
 {
-	const char *FunctionName = "TransGaraxy_3DPoint()";
-	char *ErrorValueName = "";
-
+	ERROR Error("TransGaraxy_3DPoint");
 	const double Radius_Minimum = 0.01;
 	const double dt = 0.5;
 	double r;
 	double x, y, z;
 	int i;
 
-	if (Img == NULL) {
-		ErrorValueName = "Img";
-		goto ErrorPointerNull;
-	} else if (Img_coord == NULL) {
-		ErrorValueName = "Img_coord";
-		goto ErrorPointerNull;
-	} else if (Img_vel == NULL) {
-		ErrorValueName = "Img_vel";
-		goto ErrorPointerNull;
-	} else if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
+	if (Img == nullptr) {
+		Error.Value("Img");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_coord == nullptr) {
+		Error.Value("Img_coord");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_vel == nullptr) {
+		Error.Value("Img_vel");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
-
-	/* Gravity Motion */
+	// Gravity Motion
 #pragma omp parallel for private(r)
 	for (i = 0; i < size.width * size.height; i++) {
 		r = sqrt(POW2(GaraxyCenter.x - Img_coord[i].x)
@@ -602,7 +623,7 @@ TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img
 		Img_coord[i].y += Img_vel[i].y * dt;
 		Img_coord[i].z += Img_vel[i].z * dt;
 	}
-	/* Pixel Coordinate */
+	// Pixel Coordinate
 #pragma omp parallel for private(x, y, z) num_threads(8)
 	for (i = 0; i < size.width * size.height; i++) {
 		x = (Img_coord[i].x - X11_Param.Center_x) * X11_Param.Scale;
@@ -613,9 +634,8 @@ TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img
 		Img_plot[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -623,37 +643,41 @@ ErrorPointerNull:
 int
 TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot)
 {
-	const char *FunctionName = "TransGravity_3DPoint()";
-	char *ErrorValueName = "";
-
+	ERROR Error("TransGravity_3DPoint");
 	const double Radius_Minimum = 0.01;
 	const double dt = 0.5;
-	int *core = NULL;
+	int *core = nullptr;
 	int Num_Cores = 0;
 	double M, r;
 	int maxint = 0;
 	double x, y, z;
 	int i, j;
 
-	if (Img == NULL) {
-		ErrorValueName = "Img";
-		goto ErrorPointerNull;
-	} else if (Img_coord == NULL) {
-		ErrorValueName = "Img_coord";
-		goto ErrorPointerNull;
-	} else if (Img_vel == NULL) {
-		ErrorValueName = "Img_vel";
-		goto ErrorPointerNull;
-	} else if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
+	if (Img == nullptr) {
+		Error.Value("Img");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_coord == nullptr) {
+		Error.Value("Img_coord");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_vel == nullptr) {
+		Error.Value("Img_vel");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
-	if ((core = (int *)calloc((size_t)size.width * size.height, sizeof(int))) == NULL) {
-		ErrorValueName = "core";
-		goto ErrorMalloc;
+	try {
+		core = new int[size.width * size.height];
 	}
-
-	/* List Cores */
+	catch (std::bad_alloc bad) {
+		Error.Value("core");
+		Error.Malloc();
+	}
+	// List Cores
 	for (i = 0; i <size.width * size.height; i++) {
 		if (maxint < Img[i]) {
 			maxint = Img[i];
@@ -665,7 +689,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 			Num_Cores++;
 		}
 	}
-	/* Gravity Motion */
+	// Gravity Motion
 #pragma omp parallel for private(j, M, r)
 	for (i = 0; i < size.width * size.height; i++) {
 		for (j = 0; j < Num_Cores; j++) {
@@ -684,7 +708,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 		Img_coord[i].y += Img_vel[i].y * dt;
 		Img_coord[i].z += Img_vel[i].z * dt;
 	}
-	/* Pixel Coordinate */
+	// Pixel Coordinate
 #pragma omp parallel for private(x, y, z) num_threads(8)
 	for (i = 0; i < size.width * size.height; i++) {
 		x = (Img_coord[i].x - X11_Param.Center_x) * X11_Param.Scale;
@@ -696,14 +720,9 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 	}
 	free(core);
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorMalloc:
-	fprintf(stderr, "*** %s error - Cannot allocate memory for (*%s) ***\n", FunctionName, ErrorValueName);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
-ErrorReturn:
-	free(core);
+// Error
+ExitError:
+	delete[] core;
 	return MEANINGFUL_FAILURE;
 }
 
@@ -711,26 +730,26 @@ ErrorReturn:
 int
 Plot_3DPoint(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
 {
-	const char *FunctionName = "Plot_3DPoint()";
-	char *ErrorValueName = "";
-
+	ERROR Error("Plot_3DPoint");
 	XEvent noev;
 	int Min_Intensity, Max_Intensity;
 	SIZE rectsize;
 	int index;
 	int i;
 
-	if (Img == NULL) {
-		ErrorValueName = "Img";
-		goto ErrorPointerNull;
-	} else if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
+	if (Img == nullptr) {
+		Error.Value("Img");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
 	rectsize.width = MAX(1, round(X11_Param.Scale * 0.25));
 	rectsize.height = MAX(1, floor(X11_Param.Scale * 0.25));
-	/* Scan Intensity MIN and MAX */
+	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img[0];
 	for (i = 1; i < size.width * size.height; i++) {
 		if (Img[i] < Min_Intensity) {
@@ -739,10 +758,10 @@ Plot_3DPoint(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZ
 			Max_Intensity = Img[i];
 		}
 	}
-	/* Fill the window with Black */
+	// Fill the window with Black
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
-	/* Draw The Points */
+	// Draw The Points
 	for (i = 0; i < size.width * size.height; i++) {
 		index = Img_index[i];
 		if (0 <= Img_plot[index].point.x && Img_plot[index].point.x < Window_size.width
@@ -768,15 +787,14 @@ Plot_3DPoint(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZ
 			}
 		}
 	}
-	/* Show Parameters */
+	// Show Parameters
 	PlotParameters(X11_Param);
-	/* Copy pixmap to the window */
+	// Copy pixmap to the window
 	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
 	XMaskEvent(disp, ExposureMask, &noev);
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -784,9 +802,7 @@ ErrorPointerNull:
 int
 Plot_3DPointANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
 {
-	const char *FunctionName = "Plot_3DPointANDSegment()";
-	char *ErrorValueName = "";
-
+	ERROR Error("Plot_3DPointANDSegment");
 	XEvent noev;
 	int Min_Intensity, Max_Intensity;
 	SIZE rectsize;
@@ -794,20 +810,23 @@ Plot_3DPointANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_
 	int i;
 	unsigned int n;
 
-	if (Img == NULL) {
-		ErrorValueName = "Img";
-		goto ErrorPointerNull;
-	} else if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
-	} else if (segments_plot == NULL) {
-		ErrorValueName = "segments_plot";
-		goto ErrorPointerNull;
+	if (Img == nullptr) {
+		Error.Value("Img");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (segments_plot == nullptr) {
+		Error.Value("segments_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
 	rectsize.width = MAX(1, round(X11_Param.Scale * 0.25));
 	rectsize.height = MAX(1, floor(X11_Param.Scale * 0.25));
-	/* Scan Intensity MIN and MAX */
+	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img[0];
 	for (i = 1; i < size.width * size.height; i++) {
 		if (Img[i] < Min_Intensity) {
@@ -816,10 +835,10 @@ Plot_3DPointANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_
 			Max_Intensity = Img[i];
 		}
 	}
-	/* Fill the window with Black */
+	// Fill the window with Black
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
-	/* Draw The Points */
+	// Draw The Points
 	for (i = 0; i < size.width * size.height; i++) {
 		index = Img_index[i];
 		if (0 <= Img_plot[index].point.x && Img_plot[index].point.x < Window_size.width
@@ -850,23 +869,22 @@ Plot_3DPointANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_
 			i--;
 		}
 	}
-	/* Draw The Segments */
-	/* * Set Line width */
+	// Draw The Segments
+	// * Set Line width
 	XSetLineAttributes(disp, GCcol[0], MAX(1, (int)round(X11_Param.Scale * 0.5)), LineSolid, CapNotLast, JoinMiter);
 	for (n = 0; n < Num_Segments; n++) {
 		XDrawLine(disp, pix, GCcol[0], segments_plot[n].start.x, segments_plot[n].start.y, segments_plot[n].end.x, segments_plot[n].end.y);
 	}
-	/* * Reset Line width */
+	// * Reset Line width
 	XSetLineAttributes(disp, GCcol[0], 0, LineSolid, CapNotLast, JoinMiter);
-	/* Show Parameters */
+	// Show Parameters
 	PlotParameters(X11_Param);
-	/* Copy pixmap to the window */
+	// Copy pixmap to the window
 	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
 	XMaskEvent(disp, ExposureMask, &noev);
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -874,34 +892,36 @@ ErrorPointerNull:
 int
 Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
 {
-	const char *FunctionName = "Plot_3DGridANDSegment()";
-	char *ErrorValueName = "";
-
+	ERROR Error("Plot_3DGridANDSegment");
 	XPoint Triplet[8];
 	XEvent noev;
 	int Min_Intensity, Max_Intensity;
 	int local_Min, local_Max;
 	int local_Min2, local_Max2;
-	int x, y;
+	short x, y;
 	int n, i;
 	unsigned int num;
 	int count1, count2;
 
-	if (Img == NULL) {
-		ErrorValueName = "Img";
-		goto ErrorPointerNull;
-	} else if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
-	} else if (Img_index == NULL) {
-		ErrorValueName = "Img_index";
-		goto ErrorPointerNull;
-	} else if (segments_plot == NULL) {
-		ErrorValueName = "segments_plot";
-		goto ErrorPointerNull;
+	if (Img == nullptr) {
+		Error.Value("Img");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Img_index == nullptr) {
+		Error.Value("Img_index");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (segments_plot == nullptr) {
+		Error.Value("segments_plot");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
-	/* Scan Intensity MIN and MAX */
+	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img[0];
 	for (n = 1; n < size.width * size.height; n++) {
 		if (Img[n] < Min_Intensity) {
@@ -910,43 +930,55 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 			Max_Intensity = Img[n];
 		}
 	}
-	/* Fill the window with Black */
+	// Fill the window with Black
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
-	/* Draw The Grid */
+	// Draw The Grid
 	for (n = 0; n < size.width * size.height; n++) {
 		x = n % size.width;
-		y = (int)floor(n / size.width);
+		y = n / size.width;
 		if (x == size.width - 1 || y == size.height - 1) {
 			continue;
 		}
-		/* Set Triplet */
+		// Set Triplet
 		if (Img_plot[size.width * y + x].z > Img_plot[size.width * y + x + 1].z) {
-			Triplet[0] = (XPoint){x, y};
-			Triplet[1] = (XPoint){x, y + 1};
-			Triplet[2] = (XPoint){x + 1, y};
-			Triplet[4] = (XPoint){x + 1, y};
-			Triplet[5] = (XPoint){x, y + 1};
-			Triplet[6] = (XPoint){x + 1, y + 1};
+			Triplet[0].x = x;
+			Triplet[0].y = y;
+			Triplet[1].x = x;
+			Triplet[1].y = y + 1;
+			Triplet[2].x = x + 1;
+			Triplet[2].y = y;
+			Triplet[4].x = x + 1;
+			Triplet[4].y = y;
+			Triplet[5].x = x;
+			Triplet[5].y = y + 1;
+			Triplet[6].x = x + 1;
+			Triplet[6].y = y + 1;
 		} else {
-			Triplet[0] = (XPoint){x + 1, y};
-			Triplet[1] = (XPoint){x, y + 1};
-			Triplet[2] = (XPoint){x + 1, y + 1};
-			Triplet[4] = (XPoint){x, y};
-			Triplet[5] = (XPoint){x, y + 1};
-			Triplet[6] = (XPoint){x + 1, y};
+			Triplet[0].x = x + 1;
+			Triplet[0].y = y;
+			Triplet[1].x = x;
+			Triplet[1].y = y + 1;
+			Triplet[2].x = x + 1;
+			Triplet[2].y = y + 1;
+			Triplet[4].x = x;
+			Triplet[4].y = y;
+			Triplet[5].x = x;
+			Triplet[5].y = y + 1;
+			Triplet[6].x = x + 1;
+			Triplet[6].y = y;
 		}
 		Triplet[3] = Triplet[0];
 		Triplet[7] = Triplet[4];
 		local_Min = local_Max = Img[size.width * Triplet[0].y + Triplet[0].x];
-		/* Local Maximum */
+		// Local Maximum
 		if (Img[size.width * Triplet[1].y + Triplet[1].x] > local_Max) {
 			local_Max = Img[size.width * Triplet[1].y + Triplet[1].x];
 		}
 		if (Img[size.width * Triplet[2].y + Triplet[2].x] > local_Max) {
 			local_Max = Img[size.width * Triplet[2].y + Triplet[2].x];
 		}
-		/* Local Minimum */
+		// Local Minimum
 		if (Img[size.width * Triplet[1].y + Triplet[1].x] < local_Min) {
 			local_Min = Img[size.width * Triplet[1].y + Triplet[1].x];
 		}
@@ -954,21 +986,21 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 			local_Min = Img[size.width * Triplet[2].y + Triplet[2].x];
 		}
 		local_Min2 = local_Max2 = Img[size.width * Triplet[4].y + Triplet[4].x];
-		/* Local Maximum */
+		// Local Maximum
 		if (Img[size.width * Triplet[5].y + Triplet[5].x] > local_Max2) {
 			local_Max2 = Img[size.width * Triplet[5].y + Triplet[5].x];
 		}
 		if (Img[size.width * Triplet[6].y + Triplet[6].x] > local_Max2) {
 			local_Max2 = Img[size.width * Triplet[6].y + Triplet[6].x];
 		}
-		/* Local Minimum */
+		// Local Minimum
 		if (Img[size.width * Triplet[5].y + Triplet[5].x] < local_Min2) {
 			local_Min2 = Img[size.width * Triplet[5].y + Triplet[5].x];
 		}
 		if (Img[size.width * Triplet[6].y + Triplet[6].x] < local_Min2) {
 			local_Min2 = Img[size.width * Triplet[6].y + Triplet[6].x];
 		}
-		/* Convert Triplet coordinate to Real point coordinate */
+		// Convert Triplet coordinate to Real point coordinate
 		count1 = count2 = 0;
 		for (i = 0; i < 4; i++) {
 			Triplet[i] = Img_plot[size.width * Triplet[i].y + Triplet[i].x].point;
@@ -982,7 +1014,7 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 				count2--;
 			}
 		}
-		/* Triplet 1 */
+		// Triplet 1
 		if (count1 > -4) {
 			if (X11_Param.FillSwitch != 0) {
 				XFillPolygon(disp, pix, GCmono, Triplet, 4, Convex, CoordModeOrigin);
@@ -995,7 +1027,7 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 				XDrawLines(disp, pix, GCcol[1], Triplet, 4, CoordModeOrigin);
 			}
 		}
-		/* Triplet 2 */
+		// Triplet 2
 		if (count2 > -4) {
 			if (X11_Param.FillSwitch != 0) {
 				XFillPolygon(disp, pix, GCmono, Triplet + 4, 4, Convex, CoordModeOrigin);
@@ -1009,23 +1041,22 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 			}
 		}
 	}
-	/* Draw The Segments */
-	/* * Set Line width */
+	// Draw The Segments
+	// * Set Line width
 	XSetLineAttributes(disp, GCcol[0], MAX(1, (int)round(X11_Param.Scale * 0.5)), LineSolid, CapNotLast, JoinMiter);
 	for (num = 0; num < Num_Segments; num++) {
 		XDrawLine(disp, pix, GCcol[0], segments_plot[num].start.x, segments_plot[num].start.y, segments_plot[num].end.x, segments_plot[num].end.y);
 	}
-	/* * Reset Line width */
+	// * Reset Line width
 	XSetLineAttributes(disp, GCcol[0], 0, LineSolid, CapNotLast, JoinMiter);
-	/* Show Parameters */
+	// Show Parameters
 	PlotParameters(X11_Param);
-	/* Copy pixmap to the window */
+	// Copy pixmap to the window
 	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
 	XMaskEvent(disp, ExposureMask, &noev);
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -1075,21 +1106,20 @@ PlotParameters(X11_PARAM X11_Param)
 int
 reset_index(int *Img_index, int N)
 {
-	char *FunctionName = "reset_index()";
-	char *ErrorValueName = "";
+	ERROR Error("reset_index");
 	int n;
 
-	if (Img_index == NULL) {
-		ErrorValueName = "Img_index";
-		goto ErrorPointerNull;
+	if (Img_index == nullptr) {
+		Error.Value("Img_index");
+		Error.PointerNull();
+		goto ExitError;
 	}
 	for (n = 0; n < N; n++) {
 		Img_index[n] = n;
 	}
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 
@@ -1097,28 +1127,30 @@ ErrorPointerNull:
 int
 sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N)
 {
-	const char *FunctionName = "sort_index()";
-	char *ErrorValueName = "";
-
+	ERROR Error("sort_index");
 	int div;
 	int step;
 	int n, k;
 	int l, r;
 
-	if (Img_plot == NULL) {
-		ErrorValueName = "Img_plot";
-		goto ErrorPointerNull;
-	} else if (Index == NULL) {
-		ErrorValueName = "Index";
-		goto ErrorPointerNull;
-	} else if (Index_tmp == NULL) {
-		ErrorValueName = "Index_tmp";
-		goto ErrorPointerNull;
+	if (Img_plot == nullptr) {
+		Error.Value("Img_plot");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Index == nullptr) {
+		Error.Value("Index");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Index_tmp == nullptr) {
+		Error.Value("Index_tmp");
+		Error.PointerNull();
+		goto ExitError;
 	}
 	for (n = 0; n < N; n++) {
 		if (Index[n] < 0 || Index[n] >= N) {
-			ErrorValueName = "Index[]";
-			goto ErrorDataCorrupted;
+			Error.Value("Index[]");
+			Error.ValueIncorrect();
+			goto ExitError;
 		}
 	}
 	step = 2;
@@ -1143,12 +1175,8 @@ sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N)
 		step *= 2;
 	}
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValueName);
-	return MEANINGFUL_FAILURE;
-ErrorDataCorrupted:
-	fprintf(stderr, "*** %s error - The data (%s) is corrupted ***\n", FunctionName, ErrorValueName);
+// Error
+ExitError:
 	return MEANINGFUL_FAILURE;
 }
 

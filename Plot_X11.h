@@ -9,7 +9,7 @@
 
 
 /* Xlib variables */
-extern char *ProgramName;
+extern const char *ProgramName;
 extern SIZE Window_size;
 extern Display *disp;
 extern Window win;

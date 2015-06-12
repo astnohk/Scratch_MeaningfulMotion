@@ -4,149 +4,261 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
+
 #include "Scratch_MeaningfulMotion.h"
 #include "MultiResolution.h"
 #include "OpticalFlow_MultipleMotion.h"
 
 
-/* IRLS parameters */
+// IRLS parameters
 #define IRLS_ITER_MAX 512
 
-/* define for debug */
+
+// define for debug
+
 #define SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
-/* /define for debug */
+//#define DEBUG_STOP_ON_LEVEL_L
+
+// /define for debug
 
 
 
 
 VECTOR_2D *
-MultipleMotion_OpticalFlow(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam)
+MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam)
 {
 	ERROR Error("MultipleMotion_OpticalFlow");
 
-	VECTOR_2D *u = NULL;
+	// M-estimator parameter
+	const double lambdaD = 5.0;
+	const double lambdaS = 1.0;
+	double sigmaD;
+	const double sigmaD_init = 0.8 / sqrt(2.0); //18.0 / sqrt(2.0);
+	const double sigmaD_l0 = 0.2 / sqrt(2.0); //4.0 / sqrt(2.0);
+	double sigmaS;
+	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
+	const double sigmaS_l0 = 0.03 / sqrt(2.0);
+
+	double *It_normalize = NULL;
+	double *Itp1_normalize = NULL;
+	VECTOR_2D *u = NULL; // For RETURN value
+	VECTOR_2D **u_levels = NULL;
 	double **I_dt_levels = NULL;
 	double **It_levels = NULL;
 	double **Itp1_levels = NULL;
 	VECTOR_2D **grad_It_levels = NULL;
-	SIZE size_img_res;
+	SIZE size_img_l;
+	SIZE size_img_lp1;
 	int level;
+	int IterMax;
 	int i;
 
 	if (It == NULL) {
-		ErrorValue = "It";
-		goto ErrorPointerNull;
+		Error.Value("It");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (Itp1 == NULL) {
-		ErrorValue = "Itp1";
-		goto ErrorPointerNull;
+		Error.Value("Itp1");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
-	if ((u = (VECTOR_2D *)calloc((size_t)size_img.width * size_img.height, sizeof(VECTOR_2D))) == NULL) {
-		ErrorValue = "u";
-		goto ErrorMalloc;
+	// Image Normalization
+	try {
+	It_normalize = new double[size_img.width * size_img.height];
 	}
-	/* Make Pyramid */
-	if ((It_levels = Pyramider(It, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "Pyramider";
-		ErrorValue = "It_levels";
-		goto ErrorFunctionFail;
+	catch (std::bad_alloc bad) {
+		Error.Value("It_normalize");
+		Error.Malloc();
+		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(Itp1, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "Pyramider";
-		ErrorValue = "Itp1_levels";
-		goto ErrorFunctionFail;
+	try {
+		Itp1_normalize = new double[size_img.width * size_img.height];
 	}
-	/* Derivative about time */
+	catch (std::bad_alloc bad) {
+		Error.Value("Itp1_normalize");
+		Error.Malloc();
+		goto ExitError;
+	}
+	for (i = 0; i < size_img.width * size_img.height; i++) {
+		It_normalize[i] = (double)It[i] / MaxInt;
+		Itp1_normalize[i] = (double)Itp1[i] / MaxInt;
+	}
+	// Multiple Motion Vectors
+	try {
+		u_levels = new VECTOR_2D*[MotionParam.Level];
+	}
+	catch (std::bad_alloc bad) {
+		throw "u_levels";
+	}
+	catch (const char *err) {
+		Error.Value(err);
+		Error.Malloc();
+		goto ExitError;
+	}
+	// Make Pyramid
+	if ((It_levels = Pyramider(It_normalize, size_img, MotionParam.Level)) == NULL) {
+		Error.Function("Pyramider");
+		Error.Value("It_levels");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+	if ((Itp1_levels = Pyramider(Itp1_normalize, size_img, MotionParam.Level)) == NULL) {
+		Error.Function("Pyramider");
+		Error.Value("Itp1_levels");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+	// Derivative about time
 	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "dt_Pyramid";
-		ErrorValue = "I_dt_levels";
-		goto ErrorFunctionFail;
+		Error.Function("dt_Pyramid");
+		Error.Value("I_dt_levels");
+		Error.FunctionFail();
+		goto ExitError;
 	}
-	/* Derivative about space */
+	// Derivative about space
 	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "grad_Pyramid";
-		ErrorValue = "grad_It_levels";
-		goto ErrorFunctionFail;
+		Error.Function("grad_Pyramid");
+		Error.Value("grad_It_levels");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
-		printf("\nLevel %d :\n", level);
-		size_img_res.width = floor(size_img.width * pow_int(0.5, level));
-		size_img_res.height = floor(size_img.height * pow_int(0.5, level));
-		for (i = 0; i < size_img.width * size_img.height; i++) {
-			u[i].x *= 2.0;
-			u[i].y *= 2.0;
+		if (MotionParam.Level > 1) {
+			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / (MotionParam.Level - 1.0) * (MotionParam.Level - 1.0 - level);
+			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / (MotionParam.Level - 1.0) * (MotionParam.Level - 1.0 - level);
+		} else {
+			sigmaD = sigmaD_l0;
+			sigmaS = sigmaS_l0;
 		}
-		IRLS_MultipleMotion_OpticalFlow(u, grad_It_levels[level], I_dt_levels[level], size_img_res,
-		    MotionParam.lambdaD, MotionParam.lambdaS, MotionParam.sigmaD, MotionParam.sigmaS,
-		    MotionParam.IRLS_Iter_Max, MotionParam.Error_Min_Threshold);
+		printf("\nLevel %d :\n  sigmaD = %f\n  sigmaS = %f\n", level, sigmaD, sigmaS);
+		size_img_lp1.width = (int)floor(size_img.width * pow_int(0.5, level + 1));
+		size_img_lp1.height = (int)floor(size_img.height * pow_int(0.5, level + 1));
+		size_img_l.width = (int)floor(size_img.width * pow_int(0.5, level));
+		size_img_l.height = (int)floor(size_img.height * pow_int(0.5, level));
+		try {
+			u_levels[level] = new VECTOR_2D[size_img_l.width * size_img_l.height];
+		}
+		catch (const std::bad_alloc &bad) {
+			Error.Value("u_levels[level]");
+			Error.Malloc();
+			goto ExitError;
+		}
+		if (level < MotionParam.Level - 1) {
+			LevelDown(u_levels[level], size_img_l, u_levels[level + 1], size_img_lp1);
+		}
+#ifdef DEBUG_STOP_ON_LEVEL_L
+		if (level <= 2) {
+			continue;
+		}
+#endif
+		IterMax = 5 * MAX(size_img_l.width, size_img_l.height);
+		IRLS_MultipleMotion_OpticalFlow(u_levels[level], grad_It_levels[level], I_dt_levels[level], size_img_l,
+		    lambdaD, lambdaS, sigmaD, sigmaS,
+		    IterMax, MotionParam.Error_Min_Threshold,
+		    level);
 	}
-	free(grad_It_levels);
-	free(I_dt_levels);
-	free(Itp1_levels);
-	free(It_levels);
+	// Set Output
+	u = u_levels[0];
+	u_levels[0] = nullptr;
+
+	for (level = 0; level < MotionParam.Level; level++) {
+		delete[] u_levels[level];
+	}
+	delete[] u_levels;
+	delete[] grad_It_levels;
+	delete[] I_dt_levels;
+	delete[] Itp1_levels;
+	delete[] It_levels;
+	delete[] Itp1_normalize;
+	delete[] It_normalize;
 	return u;
-/* Error */
-ErrorMalloc:
-	fprintf(stderr, "*** %s() error - Cannot allocate memory for (*%s) ***\n", FunctionName, ErrorValue);
-	goto ErrorReturn;
-ErrorPointerNull:
-	fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValue);
-	goto ErrorReturn;
-ErrorFunctionFail:
-	fprintf(stderr, "*** %s() error - %s() failed to compute (%s) ***\n", FunctionName, ErrorFunction, ErrorValue);
-ErrorReturn:
-	free(grad_It_levels);
-	free(I_dt_levels);
-	free(Itp1_levels);
-	free(It_levels);
-	free(u);
-	return NULL;
+// Error
+ExitError:
+	delete[] grad_It_levels;
+	delete[] I_dt_levels;
+	delete[] Itp1_levels;
+	delete[] It_levels;
+	for (level = 0; level < MotionParam.Level; level++) {
+		delete[] u_levels[level];
+	}
+	delete[] u_levels;
+	delete[] u;
+	delete[] Itp1_normalize;
+	delete[] It_normalize;
+	return nullptr;
+}
+
+
+void
+LevelDown(VECTOR_2D *u_l, SIZE size_l, VECTOR_2D *u_lp1, SIZE size_lp1)
+{
+	int x, y;
+
+	for (y = 0; y < size_l.height; y++) {
+		for (x = 0; x < size_l.width; x++) {
+			u_l[size_l.width * y + x] = u_lp1[size_lp1.width * (y / 2) + (x / 2)];
+		}
+	}
 }
 
 
 int
-IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold)
+IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
-	char *FunctionName = "IRLS";
+	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
+
 	VECTOR_2D *u_np1 = NULL;
-	VECTOR_2D sup = VECTOR_2D_ZERO;
-	VECTOR_2D dE = VECTOR_2D_ZERO;
+	VECTOR_2D sup;
+	VECTOR_2D dE;
 	double E = 0.0;
+	double E_prev = 0.0;
+	int ErrorIncrementCount = 0;
 	int site;
-	double myu_max;
-	double omega;
 	int n;
 
-	if ((u_np1 = (VECTOR_2D *)calloc(size_img.width * size_img.height, sizeof(VECTOR_2D))) == NULL) {
-		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*u_np1) ***\n", FunctionName);
+	try {
+		u_np1 = new VECTOR_2D[size_img.width * size_img.height];
+	}
+	catch (std::bad_alloc bad) {
+		Error.Value("u_np1");
+		Error.Malloc();
 		return MEANINGFUL_FAILURE;
 	}
 	for (n = 0; n < IterMax; n++) {
-		myu_max = cos(M_PI / (n + 2.0)); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
-		//myu_max = 1.0 - pow_int(0.9, n + 1); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
-		if (fabs(myu_max) < 1.0E-50) {
-			myu_max = 1.0E-50;
-		}
-		omega = 2.0 * (1.0 - sqrt(1.0 - POW2(myu_max))) / POW2(myu_max);
-		for (site = 0; site < size_img.width * size_img.height; site++) { /* Calc for all sites */
+		sup_Error_uu(Img_g, size_img, lambdaD, lambdaS, sigmaD, sigmaS); // Reset sup_Error_uu max Img_g
+#pragma omp parallel for private(dE, sup)
+		for (site = 0; site < size_img.width * size_img.height; site++) { // Calc for all sites
 			dE = Error_u(site, u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
-			sup = sup_Error_uu(Img_g, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
-			u_np1[site].x = u[site].x - omega / sup.x * dE.x;
-			u_np1[site].y = u[site].y - omega / sup.y * dE.y;
+			sup = sup_Error_uu(NULL, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+			u_np1[site].x = u[site].x - dE.x / sup.x;
+			u_np1[site].y = u[site].y - dE.y / sup.y;
 		}
-		for (site = 0; site < size_img.width * size_img.height; site++) { /* Calc for all sites */
+		for (site = 0; site < size_img.width * size_img.height; site++) { // Calc for all sites
 			u[site] = u_np1[site];
 		}
-		E = Error_MultipleMotion(u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+		if (level == 0) {
+			if ((n & 0x3F) == 0) {
+				E = Error_MultipleMotion(u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+			}
+		} else {
+			E_prev = E;
+			E = Error_MultipleMotion(u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+			if (E > E_prev) {
+				ErrorIncrementCount++;
+			} else {
+				ErrorIncrementCount = 0;
+			}
+		}
 #ifdef SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
 		if ((n & 0x3F) == 0) {
 			printf("E(%4d) = %e\n", n, E);
 		}
-		if (E < ErrorMinThreshold) {
+#endif
+		if (E < ErrorMinThreshold || ErrorIncrementCount > 2) {
 			break;
 		}
-#endif
 	}
 	free(u_np1);
 	return MEANINGFUL_SUCCESS;
@@ -156,35 +268,37 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 VECTOR_2D
 Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
+	double (*psiD)(double, double) = Geman_McClure_psi;
+	double (*psiS)(double, double) = Geman_McClure_psi;
 	VECTOR_2D us;
 	double Center;
 	VECTOR_2D Neighbor;
-	VECTOR_2D E_u = VECTOR_2D_ZERO;
+	VECTOR_2D E_u;
 	int x, y;
 
 	x = site % size_img.width;
 	y = (int)floor(site / size_img.width);
 
 	us = u[site];
-	Center = cal_psyD(Img_g[site].x * us.x + Img_g[site].y * us.y + Img_t[site], sigmaD);
+	Center = (*psiD)(Img_g[site].x * us.x + Img_g[site].y * us.y + Img_t[site], sigmaD);
 
 	Neighbor.x = .0;
 	Neighbor.y = .0;
 	if (x > 0) {
-		Neighbor.x += cal_psyS(us.x - u[size_img.width * y + x - 1].x, sigmaS);
-		Neighbor.y += cal_psyS(us.y - u[size_img.width * y + x - 1].y, sigmaS);
+		Neighbor.x += (*psiS)(us.x - u[size_img.width * y + x - 1].x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u[size_img.width * y + x - 1].y, sigmaS);
 	}
 	if (x < size_img.width - 1) {
-		Neighbor.x += cal_psyS(us.x - u[size_img.width * y + x + 1].x, sigmaS);
-		Neighbor.y += cal_psyS(us.y - u[size_img.width * y + x + 1].y, sigmaS);
+		Neighbor.x += (*psiS)(us.x - u[size_img.width * y + x + 1].x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u[size_img.width * y + x + 1].y, sigmaS);
 	}
 	if (y > 0) {
-		Neighbor.x += cal_psyS(us.x - u[size_img.width * (y - 1) + x].x, sigmaS);
-		Neighbor.y += cal_psyS(us.y - u[size_img.width * (y - 1) + x].y, sigmaS);
+		Neighbor.x += (*psiS)(us.x - u[size_img.width * (y - 1) + x].x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u[size_img.width * (y - 1) + x].y, sigmaS);
 	}
 	if (y < size_img.height - 1) {
-		Neighbor.x += cal_psyS(us.x - u[size_img.width * (y + 1) + x].x, sigmaS);
-		Neighbor.y += cal_psyS(us.y - u[size_img.width * (y + 1) + x].y, sigmaS);
+		Neighbor.x += (*psiS)(us.x - u[size_img.width * (y + 1) + x].x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u[size_img.width * (y + 1) + x].y, sigmaS);
 	}
 
 	E_u.x += lambdaD * Img_g[site].x * Center + lambdaS * Neighbor.x;
@@ -196,12 +310,10 @@ Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, 
 VECTOR_2D
 sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
-	static int called = 0;
-	static VECTOR_2D Img_g_max = VECTOR_2D_ZERO;
+	static VECTOR_2D Img_g_max;
 	int i;
 
-	if (called == 0) {
-		called = 1;
+	if (Img_g != NULL) {
 		for (i = 0; i < size.width * size.height; i++) {
 			if (Img_g_max.x < POW2(Img_g[i].x)) {
 				Img_g_max.x = POW2(Img_g[i].x);
@@ -219,6 +331,8 @@ sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double
 double
 Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
+	double (*rhoD)(double, double) = Geman_McClure_rho;
+	double (*rhoS)(double, double) = Geman_McClure_rho;
 	VECTOR_2D us;
 	double Center;
 	VECTOR_2D Neighbor;
@@ -228,24 +342,25 @@ Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_im
 	for (y = 0; y < size_img.height; y++) {
 		for (x = 0; x < size_img.width; x++) {
 			us = u[size_img.width * y + x];
-			Neighbor = VECTOR_2D_ZERO;
+			Neighbor.x = 0;
+			Neighbor.y = 0;
 			if (x > 0) {
-				Neighbor.x += cal_rhoS(us.x - u[size_img.width * y + x - 1].x, sigmaS);
-				Neighbor.y += cal_rhoS(us.y - u[size_img.width * y + x - 1].y, sigmaS);
+				Neighbor.x += (*rhoS)(us.x - u[size_img.width * y + x - 1].x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u[size_img.width * y + x - 1].y, sigmaS);
 			}
 			if (x < size_img.width - 1) {
-				Neighbor.x += cal_rhoS(us.x - u[size_img.width * y + x + 1].x, sigmaS);
-				Neighbor.y += cal_rhoS(us.y - u[size_img.width * y + x + 1].y, sigmaS);
+				Neighbor.x += (*rhoS)(us.x - u[size_img.width * y + x + 1].x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u[size_img.width * y + x + 1].y, sigmaS);
 			}
 			if (y > 0) {
-				Neighbor.x += cal_rhoS(us.x - u[size_img.width * (y - 1) + x].x, sigmaS);
-				Neighbor.y += cal_rhoS(us.y - u[size_img.width * (y - 1) + x].y, sigmaS);
+				Neighbor.x += (*rhoS)(us.x - u[size_img.width * (y - 1) + x].x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u[size_img.width * (y - 1) + x].y, sigmaS);
 			}
 			if (y < size_img.height - 1) {
-				Neighbor.x += cal_rhoS(us.x - u[size_img.width * (y + 1) + x].x, sigmaS);
-				Neighbor.y += cal_rhoS(us.y - u[size_img.width * (y + 1) + x].y, sigmaS);
+				Neighbor.x += (*rhoS)(us.x - u[size_img.width * (y + 1) + x].x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u[size_img.width * (y + 1) + x].y, sigmaS);
 			}
-			Center = cal_rhoD(Img_g[size_img.width * y + x].x * us.x
+			Center = (*rhoD)(Img_g[size_img.width * y + x].x * us.x
 			    + Img_g[size_img.width * y + x].y * us.y
 			    + Img_t[size_img.width * y + x],
 			    sigmaD);
@@ -257,60 +372,55 @@ Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_im
 
 
 int
-MultipleMotion_write(VECTOR_2D *u, SIZE size, char *filename)
+MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 {
-	char *FunctionName = "MultipleMotion_write";
-	char *ErrorFunction = "";
-	char *ErrorValue = "";
-
-	FILE *fp;
+	ERROR Error("MultipleMotion_write");
+	FILE *fp = NULL;
 	int x, y;
 
 	if (u == NULL) {
-		ErrorValue = "u";
-		goto ErrorPointerNull;
+		Error.Value("u");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (filename == NULL) {
-		ErrorValue = "filename";
-		goto ErrorPointerNull;
+		Error.Value("filename");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
 	printf("* Output Optical Flow to '%s'\n", filename);
 	if ((fp = fopen(filename, "w")) == NULL) {
-		ErrorFunction = "fopen";
-		ErrorValue = filename;
-		goto ErrorFileOpenFail;
+		Error.Function("fopen");
+		Error.Value(filename);
+		Error.FileRead();
+		goto ExitError;
 	}
-	for (y = 0; y < size.width; y++) {
-		for (x = 0; x < size.height; x++) {
+	for (y = 0; y < size.height; y++) {
+		for (x = 0; x < size.width; x++) {
 			if (fprintf(fp, "%0.16e ", u[size.width * y + x].x) < 0) {
-				ErrorFunction = "fprintf";
-				ErrorValue = "u(x, y).x";
-				goto ErrorFunctionFail;
+				Error.Function("fprintf");
+				Error.Value("u(x, y).x");
+				Error.FunctionFail();
+				goto ExitError;
 			}
 			if (fprintf(fp, "%0.16e ", u[size.width * y + x].y) < 0) {
-				ErrorFunction = "fprintf";
-				ErrorValue = "u(x, y).y";
-				goto ErrorFunctionFail;
+				Error.Function("fprintf");
+				Error.Value("u(x, y).y");
+				Error.FunctionFail();
+				goto ExitError;
 			}
 		}
 		if (fprintf(fp, "\n") < 0) {
-			ErrorFunction = "fprintf";
-			ErrorValue = "'\n'";
-			goto ErrorFunctionFail;
+			Error.Function("fprintf");
+			Error.Value("'\n'");
+			Error.FunctionFail();
+			goto ExitError;
 		}
 	}
 	fclose(fp);
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValue);
-	goto ErrorReturn;
-ErrorFunctionFail:
-	fprintf(stderr, "*** %s error - %s() failed to compute (%s) ***\n", FunctionName, ErrorFunction, ErrorValue);
-	goto ErrorReturn;
-ErrorFileOpenFail:
-	fprintf(stderr, "*** %s error - Cannot open the file '%s' ***\n", FunctionName, ErrorValue);
-ErrorReturn:
+// Error
+ExitError:
 	fclose(fp);
 	return MEANINGFUL_FAILURE;
 }

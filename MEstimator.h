@@ -11,10 +11,9 @@
 
 
 
-double cal_rhoD(double x, double sigma);
-double cal_psyD(double x, double sigma);
-double cal_dpsyD(double x, double sigma);
-double cal_rhoS(double x, double sigma);
-double cal_psyS(double x, double sigma);
-double cal_dpsyS(double x, double sigma);
+
+double Geman_McClure_rho(double x, double sigma);
+double Geman_McClure_psi(double x, double sigma);
+double Lorentzian_rho(double x, double sigma);
+double Lorentzian_psi(double x, double sigma);
 

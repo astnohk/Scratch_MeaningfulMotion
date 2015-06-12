@@ -1,3 +1,4 @@
+#define nullptr NULL
 /*
  * In this program. the coordinate system defined as below.
  * --->x     --->n
@@ -7,9 +8,9 @@
 */
 
 
-/* DEBUG Options */
+// DEBUG Options
 //#define SHOW_GAUSSIAN_FILTER
-/* /DEBUG Options */
+// /DEBUG Options
 
 
 #define POW2(x) ((x) * (x))
@@ -34,6 +35,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <iostream>
 #include <list>
@@ -44,6 +46,7 @@
 #endif
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#include <unistd.h>
 
 
 #define REGEXP_MAX_DIGITS 10
@@ -54,17 +57,17 @@
 #define OPTION_INCORRECT 2
 #define OPTION_UNKNOWN 4
 
-/* Superimpose Color constants */
+// Superimpose Color constants
 #define OVERLAY_COLOR_PATTERNS 3
 #define NOT_SUPERIMPOSE 0
 #define RED 1
 #define GREEN 2
 #define BLUE 3
 
-/* ANGLE_MAX is used as ANGLE_MAX * pi */
+// ANGLE_MAX is used as ANGLE_MAX * pi
 #define ANGLE_MAX 2.0
 
-/* Filter Default Values */
+// Filter Default Values
 #define EPSILONFILTER_SIZE (SIZE){21, 21}
 #define EPSILONFILTER_EPSILON 20
 #define GAUSSIAN_SIZE (SIZE){21, 21}
@@ -99,11 +102,11 @@
 
 #define DERIVATIVE_MINIMUM 0
 #define EPSILON 1
-/* DIR_PROBABILITY independent of DIV_ANGLE */
+// DIR_PROBABILITY independent of DIV_ANGLE
 #define DIR_PROBABILITY (1.0 / 16.0)
-/* DIV_ANGLE affects on segments searching but not on precision */
+// DIV_ANGLE affects on segments searching but not on precision
 #define DIV_ANGLE 40
-/* DIV_ANGLE_VERTICAL limits the segments angle between Vertical line and Segments less than or equal to ((pi / 2) / DIV_ANGLE_VERTICAL) */
+// DIV_ANGLE_VERTICAL limits the segments angle between Vertical line and Segments less than or equal to ((pi / 2) / DIV_ANGLE_VERTICAL)
 #define DIV_ANGLE_VERTICAL 9.0
 
 #define EXCLUSIVE_PRINCIPLE_MAX_RADIUS 1.5
@@ -168,11 +171,11 @@ struct FRAGMENT
 
 struct SEGMENT
 {
-	int n; /* Start point x */
-	int m; /* Start point y */
-	int x; /* End point x */
-	int y; /* End point y */
-	double Pr; /* Probability */
+	int n; // Start point x
+	int m; // Start point y
+	int x; // End point x
+	int y; // End point y
+	double Pr; // Probability
 	SEGMENT(void);
 	SEGMENT(int stx, int sty, int endx, int endy, double prob);
 };
@@ -209,17 +212,6 @@ struct VECTOR_2D
 	VECTOR_2D(double ix, double iy);
 };
 
-#define TUPLE_VECTOR_SIZE 6
-struct TUPLE_VEC_SCALAR{
-	double vector[TUPLE_VECTOR_SIZE];
-	double scalar;
-	TUPLE_VEC_SCALAR(void);
-	TUPLE_VEC_SCALAR operator+(TUPLE_VEC_SCALAR tup);
-	TUPLE_VEC_SCALAR operator*(double C);
-	double operator*(TUPLE_VEC_SCALAR tup);
-	double norm(SIZE W_l);
-};
-
 struct OPTICALFLOW_PARAM
 {
 	int Level;
@@ -252,7 +244,7 @@ struct MULTIPLE_MOTION_PARAM
 struct OPTIONS
 {
 	SIZE ResampleSize;
-	std::string ResampleMethod;
+	int ResampleMethod;
 	int mode;
 	int Max_Length;
 	int Max_Output_Length;
@@ -268,19 +260,19 @@ struct OPTIONS
 	MULTIPLE_MOTION_PARAM MultipleMotion_Param;
 	OPTIONS(void);
 };
-/* Mode Options */
+// Mode Options
 #define MODE_OUTPUT_FILTERED_IMAGE 0x0010
 #define MODE_OUTPUT_BINARY_IMAGE 0x0020
 #define MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE 0x0040
 #define MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW 0x0080
 #define MODE_OUTPUT_OPTICALFLOW_AFFINE_PARAMETER 0x0100
-/* PlotOptions */
+// PlotOptions
 #define PLOT_NEGATE 0x01
 #define PLOT_AS_RESAMPLE 0x02
 #define PLOT_RESAMPLED_IMG_ONLY 0x04
 
-/* X11 structures */
-/* * X11 Plotting Parameters */
+// X11 structures
+// * X11 Plotting Parameters
 struct X11_PARAM
 {
 	int Int_interval;
@@ -306,11 +298,12 @@ struct SEGMENT_X11
 
 struct COORDINATE_3D
 {
-	float x;
-	float y;
-	float z;
+	double x;
+	double y;
+	double z;
 	COORDINATE_3D(void);
-	COORDINATE_3D(float ix, float iy, float iz);
+	COORDINATE_3D(double ix, double iy, double iz);
+	void set(double sx, double sy, double sz);
 };
 
 struct XPLOT
@@ -319,7 +312,7 @@ struct XPLOT
 	double z;
 	XPLOT(void);
 };
-/* /X11 structures */
+// /X11 structures
 
 
 extern const std::string Progress[NUM_PROGRESS];
@@ -329,16 +322,16 @@ extern const std::string Progress_End;
 
 
 
-/* Prototype of functions */
+// Prototype of functions
 int Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
 
-/* Mathematical Libraries */
+// Mathematical Libraries
 double pow_int(double x, int a);
 double atan2_div_pi_table(int y, int x, SIZE *size);
 int* Calc_k_l(SIZE size, double p, double ep);
 double Pr(int k, int l, double p);
 
-/* Image Libraries */
+// Image Libraries
 double* Gaussian(double *img, SIZE size, FILTER_PARAM Param);
 double* EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param);
 double HorizontalMedian(double *img, int N, int x, int y, int width);
@@ -348,26 +341,26 @@ double* Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size);
 double* Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring);
 int IndexOfMirroring(int x, int size);
 
-/* Other Libraries */
+// Other Libraries
 char* regexp(char *s);
 
 
-/* Scratch Detection */
+// Scratch Detection
 double* DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection);
 #define DO_DETECTION 1
 #define DO_NOT_DETECTION 0
 
-/* Meaningful Alignments */
+// Meaningful Alignments
 SEGMENT* AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
 int AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_segment, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length);
 SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
 
-/* Plotting */
+// Plotting
 int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
 int Superimposer(PNM *pnm_out, PNM *pnm_in, int *Plot, SIZE size, int Color, int Negate);
 
 
-/* X11 Plotting */
+// X11 Plotting
 int ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
 int Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
 int XEventor(X11_PARAM *X11_Param, SIZE Img_size);
@@ -382,5 +375,5 @@ int Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *I
 void PlotParameters(X11_PARAM X11_Param);
 int reset_index(int *Img_index, int N);
 int sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N);
-/* /X11 Plotting */
+// /X11 Plotting
 

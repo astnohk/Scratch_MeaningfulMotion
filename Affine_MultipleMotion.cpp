@@ -4,59 +4,85 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-#include "Scratch_MeaningfulA.h"
-#include "MultiResolution.h"
+#include "Scratch_MeaningfulMotion.h"
 #include "Affine_MultipleMotion.h"
+#include "MultiResolution.h"
+#include "MEstimator.h"
 
 
 
 
 VECTOR_AFFINE
-MultipleMotion_Affine(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam)
+MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam)
 {
-	char *FunctionName = "MultipleMotion_Affine";
-	char *ErrorFunction = "";
-	char *ErrorValue = "";
+	ERROR Error("MultipleMotion_Affine");
+
+	// M-estimator parameter
+	const double sigmaD = 0.1 * sqrt(3.0);
 
 	VECTOR_AFFINE u;
+	double *It_normalize = NULL;
+	double *Itp1_normalize = NULL;
 	double **I_dt_levels = NULL;
 	double **It_levels = NULL;
 	double **Itp1_levels = NULL;
 	VECTOR_2D **grad_It_levels = NULL;
-	SIZE size_img_res;
+	SIZE size_img_l;
 	int level;
+	int IterMax;
 	int i;
 
 	if (It == NULL) {
-		ErrorValue = "It";
-		goto ErrorPointerNull;
+		Error.Value("It");
+		Error.PointerNull();
+		goto ExitError;
 	} else if (Itp1 == NULL) {
-		ErrorValue = "Itp1";
-		goto ErrorPointerNull;
+		Error.Value("Itp1");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
-	/* Make Pyramid */
-	if ((It_levels = Pyramider(It, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "Pyramider";
-		ErrorValue = "It_levels";
-		goto ErrorFunctionFail;
+	// Image Normalization
+	if ((It_normalize = (double *)calloc((size_t)size_img.width * size_img.height, sizeof(double))) == NULL) {
+		Error.Value("It_normalize");
+		Error.Malloc();
+		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(Itp1, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "Pyramider";
-		ErrorValue = "Itp1_levels";
-		goto ErrorFunctionFail;
+	if ((Itp1_normalize = (double *)calloc((size_t)size_img.width * size_img.height, sizeof(double))) == NULL) {
+		Error.Value("Itp1_normalize");
+		Error.Malloc();
+		goto ExitError;
 	}
-	/* Derivative about time */
+	for (i = 0; i < size_img.width * size_img.height; i++) {
+		It_normalize[i] = (double)It[i] / MaxInt;
+		Itp1_normalize[i] = (double)Itp1[i] / MaxInt;
+	}
+	// Make Pyramid
+	if ((It_levels = Pyramider(It_normalize, size_img, MotionParam.Level)) == NULL) {
+		Error.Function("Pyramider");
+		Error.Value("It_levels");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+	if ((Itp1_levels = Pyramider(Itp1_normalize, size_img, MotionParam.Level)) == NULL) {
+		Error.Function("Pyramider");
+		Error.Value("Itp1_levels");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+	// Derivative about time
 	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "dt_Pyramid";
-		ErrorValue = "I_dt_levels";
-		goto ErrorFunctionFail;
+		Error.Function("dt_Pyramid");
+		Error.Value("I_dt_levels");
+		Error.FunctionFail();
+		goto ExitError;
 	}
-	/* Derivative about space */
+	// Derivative about space
 	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
-		ErrorFunction = "grad_Pyramid";
-		ErrorValue = "grad_It_levels";
-		goto ErrorFunctionFail;
+		Error.Function("grad_Pyramid");
+		Error.Value("grad_It_levels");
+		Error.FunctionFail();
+		goto ExitError;
 	}
 
 	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
@@ -66,28 +92,28 @@ MultipleMotion_Affine(double *It, double *Itp1, SIZE size_img, MULTIPLE_MOTION_P
 		printf("\nLevel %d :\n", level);
 		u.a[0] *= 2;
 		u.a[3] *= 2;
-		size_img_res.width = floor(size_img.width * pow_int(0.5, level));
-		size_img_res.height = floor(size_img.height * pow_int(0.5, level));
-		IRLS_MultipleMotion_Affine(&u, grad_It_levels[level], I_dt_levels[level], size_img_res,
-		    MotionParam.sigmaD,
-		    MotionParam.IRLS_Iter_Max, MotionParam.Error_Min_Threshold);
+		size_img_l.width = floor(size_img.width * pow_int(0.5, level));
+		size_img_l.height = floor(size_img.height * pow_int(0.5, level));
+		IterMax = 2 * MAX(size_img_l.width, size_img_l.height);
+		IRLS_MultipleMotion_Affine(&u, grad_It_levels[level], I_dt_levels[level], size_img_l,
+		    sigmaD,
+		    IterMax, MotionParam.Error_Min_Threshold);
 	}
 	free(grad_It_levels);
 	free(I_dt_levels);
 	free(Itp1_levels);
 	free(It_levels);
+	free(It_normalize);
+	free(Itp1_normalize);
 	return u;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValue);
-	goto ErrorReturn;
-ErrorFunctionFail:
-	fprintf(stderr, "*** %s() error - %s() failed to compute (%s) ***\n", FunctionName, ErrorFunction, ErrorValue);
-ErrorReturn:
+// Error
+ExitError:
 	free(grad_It_levels);
 	free(I_dt_levels);
 	free(Itp1_levels);
 	free(It_levels);
+	free(It_normalize);
+	free(Itp1_normalize);
 	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u.a[i] = .0;
 	}
@@ -102,25 +128,20 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SI
 	VECTOR_AFFINE sup;
 	VECTOR_AFFINE dE;
 	double E = 0.0;
-	double myu_max;
 	double omega;
 	int i, n;
 
 	printf("sigmaD = %e\n", sigmaD);
 	for (n = 0; n < IterMax; n++) {
-		myu_max = cos(M_PI / (n + 1.0)); /* Jacobi relaxation determined by the largest eigenvalue of the Jacobi iteration matrix */
-		if (fabs(myu_max) < 1.0E-10) {
-			myu_max = 1.0E-10;
-		}
-		omega = 2.0 * (1.0 - sqrt(1.0 - POW2(myu_max))) / POW2(myu_max) * 1E-4;
+		omega = 1.0E-4;
 		dE = Error_a(u, Img_g, Img_t, size_img, sigmaD);
 		sup = sup_Error_aa(Img_g, size_img, sigmaD);
 		for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 			u_np1.a[i] = .0;
 		}
 		for (i = 0; i < 6; i++) {
-			if (fabs(sup.a[i]) < 1.0E-6) {
-				u_np1.a[i] = u->a[i] - omega / 1.0E-6 * SIGN_NOZERO(sup.a[i]) * dE.a[i];
+			if (fabs(sup.a[i]) < 1.0E-16) {
+				u_np1.a[i] = u->a[i] - omega / 1.0E-16 * SIGN_NOZERO(sup.a[i]) * dE.a[i];
 			} else {
 				u_np1.a[i] = u->a[i] - omega / sup.a[i] * dE.a[i];
 			}
@@ -141,6 +162,7 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SI
 VECTOR_AFFINE
 Error_a(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD)
 {
+	double (*psiD)(double, double) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
 	VECTOR_2D u_a;
 	int site;
@@ -152,15 +174,15 @@ Error_a(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double
 	}
 	for (site = 0; site < size_img.width * size_img.height; site++) {
 		x = site % size_img.width;
-		y = (int)floor(site / size_img.width);
+		y = site / size_img.width;
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
 		u_a.y = u->a[3] + u->a[4] * x + u->a[5] * y;
-		E_a.a[0] += Img_g[site].x * cal_psyD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
-		E_a.a[1] += Img_g[site].x * x * cal_psyD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
-		E_a.a[2] += Img_g[site].x * y * cal_psyD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
-		E_a.a[3] += Img_g[site].y * cal_psyD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
-		E_a.a[4] += Img_g[site].y * x * cal_psyD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
-		E_a.a[5] += Img_g[site].y * y * cal_psyD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E_a.a[0] += Img_g[site].x * (*psiD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E_a.a[1] += Img_g[site].x * x * (*psiD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E_a.a[2] += Img_g[site].x * y * (*psiD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E_a.a[3] += Img_g[site].y * (*psiD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E_a.a[4] += Img_g[site].y * x * (*psiD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E_a.a[5] += Img_g[site].y * y * (*psiD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
 	}
 	return E_a;
 }
@@ -169,8 +191,7 @@ Error_a(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double
 VECTOR_AFFINE
 sup_Error_aa(VECTOR_2D *Img_g, SIZE size, double sigmaD)
 {
-	char *FunctionName = "sup_Error_aa";
-	char *ErrorValue = "";
+	ERROR Error("sup_Error_aa");
 
 	VECTOR_AFFINE sup;
 	VECTOR_AFFINE u_aa_max;
@@ -181,13 +202,13 @@ sup_Error_aa(VECTOR_2D *Img_g, SIZE size, double sigmaD)
 		u_aa_max.a[i] = .0;
 	}
 	if (Img_g == NULL) {
-		ErrorValue = "Img_g";
-		fprintf(stderr, "*** %s() error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValue);
+		Error.Value("Img_g");
+		Error.PointerNull();
 		return u_aa_max;
 	}
 	for (i = 0; i < size.width * size.height; i++) {
 		x = i % size.width;
-		y = (int)floor(i / size.width);
+		y = i / size.width;
 		/* u = a0 + a1 * x + a2 * y */
 		if (u_aa_max.a[0] < POW2(Img_g[i].x)) {
 			u_aa_max.a[0] = POW2(Img_g[i].x);
@@ -222,6 +243,7 @@ sup_Error_aa(VECTOR_2D *Img_g, SIZE size, double sigmaD)
 double
 Error_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD)
 {
+	double (*rhoD)(double, double) = Geman_McClure_rho;
 	double E = 0.0;
 	VECTOR_2D u_a;
 	int site;
@@ -229,60 +251,54 @@ Error_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, d
 
 	for (site = 0; site < size_img.width * size_img.height; site++) {
 		x = site % size_img.width;
-		y = (int)floor(site / size_img.width);
+		y = site / size_img.width;
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
 		u_a.y = u->a[3] + u->a[4] * x + u->a[5] * y;
-		E += cal_rhoD(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
+		E += (*rhoD)(Img_g[site].x * u_a.x + Img_g[site].y * u_a.y + Img_t[site], sigmaD);
 	}
 	return E;
 }
 
 
 int
-MultipleMotion_Affine_write(VECTOR_AFFINE u, char *filename)
+MultipleMotion_Affine_write(VECTOR_AFFINE u, const char *filename)
 {
-	char *FunctionName = "MultipleMotion_Affine_write";
-	char *ErrorFunction = "";
-	char *ErrorValue = "";
+	ERROR Error("MultipleMotion_Affine_write");
 
-	FILE *fp;
+	FILE *fp = NULL;
 	int i;
 
 	if (filename == NULL) {
-		ErrorValue = "filename";
-		goto ErrorPointerNull;
+		Error.Value("filename");
+		Error.PointerNull();
+		goto ExitError;
 	}
 
 	printf("* Output Affine Parameter to '%s'\n", filename);
 	if ((fp = fopen(filename, "w")) == NULL) {
-		ErrorFunction = "fopen";
-		ErrorValue = filename;
-		goto ErrorFileOpenFail;
+		Error.Function("fopen");
+		Error.Value(filename);
+		Error.FileRead();
+		goto ExitError;
 	}
 	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		if (fprintf(fp, "%0.16e ", u.a[i]) < 0) {
-			ErrorFunction = "fprintf";
-			ErrorValue = "u(a(i))";
-			goto ErrorFunctionFail;
+			Error.Function("fprintf");
+			Error.Value("u(a(i))");
+			Error.FunctionFail();
+			goto ExitError;
 		}
 		if (fprintf(fp, "\n") < 0) {
-			ErrorFunction = "fprintf";
-			ErrorValue = "'\n'";
-			goto ErrorFunctionFail;
+			Error.Function("fprintf");
+			Error.Value("'\n'");
+			Error.FunctionFail();
+			goto ExitError;
 		}
 	}
 	fclose(fp);
 	return MEANINGFUL_SUCCESS;
-/* Error */
-ErrorPointerNull:
-	fprintf(stderr, "*** %s error - The pointer (*%s) is NULL ***\n", FunctionName, ErrorValue);
-	goto ErrorReturn;
-ErrorFunctionFail:
-	fprintf(stderr, "*** %s error - %s() failed to compute (%s) ***\n", FunctionName, ErrorFunction, ErrorValue);
-	goto ErrorReturn;
-ErrorFileOpenFail:
-	fprintf(stderr, "*** %s error - Cannot open the file '%s' ***\n", FunctionName, ErrorValue);
-ErrorReturn:
+// Error
+ExitError:
 	fclose(fp);
 	return MEANINGFUL_FAILURE;
 }

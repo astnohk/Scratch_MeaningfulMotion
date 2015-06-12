@@ -4,8 +4,8 @@
 
 
 
-double*
-DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
+double *
+DetectScratch(PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
 {
 	ERROR Error("DetectScratch");
 
@@ -16,23 +16,12 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 	int x, y, m, n;
 	double Im, Il, Ir;
 #if defined(DEBUG_FILTER)
-	PNM pnm_out = PNM_NULL;
+	PNM pnm_out;
 #endif
 
-	size.width = (int)pnm->width;
-	size.height = (int)pnm->height;
-	try {
-		img = new double[size.height * size.width];
-	}
-	catch (std::bad_alloc bad) {
-		Error.Function("new");
-		Error.Value("scratches");
-		Error.Malloc();
-		goto ExitError;
-	}
-	for (m = 0; m < size.height * size.width; m++) {
-		img[m] = (double)pnm->img[m];
-	}
+	size.width = pnm.Width();
+	size.height = pnm.Height();
+	img = pnm.get_double();
 
 	switch (FilterParam.type) {
 		case FILTER_ID_EPSILON: /* Epsilon Filter */
@@ -57,25 +46,20 @@ DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, in
 			printf("* Do NOT any filtering\n");
 	}
 #if defined(DEBUG_FILTER)
-	if (pnmnew(&pnm_out, PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm->maxint) != PNM_FUNCTION_SUCCESS) {
-		Error.Function("pnmnew");
-		Error.Value("pnm_out");
-		Error.Malloc();
-		goto ExitError;
-	}
-	for (m = 0; m < size.height * size.width; m++)
-		pnm_out.img[m] = (int)Ig[m];
-	pnmwrite(&pnm_out, "filtered.pgm");
-	pnmfree(&pnm_out);
-	pnm_out = PNM_NULL;
+	pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm.MaxInt(), Ig, 1.0);
+	pnm_out.write("filtered.pgm");
+	pnm_out.free();
 #endif
 
 	if (Do_Detection == 0) {
 		scratches = Ig;
 		Ig = NULL;
 	} else {
-		if ((scratches = (double *)calloc((size_t)size.height * size.width, sizeof(double))) == NULL) {
-			Error.Function("calloc");
+		try {
+			scratches = new double[size.height * size.width];
+		}
+		catch (std::bad_alloc bad) {
+			Error.Function("new");
 			Error.Value("scratches");
 			Error.Malloc();
 			goto ExitError;

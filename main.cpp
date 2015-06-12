@@ -261,7 +261,11 @@ main(int argc, char *argv[])
 							fprintf(stderr, "*** '%s' is NOT method name ***\n", argv[i]);
 							errors |= OPTION_INCORRECT;
 						} else {
-							Options.ResampleMethod = argv[i];
+							if (strcmp("z-hold", argv[i]) == 0) {
+								Options.ResampleMethod = PNM_Resize_ZeroOrderHold;
+							} else if (strcmp("bicubic", argv[i]) == 0) {
+								Options.ResampleMethod = PNM_Resize_Bicubic;
+							}
 						}
 					}
 				} else if (strcmp(argv[i], "--s_avg") == 0) { // set s_avg

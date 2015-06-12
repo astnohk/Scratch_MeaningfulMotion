@@ -2,16 +2,16 @@
 
 
 
-SEGMENT*
+SEGMENT *
 ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
 {
 	ERROR Error("ExclusivePrinciple");
 
-	int *IndexMap = NULL;
-	LINEPOLE *Lines = NULL;
-	double *EPSegments_Pr = NULL;
+	int *IndexMap = nullptr;
+	LINEPOLE *Lines = nullptr;
+	double *EPSegments_Pr = nullptr;
 	int Num_EPSegments = 0;
-	SEGMENT *MaxEPSegments = NULL;
+	SEGMENT *MaxEPSegments = nullptr;
 	int maxMN = (size.height > size.width ? size.height : size.width);
 	int line_index;
 	double Pr_min;
@@ -24,7 +24,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	double dx, dy;
 	int k, L;
 	int n_seg;
-	PNM pnm = PNM_NULL;
+	PNM pnm;
 	int progress_count;
 	int present_count;
 
@@ -47,7 +47,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		goto ExitError;
 	}
 
-	/* Convert the segments Cartesian coordinates to Polar coordinates Expression */
+	// Convert the segments Cartesian coordinates to Polar coordinates Expression
 	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
 		Lines[n_seg].theta = M_PI * atan2_div_pi_table(MaximalSegments[n_seg].n - MaximalSegments[n_seg].x, MaximalSegments[n_seg].y - MaximalSegments[n_seg].m, NULL);
 		if (Lines[n_seg].theta >= M_PI) {
@@ -112,7 +112,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) private(m, n, x, y, k, L, dx, dy, d, d_triangle, aligned_angle, t, x_t, y_t) reduction(+:Num_EPSegments)
 	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
-		/* Re-meaningful segments */
+		// Re-meaningful segments
 		n = MaximalSegments[n_seg].n;
 		m = MaximalSegments[n_seg].m;
 		x = MaximalSegments[n_seg].x;
@@ -158,22 +158,14 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		}
 	}
 	printf("\nComplete!\n");
-	if (pnmnew(&pnm, PORTABLE_GRAYMAP_ASCII, (unsigned int)size.width, (unsigned int)size.height, (unsigned int)(*Num_Segments - 1)) != PNM_FUNCTION_SUCCESS) {
-		Error.Function("pnmnew");
-		Error.Value("pnm");
-		Error.Malloc();
-		goto ExitError;
-	}
-	for (x = 0; x < size.height * size.width; x++) {
-		pnm.img[x] = IndexMap[x];
-	}
-	if (pnmwrite(&pnm, "IndexMap.pgm") != PNM_FUNCTION_SUCCESS) {
+	pnm.copy(PORTABLE_GRAYMAP_ASCII, size.width, size.height, *Num_Segments - 1, IndexMap);
+	if (pnm.write("IndexMap.pgm") == PNM_FUNCTION_ERROR) {
 		fprintf(stderr, "*** ExclusivePrinciple error - CanNOT write out the IndexMap to \"IndexMap.pgm\" ***\n");
 		// Do NOT EXIT because it is NOT FATAL ERROR
 	}
-	pnmfree(&pnm);
-	free(IndexMap);
-	IndexMap = NULL;
+	pnm.free();
+	delete[] IndexMap;
+	IndexMap = nullptr;
 	try {
 		MaxEPSegments = new SEGMENT[Num_EPSegments];
 	}
@@ -197,15 +189,15 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		}
 	}
 	*Num_Segments = Num_EPSegments;
-	free(EPSegments_Pr);
-	EPSegments_Pr = NULL;
+	delete[] EPSegments_Pr;
+	EPSegments_Pr = nullptr;
 	return MaxEPSegments;
 // Error
 ExitError:
-	free(EPSegments_Pr);
-	free(IndexMap);
-	free(Lines);
-	free(MaxEPSegments);
-	return NULL;
+	delete[] EPSegments_Pr;
+	delete[] IndexMap;
+	delete[] Lines;
+	delete[] MaxEPSegments;
+	return nullptr;
 }
 
