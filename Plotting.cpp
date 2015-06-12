@@ -51,7 +51,7 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 
 
 int
-Superimposer(PNM *pnm_out, PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate)
+Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate)
 {
 	ERROR Error("Superimposer");
 	int i;

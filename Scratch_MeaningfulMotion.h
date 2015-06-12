@@ -1,4 +1,4 @@
-#define nullptr NULL
+//#define nullptr NULL
 /*
  * In this program. the coordinate system defined as below.
  * --->x     --->n
@@ -212,16 +212,6 @@ struct VECTOR_2D
 	VECTOR_2D(double ix, double iy);
 };
 
-struct OPTICALFLOW_PARAM
-{
-	int Level;
-	SIZE WindowSize;
-	int IRLS_Iter_Max;
-	double IRLS_Convergence_Threshold;
-	double IRLS_Min_C;
-	OPTICALFLOW_PARAM(void);
-};
-
 #define NUM_AFFINE_PARAMETER 6
 struct VECTOR_AFFINE
 {
@@ -256,7 +246,6 @@ struct OPTIONS
 	double p;
 	double ep;
 	double Exclusive_Max_Radius;
-	OPTICALFLOW_PARAM OpticalFlow_Param;
 	MULTIPLE_MOTION_PARAM MultipleMotion_Param;
 	OPTIONS(void);
 };
@@ -346,7 +335,7 @@ char* regexp(char *s);
 
 
 // Scratch Detection
-double* DetectScratch(PNM *pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection);
+double* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection);
 #define DO_DETECTION 1
 #define DO_NOT_DETECTION 0
 
@@ -357,7 +346,7 @@ SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_t
 
 // Plotting
 int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
-int Superimposer(PNM *pnm_out, PNM *pnm_in, int *Plot, SIZE size, int Color, int Negate);
+int Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate);
 
 
 // X11 Plotting

@@ -5,7 +5,7 @@
 
 
 double *
-DetectScratch(PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
+DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
 {
 	ERROR Error("DetectScratch");
 

@@ -120,12 +120,11 @@ VECTOR_2D::VECTOR_2D(double ix, double iy)
 	y = iy;
 }
 
-OPTICALFLOW_PARAM::OPTICALFLOW_PARAM(void) : WindowSize(25, 25)
+VECTOR_AFFINE::VECTOR_AFFINE(void)
 {
-	Level = 5;
-	IRLS_Iter_Max = 1600;
-	IRLS_Convergence_Threshold = 1.0E-20;
-	IRLS_Min_C = 8;
+	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+		a[i] = .0;
+	}
 }
 
 MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)

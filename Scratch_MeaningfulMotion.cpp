@@ -219,7 +219,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		if ((Options.mode & MODE_OUTPUT_FILTERED_IMAGE) != 0) {
 			// Output filtered image
 			printf("* Filtering\n");
-			filtered = DetectScratch(&pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_NOT_DETECTION);
+			filtered = DetectScratch(pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_NOT_DETECTION);
 			if (filtered == nullptr) {
 				Error.Function("DetectScratch");
 				Error.Value("filtered");
@@ -256,7 +256,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		} else {
 			// Scratch Detection
 			printf("* Detect Scratch like vertical lines\n");
-			scratches = DetectScratch(&pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_DETECTION);
+			scratches = DetectScratch(pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_DETECTION);
 			if (scratches == NULL) {
 				Error.Function("DetectScratch");
 				Error.Value("scratches");
@@ -363,14 +363,14 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				if (Options.Superimpose != 0) {
 					printf("* Superimpose plot image on original image\n");
 					if ((Options.PlotOptions & PLOT_AS_RESAMPLE) != 0) {
-						if (Superimposer(&pnm_out, &pnm_res, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
+						if (Superimposer(&pnm_out, pnm_res, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
 							Error.Function("Superimposer");
 							Error.Value("pnm_out");
 							Error.FunctionFail();
 							goto ExitError;
 						}
 					} else {
-						if (Superimposer(&pnm_out, &pnm_orig, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
+						if (Superimposer(&pnm_out, pnm_orig, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
 							Error.Function("Superimposer");
 							Error.Value("pnm_out");
 							Error.FunctionFail();
