@@ -388,32 +388,32 @@ MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 	}
 
 	printf("* Output Optical Flow to '%s'\n", filename);
-	if ((fp = fopen(filename, "w")) == nullptr) {
+	if ((fp = fopen(filename, "wb")) == nullptr) {
 		Error.Function("fopen");
 		Error.Value(filename);
 		Error.FileRead();
 		goto ExitError;
 	}
+	if (fprintf(fp, "%d %d\n", size.width, size.height) < 0) {
+		Error.Function("fprintf");
+		Error.Value("size");
+		Error.FunctionFail();
+		goto ExitError;
+	}
 	for (y = 0; y < size.height; y++) {
 		for (x = 0; x < size.width; x++) {
-			if (fprintf(fp, "%0.16e ", u[size.width * y + x].x) < 0) {
-				Error.Function("fprintf");
+			if (fwrite(&(u[size.width * y + x].x), sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
 				Error.Value("u(x, y).x");
 				Error.FunctionFail();
 				goto ExitError;
 			}
-			if (fprintf(fp, "%0.16e ", u[size.width * y + x].y) < 0) {
-				Error.Function("fprintf");
+			if (fwrite(&(u[size.width * y + x].y), sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
 				Error.Value("u(x, y).y");
 				Error.FunctionFail();
 				goto ExitError;
 			}
-		}
-		if (fprintf(fp, "\n") < 0) {
-			Error.Function("fprintf");
-			Error.Value("'\n'");
-			Error.FunctionFail();
-			goto ExitError;
 		}
 	}
 	fclose(fp);
