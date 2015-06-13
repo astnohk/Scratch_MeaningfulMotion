@@ -9,9 +9,9 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 {
 	ERROR Error("DetectScratch");
 
-	double *img = NULL;
-	double *scratches = NULL;
-	double *Ig = NULL;
+	double *img = nullptr;
+	double *scratches = nullptr;
+	double *Ig = nullptr;
 	SIZE size;
 	int x, y, m, n;
 	double Im, Il, Ir;
@@ -26,7 +26,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 	switch (FilterParam.type) {
 		case FILTER_ID_EPSILON: /* Epsilon Filter */
 			printf("* Epsilon filtering on input\n");
-			if ((Ig = EpsilonFilter(img, size, FilterParam)) == NULL) {
+			if ((Ig = EpsilonFilter(img, size, FilterParam)) == nullptr) {
 				Error.Function("EpsilonFilter");
 				Error.Value("*Ig");
 				Error.FunctionFail();
@@ -35,7 +35,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 			break;
 		case FILTER_ID_GAUSSIAN: /* Gaussian Filter */
 			printf("* Gaussian filtering on input\n");
-			if ((Ig = Gaussian(img, size, FilterParam)) == NULL) {
+			if ((Ig = Gaussian(img, size, FilterParam)) == nullptr) {
 				Error.Function("Gaussian");
 				Error.Value("*Ig");
 				Error.FunctionFail();
@@ -53,12 +53,12 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 
 	if (Do_Detection == 0) {
 		scratches = Ig;
-		Ig = NULL;
+		Ig = nullptr;
 	} else {
 		try {
 			scratches = new double[size.height * size.width];
 		}
-		catch (std::bad_alloc bad) {
+		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
 			Error.Value("scratches");
 			Error.Malloc();
@@ -96,7 +96,7 @@ ExitError:
 	delete[] Ig;
 	delete[] scratches;
 	delete[] img;
-	return NULL;
+	return nullptr;
 }
 
 
@@ -111,7 +111,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	int r, m, n, x, y;
 	int L;
 	double dx, dy;
-	SEGMENT *array_segment = NULL;
+	SEGMENT *array_segment = nullptr;
 	std::list<SEGMENT> list_segment;
 	std::list<SEGMENT>::iterator itr_segment;
 	double progress;
@@ -185,13 +185,13 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	L = 0;
 	for (itr_segment = list_segment.begin();
 	    itr_segment != list_segment.end();
-	    itr_segment++) {
+	    ++itr_segment) {
 		L++;
 	}
 	try {
 		array_segment = new SEGMENT[L];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("array_coord");
 		Error.Malloc();
@@ -200,7 +200,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	itr_segment = list_segment.begin();
 	for (m = 0; m < L; m++) {
 		array_segment[m] = *itr_segment;
-		itr_segment++;
+		++itr_segment;
 	}
 	*Num_Segments = L;
 	list_segment.clear();
@@ -209,7 +209,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 ExitError:
 	delete[] array_segment;
 	list_segment.clear();
-	return NULL;
+	return nullptr;
 }
 
 
@@ -217,6 +217,7 @@ int
 AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_segment, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length)
 {
 	ERROR Error("AlignedCheck");
+	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
 	std::list<FRAGMENT> list_fragment;
 	std::list<FRAGMENT>::iterator itr_fragment;
 	std::list<FRAGMENT>::iterator fragment_ref;
@@ -229,20 +230,20 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 	double dx, dy;
 	int t_start, t_end, t_end_max;
 	int k, t;
-	int tmpx, tmpy;
 
 	if (abs(x - n) > abs(y - m)) {
 		L = abs(x - n) + 1;
 	} else {
 		L = abs(y - m) + 1;
 	}
-	aligned_angle = atan2_div_pi_table(y - m, x - n, NULL);
+	aligned_angle = atan2_div_pi.val(y - m, x - n);
 	if (aligned_angle < 0.0) {
 		aligned_angle += ANGLE_MAX;
 	}
 	dx = (x - n) / (double)(L - 1.0);
 	dy = (y - m) / (double)(L - 1.0);
 	for (t_start = 0; t_start <= L - l_min; t_start++) {
+		int tmpx, tmpy;
 		tmpx = (int)round(dx * t_start + n);
 		tmpx = tmpx >= 0 ? (tmpx < size.width ? tmpx : size.width - 1) : 0;
 		tmpy = (int)round(dy * t_start + m);
@@ -300,32 +301,32 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 	// Maximal Meaningfulness
 	for (fragment_ref = list_fragment.begin();
 	    fragment_ref != list_fragment.end();
-	    fragment_ref++) {
+	    ++fragment_ref) {
 		fragment_cur = list_fragment.begin();
 		while (fragment_cur != list_fragment.end()) {
 			if (fragment_cur->start < 0 || fragment_cur == fragment_ref) {
-				fragment_cur++;
+				++fragment_cur;
 				continue;
 			}
 			if (fragment_ref->start <= fragment_cur->start && fragment_cur->end <= fragment_ref->end) {
 				// Delete the fragment which has higher probability
 				if (fragment_ref->Pr <= fragment_cur->Pr) {
 					fragment_cur->start = -1; // used as Flag of erase
-					fragment_cur++;
+					++fragment_cur;
 				} else {
 					fragment_ref->start = -1; // used as Flag of erase
-					fragment_ref++;
+					++fragment_ref;
 				}
 			} else if (fragment_cur->start <= fragment_ref->start && fragment_ref->end <= fragment_cur->end) {
 				if (fragment_cur->Pr <= fragment_ref->Pr) {
 					fragment_ref->start = -1;
-					fragment_ref++;
+					++fragment_ref;
 				} else {
 					fragment_cur->start = -1;
-					fragment_cur++;
+					++fragment_cur;
 				}
 			} else {
-				fragment_cur++;
+				++fragment_cur;
 			}
 			if (fragment_ref == list_fragment.end()){
 				break;
@@ -335,7 +336,7 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 	// Write out to coord_list
 	for (itr_fragment = list_fragment.begin();
 	    itr_fragment != list_fragment.end();
-	    itr_fragment++) {
+	    ++itr_fragment) {
 		if (itr_fragment->start < 0) {
 			continue;
 		}

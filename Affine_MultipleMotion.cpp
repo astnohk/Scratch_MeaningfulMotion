@@ -19,73 +19,77 @@ MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MU
 
 	// M-estimator parameter
 	const double sigmaD = 0.1 * sqrt(3.0);
-
 	VECTOR_AFFINE u;
-	double *It_normalize = NULL;
-	double *Itp1_normalize = NULL;
-	double **I_dt_levels = NULL;
-	double **It_levels = NULL;
-	double **Itp1_levels = NULL;
-	VECTOR_2D **grad_It_levels = NULL;
+	double *It_normalize = nullptr;
+	double *Itp1_normalize = nullptr;
+	double **I_dt_levels = nullptr;
+	double **It_levels = nullptr;
+	double **Itp1_levels = nullptr;
+	VECTOR_2D **grad_It_levels = nullptr;
 	SIZE size_img_l;
 	int level;
 	int IterMax;
-	int i;
 
-	if (It == NULL) {
+	if (It == nullptr) {
 		Error.Value("It");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (Itp1 == NULL) {
+	} else if (Itp1 == nullptr) {
 		Error.Value("Itp1");
 		Error.PointerNull();
 		goto ExitError;
 	}
 
 	// Image Normalization
-	if ((It_normalize = (double *)calloc((size_t)size_img.width * size_img.height, sizeof(double))) == NULL) {
+	try {
+		It_normalize = new double[size_img.width * size_img.height];
+	}
+	catch (const std::bad_alloc &bad) {
 		Error.Value("It_normalize");
 		Error.Malloc();
 		goto ExitError;
 	}
-	if ((Itp1_normalize = (double *)calloc((size_t)size_img.width * size_img.height, sizeof(double))) == NULL) {
+	try {
+		Itp1_normalize = new double[size_img.width * size_img.height];
+	}
+	catch (const std::bad_alloc &bad) {
 		Error.Value("Itp1_normalize");
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (i = 0; i < size_img.width * size_img.height; i++) {
+	for (int i = 0; i < size_img.width * size_img.height; i++) {
 		It_normalize[i] = (double)It[i] / MaxInt;
 		Itp1_normalize[i] = (double)Itp1[i] / MaxInt;
 	}
 	// Make Pyramid
-	if ((It_levels = Pyramider(It_normalize, size_img, MotionParam.Level)) == NULL) {
+	if ((It_levels = Pyramider(It_normalize, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("It_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(Itp1_normalize, size_img, MotionParam.Level)) == NULL) {
+	if ((Itp1_levels = Pyramider(Itp1_normalize, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("Itp1_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	// Derivative about time
-	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
+	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("dt_Pyramid");
 		Error.Value("I_dt_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	// Derivative about space
-	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
+	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 
-	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u.a[i] = .0;
 	}
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
@@ -99,22 +103,22 @@ MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MU
 		    sigmaD,
 		    IterMax, MotionParam.Error_Min_Threshold);
 	}
-	free(grad_It_levels);
-	free(I_dt_levels);
-	free(Itp1_levels);
-	free(It_levels);
-	free(It_normalize);
-	free(Itp1_normalize);
+	delete[] grad_It_levels;
+	delete[] I_dt_levels;
+	delete[] Itp1_levels;
+	delete[] It_levels;
+	delete[] It_normalize;
+	delete[] Itp1_normalize;
 	return u;
 // Error
 ExitError:
-	free(grad_It_levels);
-	free(I_dt_levels);
-	free(Itp1_levels);
-	free(It_levels);
-	free(It_normalize);
-	free(Itp1_normalize);
-	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+	delete[] grad_It_levels;
+	delete[] I_dt_levels;
+	delete[] Itp1_levels;
+	delete[] It_levels;
+	delete[] It_normalize;
+	delete[] Itp1_normalize;
+	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u.a[i] = .0;
 	}
 	return u;
@@ -124,22 +128,20 @@ ExitError:
 int
 IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
-	VECTOR_AFFINE u_np1;
-	VECTOR_AFFINE sup;
-	VECTOR_AFFINE dE;
-	double E = 0.0;
-	double omega;
-	int i, n;
-
 	printf("sigmaD = %e\n", sigmaD);
-	for (n = 0; n < IterMax; n++) {
+	for (int n = 0; n < IterMax; n++) {
+		VECTOR_AFFINE u_np1;
+		VECTOR_AFFINE sup;
+		VECTOR_AFFINE dE;
+		double E = 0.0;
+		double omega;
 		omega = 1.0E-4;
 		dE = Error_a(u, Img_g, Img_t, size_img, sigmaD);
 		sup = sup_Error_aa(Img_g, size_img, sigmaD);
-		for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+		for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 			u_np1.a[i] = .0;
 		}
-		for (i = 0; i < 6; i++) {
+		for (int i = 0; i < 6; i++) {
 			if (fabs(sup.a[i]) < 1.0E-16) {
 				u_np1.a[i] = u->a[i] - omega / 1.0E-16 * SIGN_NOZERO(sup.a[i]) * dE.a[i];
 			} else {
@@ -165,14 +167,12 @@ Error_a(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double
 	double (*psiD)(double, double) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
 	VECTOR_2D u_a;
-	int site;
-	int x, y;
-	int i;
 
-	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		E_a.a[i] = .0;
 	}
-	for (site = 0; site < size_img.width * size_img.height; site++) {
+	for (int site = 0; site < size_img.width * size_img.height; site++) {
+		int x, y;
 		x = site % size_img.width;
 		y = site / size_img.width;
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
@@ -195,18 +195,18 @@ sup_Error_aa(VECTOR_2D *Img_g, SIZE size, double sigmaD)
 
 	VECTOR_AFFINE sup;
 	VECTOR_AFFINE u_aa_max;
-	int x, y;
 	int i;
 
 	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u_aa_max.a[i] = .0;
 	}
-	if (Img_g == NULL) {
+	if (Img_g == nullptr) {
 		Error.Value("Img_g");
 		Error.PointerNull();
 		return u_aa_max;
 	}
 	for (i = 0; i < size.width * size.height; i++) {
+		int x, y;
 		x = i % size.width;
 		y = i / size.width;
 		/* u = a0 + a1 * x + a2 * y */
@@ -245,11 +245,10 @@ Error_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, d
 {
 	double (*rhoD)(double, double) = Geman_McClure_rho;
 	double E = 0.0;
-	VECTOR_2D u_a;
-	int site;
-	int x, y;
 
-	for (site = 0; site < size_img.width * size_img.height; site++) {
+	for (int site = 0; site < size_img.width * size_img.height; site++) {
+		int x, y;
+		VECTOR_2D u_a;
 		x = site % size_img.width;
 		y = site / size_img.width;
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
@@ -265,17 +264,17 @@ MultipleMotion_Affine_write(VECTOR_AFFINE u, const char *filename)
 {
 	ERROR Error("MultipleMotion_Affine_write");
 
-	FILE *fp = NULL;
+	FILE *fp = nullptr;
 	int i;
 
-	if (filename == NULL) {
+	if (filename == nullptr) {
 		Error.Value("filename");
 		Error.PointerNull();
 		goto ExitError;
 	}
 
 	printf("* Output Affine Parameter to '%s'\n", filename);
-	if ((fp = fopen(filename, "w")) == NULL) {
+	if ((fp = fopen(filename, "w")) == nullptr) {
 		Error.Function("fopen");
 		Error.Value(filename);
 		Error.FileRead();

@@ -91,9 +91,9 @@ FILTER_PARAM::FILTER_PARAM(void)
 }
 
 void
-FILTER_PARAM::ChangeFilter(char type)
+FILTER_PARAM::ChangeFilter(char newtype)
 {
-	switch (type) {
+	switch (newtype) {
 		case 'e': // Epsilon filter
 			type = FILTER_ID_EPSILON;
 			size = EPSILONFILTER_SIZE;

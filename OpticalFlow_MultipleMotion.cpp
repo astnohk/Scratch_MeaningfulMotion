@@ -39,25 +39,25 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
 	const double sigmaS_l0 = 0.03 / sqrt(2.0);
 
-	double *It_normalize = NULL;
-	double *Itp1_normalize = NULL;
-	VECTOR_2D *u = NULL; // For RETURN value
-	VECTOR_2D **u_levels = NULL;
-	double **I_dt_levels = NULL;
-	double **It_levels = NULL;
-	double **Itp1_levels = NULL;
-	VECTOR_2D **grad_It_levels = NULL;
+	double *It_normalize = nullptr;
+	double *Itp1_normalize = nullptr;
+	VECTOR_2D *u = nullptr; // For RETURN value
+	VECTOR_2D **u_levels = nullptr;
+	double **I_dt_levels = nullptr;
+	double **It_levels = nullptr;
+	double **Itp1_levels = nullptr;
+	VECTOR_2D **grad_It_levels = nullptr;
 	SIZE size_img_l;
 	SIZE size_img_lp1;
 	int level;
 	int IterMax;
 	int i;
 
-	if (It == NULL) {
+	if (It == nullptr) {
 		Error.Value("It");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (Itp1 == NULL) {
+	} else if (Itp1 == nullptr) {
 		Error.Value("Itp1");
 		Error.PointerNull();
 		goto ExitError;
@@ -67,7 +67,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 	try {
 	It_normalize = new double[size_img.width * size_img.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Value("It_normalize");
 		Error.Malloc();
 		goto ExitError;
@@ -75,7 +75,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 	try {
 		Itp1_normalize = new double[size_img.width * size_img.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Value("Itp1_normalize");
 		Error.Malloc();
 		goto ExitError;
@@ -88,7 +88,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 	try {
 		u_levels = new VECTOR_2D*[MotionParam.Level];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		throw "u_levels";
 	}
 	catch (const char *err) {
@@ -97,27 +97,27 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 		goto ExitError;
 	}
 	// Make Pyramid
-	if ((It_levels = Pyramider(It_normalize, size_img, MotionParam.Level)) == NULL) {
+	if ((It_levels = Pyramider(It_normalize, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("It_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(Itp1_normalize, size_img, MotionParam.Level)) == NULL) {
+	if ((Itp1_levels = Pyramider(Itp1_normalize, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("Itp1_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	// Derivative about time
-	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
+	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("dt_Pyramid");
 		Error.Value("I_dt_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	// Derivative about space
-	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == NULL) {
+	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, size_img, MotionParam.Level)) == nullptr) {
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
 		Error.FunctionFail();
@@ -209,7 +209,7 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 {
 	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
 
-	VECTOR_2D *u_np1 = NULL;
+	VECTOR_2D *u_np1 = nullptr;
 	VECTOR_2D sup;
 	VECTOR_2D dE;
 	double E = 0.0;
@@ -221,7 +221,7 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 	try {
 		u_np1 = new VECTOR_2D[size_img.width * size_img.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Value("u_np1");
 		Error.Malloc();
 		return MEANINGFUL_FAILURE;
@@ -231,7 +231,7 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 #pragma omp parallel for private(dE, sup)
 		for (site = 0; site < size_img.width * size_img.height; site++) { // Calc for all sites
 			dE = Error_u(site, u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
-			sup = sup_Error_uu(NULL, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+			sup = sup_Error_uu(nullptr, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u[site].x - dE.x / sup.x;
 			u_np1[site].y = u[site].y - dE.y / sup.y;
 		}
@@ -260,7 +260,7 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 			break;
 		}
 	}
-	free(u_np1);
+	delete[] u_np1;
 	return MEANINGFUL_SUCCESS;
 }
 
@@ -311,10 +311,9 @@ VECTOR_2D
 sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
 	static VECTOR_2D Img_g_max;
-	int i;
 
-	if (Img_g != NULL) {
-		for (i = 0; i < size.width * size.height; i++) {
+	if (Img_g != nullptr) {
+		for (int i = 0; i < size.width * size.height; i++) {
 			if (Img_g_max.x < POW2(Img_g[i].x)) {
 				Img_g_max.x = POW2(Img_g[i].x);
 			}
@@ -333,14 +332,14 @@ Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_im
 {
 	double (*rhoD)(double, double) = Geman_McClure_rho;
 	double (*rhoS)(double, double) = Geman_McClure_rho;
-	VECTOR_2D us;
-	double Center;
-	VECTOR_2D Neighbor;
 	double E = 0.0;
-	int x, y;
 
-	for (y = 0; y < size_img.height; y++) {
-		for (x = 0; x < size_img.width; x++) {
+	for (int y = 0; y < size_img.height; y++) {
+		for (int x = 0; x < size_img.width; x++) {
+			VECTOR_2D us;
+			double Center;
+			VECTOR_2D Neighbor;
+
 			us = u[size_img.width * y + x];
 			Neighbor.x = 0;
 			Neighbor.y = 0;
@@ -375,21 +374,21 @@ int
 MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 {
 	ERROR Error("MultipleMotion_write");
-	FILE *fp = NULL;
+	FILE *fp = nullptr;
 	int x, y;
 
-	if (u == NULL) {
+	if (u == nullptr) {
 		Error.Value("u");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (filename == NULL) {
+	} else if (filename == nullptr) {
 		Error.Value("filename");
 		Error.PointerNull();
 		goto ExitError;
 	}
 
 	printf("* Output Optical Flow to '%s'\n", filename);
-	if ((fp = fopen(filename, "w")) == NULL) {
+	if ((fp = fopen(filename, "w")) == nullptr) {
 		Error.Function("fopen");
 		Error.Value(filename);
 		Error.FileRead();

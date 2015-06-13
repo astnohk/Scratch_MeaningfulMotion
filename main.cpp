@@ -22,6 +22,7 @@ const std::string Progress_End = "\x1b[64C|";
 int
 main(int argc, char *argv[])
 {
+	ERROR Error("main");
 	const char help[] =
 	    "\n"
 	    "     - Line Scratch Detection by Meaningful Alignments -\n"
@@ -67,14 +68,12 @@ main(int argc, char *argv[])
 	    "      --exclusive                    : use Exclusive Principle to remove redundant lines\n"
 	    "      --superimpose   [color]        : superimpose the segments on original image with colors (red, green, blue)\n"
 	    "\n";
-	std::string ErrorFunctionName;
-	std::string ErrorValueName;
 	int errors = 0;
 
-	char *delimiter = NULL;
+	char *delimiter = nullptr;
 	char c_tmp = 0;
-	char *InputName = NULL;
-	char *OutputName = NULL;
+	char *InputName = nullptr;
+	char *OutputName = nullptr;
 	int Start = 0;
 	int End = 0;
 	OPTIONS Options;
@@ -83,8 +82,8 @@ main(int argc, char *argv[])
 	const std::string Superimpose_Color_List[OVERLAY_COLOR_PATTERNS] = {"red", "green", "blue"};
 
 	int inf = 0, outf = 0;
-	char *strtmp = NULL;
-	char *strdivp = NULL;
+	char *strtmp = nullptr;
+	char *strdivp = nullptr;
 	int i, k;
 
 	for (i = 1; i < argc; i++) {
@@ -146,28 +145,33 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if ((strtmp = (char *)calloc((size_t)strlen(argv[i]), sizeof(char))) == NULL) {
-							ErrorFunctionName = "calloc";
-							ErrorValueName = "strtmp";
-							goto ErrorMalloc;
+						try {
+							strtmp = new char[strlen(argv[i])];
+						}
+						catch (const std::bad_alloc &bad) {
+							Error.Value("strtmp");
+							Error.Malloc();
+							goto ExitError;
 						}
 						strcpy(strtmp, argv[i]);
 						strdivp = strchr(strtmp, 'x');
-						if (strdivp != NULL) {
+						if (strdivp != nullptr) {
 							if (sscanf(strdivp + 1, "%7d", &FilterParam.size.height) != 1) {
-								ErrorFunctionName = "sscanf";
-								ErrorValueName = "FilterParam.size.height";
-								goto ErrorFunctionFailed;
+								Error.Function("sscanf");
+								Error.Value("FilterParam.size.height");
+								Error.FunctionFail();
+								goto ExitError;
 							}
 							while (*strdivp != '\0') {
 								*strdivp = '\0';
 								strdivp++;
 							}
-							strdivp = NULL;
+							strdivp = nullptr;
 							if (sscanf(strtmp, "%7d", &FilterParam.size.width) != 1) {
-								ErrorFunctionName = "sscanf";
-								ErrorValueName = "FilterParam.size.width";
-								goto ErrorFunctionFailed;
+								Error.Function("sscanf");
+								Error.Value("FilterParam.size.width");
+								Error.FunctionFail();
+								goto ExitError;
 							}
 						} else {
 							if (sscanf(argv[i], "%7d", &FilterParam.size.width) != 1) {
@@ -177,8 +181,8 @@ main(int argc, char *argv[])
 							}
 							FilterParam.size.height = FilterParam.size.width;
 						}
-						free(strtmp);
-						strtmp = NULL;
+						delete[] strtmp;
+						strtmp = nullptr;
 						if (FilterParam.size.width < 1) {
 							FilterParam.size.width = 1;
 						} else if (FilterParam.size.height < 1) {
@@ -228,7 +232,7 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if ((delimiter = strchr(argv[i], 'x')) == NULL) {
+						if ((delimiter = strchr(argv[i], 'x')) == nullptr) {
 							if (sscanf(argv[i], "%7d", &Options.ResampleSize.height) != 1) {
 								fprintf(stderr, "*** Cannot read value for ResampleSize.height ***\n");
 								errors |= OPTION_INCORRECT;
@@ -445,25 +449,21 @@ main(int argc, char *argv[])
 	if (Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam)
 	    != MEANINGFUL_SUCCESS) {
 		fprintf(stderr, "*** FATAL main error - There are some error on Scratch_MeaningfulMotion() ***\n");
-		free(InputName);
-		InputName = NULL;
-		free(OutputName);
-		OutputName = NULL;
+		delete[] InputName;
+		InputName = nullptr;
+		delete[] OutputName;
+		OutputName = nullptr;
 		exit(EXIT_FAILURE);
 	}
-	free(OutputName);
-	OutputName = NULL;
-	free(InputName);
-	InputName = NULL;
+	delete[] OutputName;
+	OutputName = nullptr;
+	delete[] InputName;
+	InputName = nullptr;
 	return EXIT_SUCCESS;
-/* Error */
-ErrorMalloc:
-	fprintf(stderr, "*** FATAL main error - Cannot allocate memory for (*%s) by %s() ***\n", ErrorValueName.c_str(), ErrorFunctionName.c_str());
-	goto ErrorReturn;
-ErrorFunctionFailed:
-	fprintf(stderr, "*** FATAL main error - Function %s() failed to comput (%s) ***\n", ErrorFunctionName.c_str(), ErrorValueName.c_str());
-ErrorReturn:
-	free(OutputName);
-	free(InputName);
+// Error
+ExitError:
+	fprintf(stderr, "*** FATAL main error ***\n");
+	delete[] OutputName;
+	delete[] InputName;
 	return EXIT_FAILURE;
 }

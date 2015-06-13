@@ -8,7 +8,7 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 {
 	ERROR Error("HorizontalMedian");
 
-	double *array = NULL;
+	double *array = nullptr;
 	int L = 0;
 	int m_s, m_e;
 	int m, n;
@@ -24,9 +24,13 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 		m_s = -(width - 1) / 2;
 		m_e = width / 2;
 	}
-	if ((array = (double *)calloc((size_t)(m_e - m_s + 1), sizeof(double))) == NULL) {
-		Error.Others("Cannot allocate memory for (*array) by calloc()");
-		return 0;
+	try {
+		array = new double[m_e - m_s + 1];
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("array");
+		Error.Malloc();
+		return 0.0;
 	}
 	for (m = m_s; m < m_e; m++) {
 		array[m - m_s] = img[img_width * y + x + m];
@@ -46,8 +50,8 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 	} else {
 		tmp = (array[L / 2 - 1] + array[L / 2]) / 2.0;
 	}
-	free(array);
-	array = NULL;
+	delete[] array;
+	array = nullptr;
 	return tmp;
 }
 
@@ -57,7 +61,7 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 {
 	ERROR Error("EpsilonFilter");
 
-	double *Epsilon = NULL;
+	double *Epsilon = nullptr;
 	int filter_width_2 = (int)floor(Param.size.width / 2.0);
 	int filter_height_2 = (int)floor(Param.size.height / 2.0);
 	double Div_coeff = 1.0 / (Param.size.width * Param.size.height);
@@ -79,7 +83,7 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 		Error.Value("Param.size.height");
 		Error.ValueIncorrect();
 		goto ExitError;
-	} else if (img == NULL) {
+	} else if (img == nullptr) {
 		Error.Value("img");
 		Error.PointerNull();
 		goto ExitError;
@@ -88,7 +92,7 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 	try {
 		Epsilon = new double[size.width * size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Epsilon");
 		Error.Malloc();
@@ -148,8 +152,8 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 	return Epsilon;
 // Error
 ExitError:
-	free(Epsilon);
-	return NULL;
+	delete[] Epsilon;
+	return nullptr;
 }
 
 
@@ -158,8 +162,8 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 {
 	ERROR Error("Gaussian");
 
-	double *blurred = NULL;
-	double *Gauss = NULL;
+	double *blurred = nullptr;
+	double *Gauss = nullptr;
 	int filter_width_2 = 0;
 	int filter_height_2 = 0;
 	int m, n, y, x, i, j;
@@ -180,7 +184,7 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	try {
 		Gauss = new double[Param.size.width * Param.size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Gauss");
 		Error.Malloc();
@@ -240,7 +244,7 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	try {
 		blurred = new double[size.height * size.width];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("blurred");
 		Error.Malloc();
@@ -290,14 +294,14 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 			}
 		}
 	}
-	free(Gauss);
-	Gauss = NULL;
+	delete[] Gauss;
+	Gauss = nullptr;
 	return blurred;
 // Errors
 ExitError:
-	free(blurred);
-	free(Gauss);
-	return NULL;
+	delete[] blurred;
+	delete[] Gauss;
+	return nullptr;
 }
 
 
@@ -306,12 +310,12 @@ DerivativeAngler(double *img, SIZE size)
 {
 	ERROR Error("DerivativeAngler");
 
-	VECTOR_2D *Derivative = NULL;
-	double *angles = NULL;
+	VECTOR_2D *Derivative = nullptr;
+	double *angles = nullptr;
 	int n;
 	double dx, dy;
  
-	if (img == NULL) {
+	if (img == nullptr) {
 		Error.Value("img");
 		Error.PointerNull();
 		goto ExitError;
@@ -321,7 +325,7 @@ DerivativeAngler(double *img, SIZE size)
 		goto ExitError;
 	}
 
-	if ((Derivative = Derivator(img, size, "Sobel")) == NULL) {
+	if ((Derivative = Derivator(img, size, "Sobel")) == nullptr) {
 		Error.Function("Derivator");
 		Error.Value("Derivative");
 		Error.FunctionFail();
@@ -330,7 +334,7 @@ DerivativeAngler(double *img, SIZE size)
 	try {
 		angles = new double[size.height * size.width];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("angles");
 		Error.Malloc();
@@ -350,12 +354,12 @@ DerivativeAngler(double *img, SIZE size)
 			}
 		}
 	}
-	free(Derivative);
+	delete[] Derivative;
 	return angles;
 // Error
 ExitError:
-	free(angles);
-	return NULL;
+	delete[] angles;
+	return nullptr;
 }
 
 
@@ -369,15 +373,15 @@ Derivator(double *Image, SIZE size, const char *Type)
 	double DiffFilter_y[4] = {0.5, 0.5, -0.5, -0.5};
 	double SobelFilter_x[9] = {0.25, 0, -0.25, 0.5, 0, -0.5, 0.25, 0, -0.25};
 	double SobelFilter_y[9] = {0.25, 0.5, 0.25, 0, 0, 0, -0.25, -0.5, -0.25};
-	double *Dx = NULL;
-	double *Dy = NULL;
+	double *Dx = nullptr;
+	double *Dy = nullptr;
 	SIZE size_f;
-	double *Image_dx = NULL;
-	double *Image_dy = NULL;
-	VECTOR_2D *Derivative = NULL;
+	double *Image_dx = nullptr;
+	double *Image_dy = nullptr;
+	VECTOR_2D *Derivative = nullptr;
 	int x;
  
-	if (Image == NULL) {
+	if (Image == nullptr) {
 		Error.Value("Image");
 		Error.PointerNull();
 		goto ExitError;
@@ -387,7 +391,7 @@ Derivator(double *Image, SIZE size, const char *Type)
 		goto ExitError;
 	}
 
-	if (Type == NULL || strcmp(Type, "Normal") == 0) {
+	if (Type == nullptr || strcmp(Type, "Normal") == 0) {
 		/* use four pixels differential filter */
 		size_f.width = 2;
 		size_f.height = 2;
@@ -410,7 +414,7 @@ Derivator(double *Image, SIZE size, const char *Type)
 	try {
 		Derivative = new VECTOR_2D[size.width * size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Derivative");
 		Error.Malloc();
@@ -420,15 +424,15 @@ Derivator(double *Image, SIZE size, const char *Type)
 		Derivative[x].x = Image_dx[x];
 		Derivative[x].y = Image_dy[x];
 	}
-	free(Image_dx);
-	free(Image_dy);
+	delete[] Image_dx;
+	delete[] Image_dy;
 	return Derivative;
 // Error
 ExitError:
-	free(Derivative);
-	free(Image_dy);
-	free(Image_dx);
-	return NULL;
+	delete[] Derivative;
+	delete[] Image_dy;
+	delete[] Image_dx;
+	return nullptr;
 }
 
 
@@ -437,10 +441,10 @@ Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
 {
 	ERROR Error("Derivation_abs");
 
-	double *Derivative = NULL;
+	double *Derivative = nullptr;
 	int x;
 
-	if (Derivative_2D == NULL) {
+	if (Derivative_2D == nullptr) {
 		Error.Value("Derivative_2D");
 		Error.PointerNull();
 		goto ExitError;
@@ -448,7 +452,7 @@ Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
 	try {
 		Derivative = new double[size.width * size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Derivative");
 		Error.Malloc();
@@ -460,7 +464,7 @@ Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
 	return Derivative;
 // Error
 ExitError:
-	return NULL;
+	return nullptr;
 }
 
 
@@ -469,18 +473,18 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 {
 	ERROR Error("Filterer");
 
-	double *Filtered = NULL;
+	double *Filtered = nullptr;
 	SIZE center;
 	int x, y;
 	int m, n;
 	int xx, yy;
 	double sum;
 
-	if (Image == NULL) {
+	if (Image == nullptr) {
 		Error.Value("Image");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (Filter == NULL) {
+	} else if (Filter == nullptr) {
 		Error.Value("Filter");
 		Error.PointerNull();
 		goto ExitError;
@@ -497,7 +501,7 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 	try {
 		Filtered = new double[size.width * size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Filtered");
 		Error.Malloc();
@@ -530,10 +534,10 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 		}
 	}
 	return Filtered;
-/* Error */
+// Error
 ExitError:
-	free(Filtered);
-	return NULL;
+	delete[] Filtered;
+	return nullptr;
 }
 
 

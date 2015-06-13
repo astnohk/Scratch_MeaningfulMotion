@@ -1,6 +1,8 @@
 CC = g++
 OPTION = -W -Wall -fopenmp -std=c++11
-LOADLIBES = -fopenmp -lm -lX11
+LOADLIBES = -lm -lX11 -fopenmp
+OPTION_DEBUG = -W -Wall -std=c++11
+LOADLIBES_DEBUG = -lm -lX11
 
 CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp Detection.cpp Exclusive.cpp Plotting.cpp Library.cpp ImgLibrary.cpp Affine_MultipleMotion.cpp OpticalFlow_MultipleMotion.cpp MultiResolution.cpp MEstimator.cpp Plot_X11.cpp pnm.cpp pnm_double.cpp pnm_library.cpp
 OFILES = main.o Class.o Struct.o Scratch_MeaningfulMotion.o Detection.o Exclusive.o Plotting.o Library.o ImgLibrary.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o MultiResolution.o MEstimator.o Plot_X11.o pnm.o pnm_double.o pnm_library.o
@@ -63,10 +65,10 @@ pnm_library.o: pnm_library.cpp
 	$(CC) $(OPTION) -c $^
 
 debug: $(CFILES)
-	$(CC) -W -Wall -g -lm -lX11 -O2 -o $(OUTNAME) $^
+	$(CC) $(OPTION_DEBUG) $(LOADLIBES_DEBUG) -O2 -o $(OUTNAME) $^
 
 debugmp: $(CFILES)
-	$(CC) -W -Wall -g $(LOADLIBES) -O2 -o $(OUTNAME) $^
+	$(CC) $(OPTION_DEBUG) $(LOADLIBES) -O2 -o $(OUTNAME) $^
 
 clean:
 	rm -f $(OFILES)

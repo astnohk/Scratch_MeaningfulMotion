@@ -26,7 +26,7 @@ Pyramider(double *img, SIZE size, int Level)
 	try {
 		Pyramid = new double*[Level];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Pyramid");
 		goto ExitError;
@@ -51,7 +51,7 @@ Pyramider(double *img, SIZE size, int Level)
 	try {
 		Pyramid[0] = new double[size.width * size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Pyramid[0]");
 		Error.Malloc();
@@ -88,7 +88,7 @@ Pyramider(double *img, SIZE size, int Level)
 		try {
 			Pyramid[l] = new double[size_l.width * size_l.height];
 		}
-		catch (std::bad_alloc bad) {
+		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
 			Error.Value("Pyramid[l]");
 			Error.Malloc();
@@ -133,11 +133,11 @@ Pyramider(double *img, SIZE size, int Level)
 	return Pyramid;
 // Error
 ExitError:
-	for (l = 0; Pyramid != NULL && l < Level; l++) {
+	for (l = 0; Pyramid != nullptr && l < Level; l++) {
 		delete[] Pyramid[l];
 	}
 	delete[] Pyramid;
-	return NULL;
+	return nullptr;
 }
 
 
@@ -161,7 +161,7 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 	try {
 		grad_levels = new VECTOR_2D*[Level];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("grad_levels");
 		Error.Malloc();
@@ -173,7 +173,7 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		try {
 			grad_levels[l] = new VECTOR_2D[size_l.width * size_l.height];
 		}
-		catch (std::bad_alloc bad) {
+		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
 			Error.Value("grad_levels[l]");
 			Error.Malloc();
@@ -193,7 +193,7 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 				    (img_t[l][size_l.width * (y + 1) + x] - img_t[l][size_l.width * y + x]
 				    + img_t[l][size_l.width * (y + 1) + x + 1] - img_t[l][size_l.width * y + x + 1])
 				    / 2.0;
-				if (img_tp1 != NULL) {
+				if (img_tp1 != nullptr) {
 					// dx
 					grad_levels[l][size_l.width * y + x].x +=
 					    (img_tp1[l][size_l.width * y + x + 1] - img_tp1[l][size_l.width * y + x]
@@ -217,7 +217,7 @@ ExitError:
 		}
 	}
 	delete[] grad_levels;
-	return NULL;
+	return nullptr;
 }
 
 
@@ -245,7 +245,7 @@ dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 	try {
 		dt_levels = new double*[Level];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("dt_levels");
 		Error.Malloc();
@@ -257,7 +257,7 @@ dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		try {
 			dt_levels[l] = new double[size_l.width * size_l.height];
 		}
-		catch (std::bad_alloc bad) {
+		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
 			Error.Value("dt_levels[l]");
 			Error.Malloc();

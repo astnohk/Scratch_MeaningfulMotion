@@ -124,6 +124,7 @@ class ERROR
 		std::string FileName;
 	public:
 		// Error data set
+		ERROR(void);
 		ERROR(const char *name);
 		const char* OutputFunctionName(void);
 		void Function(const char *name);
@@ -139,6 +140,24 @@ class ERROR
 		void ImageSize(void);
 		void FileRead(void);
 		void FileWrite(void);
+};
+
+class ATAN2_DIV_PI
+{
+	private:
+		int width;
+		int height;
+		double *table;
+	public:
+		ATAN2_DIV_PI(void);
+		ATAN2_DIV_PI(const ATAN2_DIV_PI &copy);
+		ATAN2_DIV_PI(int W, int H);
+		~ATAN2_DIV_PI(void);
+		int Width(void) const;
+		int Height(void) const;
+		const double* Data(void) const;
+		bool reset(int W, int H);
+		double val(int y, int x) const;
 };
 
 
@@ -197,7 +216,7 @@ struct FILTER_PARAM
 	double std_deviation;
 	double epsilon;
 	FILTER_PARAM(void);
-	void ChangeFilter(char type);
+	void ChangeFilter(char newtype);
 };
 #define NUM_FILTER_TYPE 3
 #define FILTER_ID_UNDEFINED 0
@@ -316,8 +335,7 @@ int Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int Out
 
 // Mathematical Libraries
 double pow_int(double x, int a);
-double atan2_div_pi_table(int y, int x, SIZE *size);
-int* Calc_k_l(SIZE size, double p, double ep);
+int* Calc_k_l(SIZE &size, double p, double ep);
 double Pr(int k, int l, double p);
 
 // Image Libraries

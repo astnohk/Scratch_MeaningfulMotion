@@ -69,7 +69,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	try {
 		Img_plot = new XPLOT[Img_size.width * Img_size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Img_plot");
 		Error.Malloc();
@@ -78,7 +78,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	try {
 		segments_plot = new SEGMENT_X11[Num_Segments];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("segments_plot");
 		Error.Malloc();
@@ -87,7 +87,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	try {
 		Img_coord = new COORDINATE_3D[Img_size.width * Img_size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Img_coord");
 		Error.Malloc();
@@ -96,7 +96,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	try {
 		Img_vel = new COORDINATE_3D[Img_size.width * Img_size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Img_vel");
 		Error.Malloc();
@@ -105,7 +105,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	try {
 		Img_index = new int[Img_size.width * Img_size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Img_index");
 		Error.Malloc();
@@ -114,7 +114,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	try {
 		Img_index_tmp = new int[Img_size.width * Img_size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Img_index_tmp");
 		Error.Malloc();
@@ -673,7 +673,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 	try {
 		core = new int[size.width * size.height];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Value("core");
 		Error.Malloc();
 	}
@@ -718,7 +718,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 		Img_plot[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
 		Img_plot[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
-	free(core);
+	delete[] core;
 	return MEANINGFUL_SUCCESS;
 // Error
 ExitError:

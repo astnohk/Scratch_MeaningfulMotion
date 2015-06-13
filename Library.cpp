@@ -3,16 +3,16 @@
 
 
 
-/* Strings Library */
+// Strings Library
 char *
 regexp(char *string)
 {
 	ERROR Error("regexp");
 
 	char *s = string;
-	char *start_after = NULL;
+	char *start_after = nullptr;
 	char tmp[4 + REGEXP_MAX_DIGITS];
-	char *out = NULL;
+	char *out = nullptr;
 	unsigned int len_before = 0;
 	unsigned int len_after = 0;
 	unsigned int num_sharp = 0;
@@ -40,7 +40,7 @@ regexp(char *string)
 		try {
 			out = new char[strlen(string) + 1u];
 		}
-		catch (std::bad_alloc bad) {
+		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
 			Error.Value("out");
 			Error.Malloc();
@@ -57,7 +57,7 @@ regexp(char *string)
 	try {
 		out = new char[length + 1];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("out");
 		Error.Malloc();
@@ -80,13 +80,13 @@ regexp(char *string)
 	return out;
 // Error
 ExitError:
-	free(out);
-	out = NULL;
+	delete[] out;
+	out = nullptr;
 	exit(EXIT_FAILURE);
 }
 
 
-/* Mathematical Library */
+// Mathematical Library
 double
 pow_int(double x, int a)
 {
@@ -110,81 +110,27 @@ pow_int(double x, int a)
 }
 
 
-double
-atan2_div_pi_table(int y, int x, SIZE *size)
-{
-	static double *table = NULL;
-	static int M = 0;
-	static int N = 0;
-	int m, n;
-	double angle;
-
-	if (size != NULL) {
-		if (size->width == 0 || size->height == 0) {
-			free(table);
-			table = NULL;
-			return 0.0;
-		} else {
-			M = size->height;
-			N = size->width;
-			if ((table = (double *)calloc((size_t)size->width * size->height, sizeof(double))) == NULL) {
-				fprintf(stderr, "*** atan2_table() error - Cannot allocate memory for (*table) by calloc() ***\n");
-				return 0.0;
-			}
-			for (m = 0; m < size->height; m++) {
-				for (n = 0; n < size->width; n++) {
-					table[size->width * m + n] = atan2((double)m, (double)n) / M_PI;
-				}
-			}
-		}
-	}
-
-	if (abs(x) > N || abs(y) > M) {
-		angle = atan2((double)y, (double)x) / M_PI;
-	} else if (x == 0 && y == 0) {
-		angle = 0.0;
-	} else if (x == 0) {
-		angle = y > 0 ? 0.5 : -0.5;
-	} else if (y == 0) {
-		angle = x > 0 ? 0.0 : 1.0;
-	} else {
-		if (table == NULL) {
-			fprintf(stderr, "*** atan2_table() error - This function is NOT initialized ***\n");
-			return 0.0;
-		}
-		if (x * y > 0) {
-			angle = table[N * abs(y) + abs(x)];
-			if (x < 0) {
-				angle -= 1.0;
-			}
-		} else if (x < 0) {
-			angle = 1.0 - table[N * abs(y) + abs(x)];
-		} else {
-			angle = -table[N * abs(y) + abs(x)];
-		}
-	}
-	return angle;
-}
-
-
 int*
-Calc_k_l(SIZE size, double p, double ep)
+Calc_k_l(SIZE &size, double p, double ep)
 {
-	int *k_list = NULL;
-	double C = 2 * p * (1 - p);
-	int l, L;
-	int k0, k_start;
+	const char *FunctionName = "Calc_k_l";
+	const int L = (size.height > size.width) ? size.height : size.width;
+	const double C = 2.0 * p * (1.0 - p);
+	int *k_list = nullptr;
+	int k_start, k0;
 	int count = 0;
-	double progress = 0;
+	double progress = 0.0;
 
-	L = (size.height > size.width) ? size.height : size.width;
-	if ((k_list = (int *)calloc((size_t)(L + 1), sizeof(int))) == NULL) {
-		fprintf(stderr, "calloc error on Calc_k_l\n");
-		return NULL;
+	try {
+		k_list = new int[L + 1];
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*k_list) ***\n", FunctionName);
+		return nullptr;
 	}
 	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) private(k_start, k0)
-	for (l = 1; l <= L; l++) {
+	for (int l = 1; l <= L; l++) {
 		k_start = floor(p * l + sqrt(C * l * (log(DIV_ANGLE) + log(size.height) + 2.0 * log(size.width) - log(ep))));
 		if (k_start < 0) {
 			k_start = 0;

@@ -4,7 +4,6 @@
 
 
 
-
 int
 Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam)
 {
@@ -12,8 +11,8 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	const char *Bars = "------------------------------------------------";
 
 	const std::string FilterNames[] = {"undefined", "Epsilon", "Gaussian"};
-	const std::string InputNameNums;
-	const std::string OutputNameNums;
+	std::string InputNameNums;
+	std::string OutputNameNums;
 	char *char_tmp = nullptr;
 	int CurrentFileNum;
 	PNM pnm_in;
@@ -24,19 +23,19 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_out;
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
-	VECTOR_2D *MultipleMotion_u;
+	VECTOR_2D *MultipleMotion_u = nullptr;
 
 	int Initialize = 0;
 
-	int *k_list = NULL;
-	double *Pr_table = NULL;
-	double *filtered = NULL;
-	double *scratches = NULL;
-	double *binary = NULL;
-	double *angles = NULL;
-	SEGMENT *MaximalSegments = NULL;
-	SEGMENT *EPSegments = NULL;
-	int *segments = NULL;
+	int *k_list = nullptr;
+	double *Pr_table = nullptr;
+	double *filtered = nullptr;
+	double *scratches = nullptr;
+	double *binary = nullptr;
+	double *angles = nullptr;
+	SEGMENT *MaximalSegments = nullptr;
+	SEGMENT *EPSegments = nullptr;
+	int *segments = nullptr;
 	int Num_Segments = 0;
 	SIZE size;
 	SIZE size_prev;
@@ -51,24 +50,23 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 
 	for (CurrentFileNum = Start; CurrentFileNum <= End; CurrentFileNum++) {
 		// Read PNM Files
-		if (strchr(InputName, '%') == NULL) {
-			InputNameNums.copy(InputName, InputNameLength, 0);
+		if (strchr(InputName, '%') == nullptr) {
+			InputNameNums = InputName;
 		} else {
 			try {
 				char_tmp = new char[InputNameLength];
 			}
-			catch (std::bad_alloc bad) {
+			catch (const std::bad_alloc &bad) {
 				Error.Value("char_tmp");
 				Error.Malloc();
 				goto ExitError;
 			}
 			sprintf(char_tmp, InputName, CurrentFileNum);
-			InputNameNums.copy(char_tmp, InputNameLength, 0);
+			InputNameNums = char_tmp;
 			delete[] char_tmp;
 			char_tmp = nullptr;
 		}
 		if (pnm_orig.read(InputNameNums.c_str()) == PNM_FUNCTION_ERROR) {
-			fprintf(stderr, "*** Scratch_MeaningfulA error - Failed to read the PNM file \"%s\" ***\n", InputNameNums.c_str());
 			Error.Function("pnm_orig.read");
 			Error.File(InputNameNums.c_str());
 			Error.FileRead();
@@ -94,8 +92,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			} else {
 				size_out = size;
 			}
-			printf("* Initialize atan2_div_pi_table()\n");
-			atan2_div_pi_table(0, 0, &size);
 		}
 		if (size_prev.height != pnm_orig.Height() || size_prev.width != pnm_orig.Width()) {
 			Error.Others("Image size are not match with previous one");
@@ -105,8 +101,8 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		if (size_res.width > 0 || size_res.height > 0) { // Resample
 			size = size_res;
 			if (pnmd_in.copy(pnm_orig, 1.0) != PNM_FUNCTION_SUCCESS) {
-				Error.Function("pnm_int2double");
-				Error.Value("(pnmd_orig -> pnmd_in)");
+				Error.Function("pnmd_in.copy");
+				Error.Value("pnmd_in <- pnmd_orig");
 				Error.FunctionFail();
 				goto ExitError;
 			}
@@ -153,7 +149,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			printf("* Convert the image to grayscale before applying Meaningful Alignments.\n");
 			printf("Convert...   ");
 			if (pnmd_in.copy(pnm_in, 1.0) != PNM_FUNCTION_SUCCESS) {
-				Error.Function("pnm_int2double");
+				Error.Function("pnmd_in.copy");
 				Error.Value("pnmd_in <- pnm_in");
 				Error.FunctionFail();
 				goto ExitError;
@@ -167,7 +163,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			pnmd_in.free();
 			pnm_in.free();
 			if (pnm_in.copy(pnmd_out, 1.0, "round") != PNM_FUNCTION_SUCCESS) {
-				Error.Function("pnm_double2int");
+				Error.Function("pnm_in.copy");
 				Error.Value("pnm_in <- pnmd_out");
 				Error.FunctionFail();
 				goto ExitError;
@@ -180,7 +176,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		printf("\n      --- Parameters ---\n  %s\n", Bars);
 		if (size_res.width > 0 || size_res.height > 0) {
 			printf("  | Resample (%d), 0:z-hold, 1:bicubic\n", Options.ResampleMethod);
-			printf("  |   %ux%u -> %dx%d\n", pnm_orig.Width(), pnm_orig.Width(), size_res.width, size_res.height);
+			printf("  |   %dx%d -> %dx%d\n", pnm_orig.Width(), pnm_orig.Width(), size_res.width, size_res.height);
 		}
 		printf("  | filter type = %s\n", FilterNames[FilterParam.type < NUM_FILTER_TYPE ? FilterParam.type : 0].c_str());
 		printf("  | filter size = %dx%d\n", FilterParam.size.width, FilterParam.size.height);
@@ -257,7 +253,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			// Scratch Detection
 			printf("* Detect Scratch like vertical lines\n");
 			scratches = DetectScratch(pnm_in, Options.s_med, Options.s_avg, FilterParam, DO_DETECTION);
-			if (scratches == NULL) {
+			if (scratches == nullptr) {
 				Error.Function("DetectScratch");
 				Error.Value("scratches");
 				Error.FunctionFail();
@@ -279,7 +275,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					try {
 						Pr_table = new double[(maxMN + 1) * (maxMN + 1)];
 					}
-					catch (std::bad_alloc bad) {
+					catch (const std::bad_alloc &bad) {
 						Error.Function("new");
 						Error.Value("Pr_table");
 						Error.Malloc();
@@ -309,7 +305,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					}
 					printf("* Compute k_list\n");
 					k_list = Calc_k_l(size, Options.p, Options.ep);
-					if (k_list == NULL) {
+					if (k_list == nullptr) {
 						Error.Function("Calc_k_l");
 						Error.Value("k_list");
 						Error.FunctionFail();
@@ -319,7 +315,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 
 				printf("* Compute Direction Field\n");
 				angles = DerivativeAngler(scratches, size);
-				if (angles ==NULL) {
+				if (angles == nullptr) {
 					Error.Function("Derivation");
 					Error.Value("angles");
 					Error.FunctionFail();
@@ -327,7 +323,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				}
 				printf("* Compute Segments and Maximal Meaningfulness\n");
 				MaximalSegments = AlignedSegment_vertical(angles, size, k_list, l_min, Pr_table, &Num_Segments, Options.Max_Length, Options.Max_Output_Length);
-				if (MaximalSegments == NULL) {
+				if (MaximalSegments == nullptr) {
 					Error.Function("AlignedSegment_vertical");
 					Error.Value("MaximalSegments");
 					Error.FunctionFail();
@@ -337,7 +333,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				if (Options.ExclusivePrinciple != 0) {
 					printf("* Delete Redundant Segments by Exclusive Principle\n");
 					EPSegments = ExclusivePrinciple(angles, size, k_list, Pr_table, MaximalSegments, &Num_Segments, Options.Exclusive_Max_Radius);
-					if (EPSegments == NULL) {
+					if (EPSegments == nullptr) {
 						Error.Function("ExclusivePrinciple");
 						Error.Value("EPSegments");
 						Error.FunctionFail();
@@ -346,7 +342,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					printf("- Reduced to (%d) EP-Maximal Meaningful Segments\n", Num_Segments);
 					delete[] MaximalSegments;
 					MaximalSegments = EPSegments;
-					EPSegments = NULL;
+					EPSegments = nullptr;
 				}
 				printf("* Plot The Segments");
 				if (Options.Max_Output_Length > 0) {
@@ -354,7 +350,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				}
 				printf("\n");
 				segments = PlotSegment(MaximalSegments, Num_Segments, size, size_out, Options.PlotOptions & PLOT_NEGATE);
-				if (segments == NULL) {
+				if (segments == nullptr) {
 					Error.Function("PlotSegment");
 					Error.Value("segments");
 					Error.FunctionFail();
@@ -397,18 +393,18 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		}
 Write:
 		if (strchr(OutputName, '%') == nullptr) {
-			OutputNameNums.copy(OutputName, OutputNameLength, 0);
+			OutputNameNums = OutputName;
 		} else {
 			try {
 				char_tmp = new char[OutputNameLength];
 			}
-			catch (std::bad_alloc bad) {
+			catch (const std::bad_alloc &bad) {
 				Error.Value("char_tmp");
 				Error.Malloc();
 				goto ExitError;
 			}
 			sprintf(char_tmp, OutputName, CurrentFileNum);
-			OutputNameNums.copy(char_tmp, OutputNameLength, 0);
+			OutputNameNums = char_tmp;
 			delete[] char_tmp;
 			char_tmp = nullptr;
 		}
@@ -438,7 +434,6 @@ Write:
 		}
 		delete[] MultipleMotion_u;
 		MultipleMotion_u = nullptr;
-		pnmd_prev.free();
 		if (pnmd_in.isNULL() == false) {
 			pnmd_prev.copy(pnmd_in);
 		}
@@ -456,7 +451,6 @@ Write:
 	pnm_orig.free();
 	delete[] k_list;
 	delete[] Pr_table;
-	atan2_div_pi_table(0, 0, &size);
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
@@ -469,7 +463,6 @@ ExitError:
 	delete[] k_list;
 	delete[] Pr_table;
 	delete[] filtered;
-	atan2_div_pi_table(0, 0, &size);
 	pnm_out.free();
 	pnm_in.free();
 	pnm_res.free();

@@ -7,6 +7,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 {
 	ERROR Error("ExclusivePrinciple");
 
+	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
 	int *IndexMap = nullptr;
 	LINEPOLE *Lines = nullptr;
 	double *EPSegments_Pr = nullptr;
@@ -31,7 +32,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	try {
 		IndexMap = new int[size.height * size.width];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("IndexMap");
 		Error.Malloc();
@@ -40,7 +41,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	try {
 		Lines = new LINEPOLE[*Num_Segments];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("Lines");
 		Error.Malloc();
@@ -49,7 +50,9 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 
 	// Convert the segments Cartesian coordinates to Polar coordinates Expression
 	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
-		Lines[n_seg].theta = M_PI * atan2_div_pi_table(MaximalSegments[n_seg].n - MaximalSegments[n_seg].x, MaximalSegments[n_seg].y - MaximalSegments[n_seg].m, NULL);
+		Lines[n_seg].theta = M_PI * atan2_div_pi.val(
+		    MaximalSegments[n_seg].n - MaximalSegments[n_seg].x,
+		    MaximalSegments[n_seg].y - MaximalSegments[n_seg].m);
 		if (Lines[n_seg].theta >= M_PI) {
 			Lines[n_seg].theta -= M_PI;
 		} else if (Lines[n_seg].theta < 0.0) {
@@ -57,7 +60,9 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		}
 		Lines[n_seg].cos = cos(Lines[n_seg].theta);
 		Lines[n_seg].sin = sin(Lines[n_seg].theta);
-		Lines[n_seg].r = MaximalSegments[n_seg].x * Lines[n_seg].cos + MaximalSegments[n_seg].y * Lines[n_seg].sin;
+		Lines[n_seg].r =
+		    MaximalSegments[n_seg].x * Lines[n_seg].cos
+		    + MaximalSegments[n_seg].y * Lines[n_seg].sin;
 	}
 	printf("* Add all pixels to the Segments Exclusively :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
 	/* Select the segments each Pixel exclusively belongs to */
@@ -96,12 +101,12 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		}
 	}
 	printf("\nComplete!\n");
-	free(Lines);
-	Lines = NULL;
+	delete[] Lines;
+	Lines = nullptr;
 	try {
 		EPSegments_Pr = new double[*Num_Segments];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("EPSegments_Pr");
 		Error.Malloc();
@@ -122,7 +127,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		} else {
 			L = abs(y - m) + 1;
 		}
-		aligned_angle = atan2_div_pi_table(y - m, x - n, NULL);
+		aligned_angle = atan2_div_pi.val(y - m, x - n);
 		if (aligned_angle < 0.0) {
 			aligned_angle += ANGLE_MAX;
 		}
@@ -169,7 +174,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	try {
 		MaxEPSegments = new SEGMENT[Num_EPSegments];
 	}
-	catch (std::bad_alloc bad) {
+	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
 		Error.Value("MaxEPSegments");
 		Error.Malloc();

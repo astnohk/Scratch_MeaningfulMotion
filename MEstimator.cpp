@@ -20,7 +20,7 @@ Geman_McClure_psi(double x, double sigma)
 double
 Lorentzian_rho(double x, double sigma)
 {
-	return log(1.0 + 0.5 * POW2(x / sigma));
+	return log1p(0.5 * POW2(x / sigma));
 }
 
 

@@ -7,18 +7,18 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 {
 	ERROR Error("PlotSegment");
 
-	int *segments = NULL;
+	int *segments = nullptr;
 	int Foreground = PLOT_INTENSITY_MAX;
 	double scale_x, scale_y;
-	int lx, ly, L;
-	double dx, dy;
-	int m, n, x, y;
-	int tmpx, tmpy;
-	int i, t;
+	int i;
 
-	if ((segments = (int *)calloc((size_t)size_out.height * size_out.width, sizeof(int))) == NULL) {
-		Error.Others("calloc error on PlotSegment() (*segments)");
-		return NULL;
+	try {
+		segments = new int[size_out.height * size_out.width];
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("segments");
+		Error.Malloc();
+		return nullptr;
 	}
 	scale_x = (double)size_out.width / size.width;
 	scale_y = (double)size_out.height / size.height;
@@ -29,6 +29,9 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 		Foreground = 0;
 	}
 	for (i = 0; i < Num_Segments; i++) {
+		int lx, ly, L;
+		double dx, dy;
+		int m, n, x, y;
 		n = (int)round(coord_array[i].n * scale_x);
 		m = (int)round(coord_array[i].m * scale_y);
 		x = (int)round(coord_array[i].x * scale_x);
@@ -38,7 +41,8 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 		L = (lx > ly) ? lx : ly;
 		dx = (double)(x - n) / L;
 		dy = (double)(y - m) / L;
-		for (t = 0; t <= L; t++) {
+		for (int t = 0; t <= L; t++) {
+			int tmpx, tmpy;
 			tmpx = (int)round(n + dx * t);
 			tmpx = (tmpx >= 0) ? (tmpx < size_out.width) ? tmpx : size_out.width - 1 : 0;
 			tmpy = (int)round(m + dy * t);
