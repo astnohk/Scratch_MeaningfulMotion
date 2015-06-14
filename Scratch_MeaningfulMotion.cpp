@@ -454,6 +454,7 @@ Write:
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
+	delete[] MultipleMotion_u;
 	delete[] segments;
 	delete[] EPSegments;
 	delete[] MaximalSegments;

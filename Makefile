@@ -65,10 +65,10 @@ pnm_library.o: pnm_library.cpp
 	$(CC) $(OPTION) -c $^
 
 debug: $(CFILES)
-	$(CC) $(OPTION_DEBUG) $(LOADLIBES_DEBUG) -O2 -o $(OUTNAME) $^
+	$(CC) -g $(OPTION_DEBUG) $(LOADLIBES_DEBUG) -O2 -o $(OUTNAME) $^
 
 debugmp: $(CFILES)
-	$(CC) $(OPTION_DEBUG) $(LOADLIBES) -O2 -o $(OUTNAME) $^
+	$(CC) -g $(OPTION_DEBUG) $(LOADLIBES) -O2 -o $(OUTNAME) $^
 
 clean:
 	rm -f $(OFILES)

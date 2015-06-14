@@ -278,7 +278,7 @@ MultipleMotion_Affine_write(VECTOR_AFFINE u, const char *filename)
 		Error.Function("fopen");
 		Error.Value(filename);
 		Error.FileRead();
-		goto ExitError;
+		return MEANINGFUL_FAILURE;
 	}
 	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		if (fprintf(fp, "%0.16e ", u.a[i]) < 0) {

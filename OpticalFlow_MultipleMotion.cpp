@@ -89,10 +89,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 		u_levels = new VECTOR_2D*[MotionParam.Level];
 	}
 	catch (const std::bad_alloc &bad) {
-		throw "u_levels";
-	}
-	catch (const char *err) {
-		Error.Value(err);
+		Error.Value("u_levels");
 		Error.Malloc();
 		goto ExitError;
 	}
@@ -165,6 +162,10 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 
 	for (level = 0; level < MotionParam.Level; level++) {
 		delete[] u_levels[level];
+		delete[] grad_It_levels[level];
+		delete[] I_dt_levels[level];
+		delete[] Itp1_levels[level];
+		delete[] It_levels[level];
 	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
@@ -176,14 +177,18 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 	return u;
 // Error
 ExitError:
+	for (level = 0; level < MotionParam.Level; level++) {
+		delete[] u_levels[level];
+		delete[] grad_It_levels[level];
+		delete[] I_dt_levels[level];
+		delete[] Itp1_levels[level];
+		delete[] It_levels[level];
+	}
+	delete[] u_levels;
 	delete[] grad_It_levels;
 	delete[] I_dt_levels;
 	delete[] Itp1_levels;
 	delete[] It_levels;
-	for (level = 0; level < MotionParam.Level; level++) {
-		delete[] u_levels[level];
-	}
-	delete[] u_levels;
 	delete[] u;
 	delete[] Itp1_normalize;
 	delete[] It_normalize;
@@ -212,7 +217,7 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 	VECTOR_2D *u_np1 = nullptr;
 	VECTOR_2D sup;
 	VECTOR_2D dE;
-	double E = 0.0;
+	double E = 1.0E10;
 	double E_prev = 0.0;
 	int ErrorIncrementCount = 0;
 	int site;
@@ -392,7 +397,7 @@ MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 		Error.Function("fopen");
 		Error.Value(filename);
 		Error.FileRead();
-		goto ExitError;
+		return MEANINGFUL_FAILURE;
 	}
 	if (fprintf(fp, "%d %d\n", size.width, size.height) < 0) {
 		Error.Function("fprintf");
