@@ -94,6 +94,7 @@ MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MU
 	}
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
 		printf("\nLevel %d :\n", level);
+		printf("grad %e\n", grad_It_levels[level][100].x);
 		u.a[0] *= 2;
 		u.a[3] *= 2;
 		size_img_l.width = floor(size_img.width * pow_int(0.5, level));
@@ -102,6 +103,12 @@ MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MU
 		IRLS_MultipleMotion_Affine(&u, grad_It_levels[level], I_dt_levels[level], size_img_l,
 		    sigmaD,
 		    IterMax, MotionParam.Error_Min_Threshold);
+	}
+	for (level = 0; level < MotionParam.Level; level++) {
+		delete[] grad_It_levels[level];
+		delete[] I_dt_levels[level];
+		delete[] Itp1_levels[level];
+		delete[] It_levels[level];
 	}
 	delete[] grad_It_levels;
 	delete[] I_dt_levels;
@@ -128,13 +135,17 @@ ExitError:
 int
 IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
+	VECTOR_AFFINE u_np1;
+	VECTOR_AFFINE sup;
+	VECTOR_AFFINE dE;
+	double E = 0.0;
+	double omega;
+
 	printf("sigmaD = %e\n", sigmaD);
+sup = sup_Error_aa(Img_g, size_img, sigmaD);
+printf("size (%d, %d)\n", size_img.width, size_img.height);
+printf("E %e\n", Error_Affine(u, Img_g, Img_t, size_img, sigmaD));
 	for (int n = 0; n < IterMax; n++) {
-		VECTOR_AFFINE u_np1;
-		VECTOR_AFFINE sup;
-		VECTOR_AFFINE dE;
-		double E = 0.0;
-		double omega;
 		omega = 1.0E-4;
 		dE = Error_a(u, Img_g, Img_t, size_img, sigmaD);
 		sup = sup_Error_aa(Img_g, size_img, sigmaD);
@@ -164,7 +175,7 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SI
 VECTOR_AFFINE
 Error_a(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD)
 {
-	double (*psiD)(double, double) = Geman_McClure_psi;
+	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
 	VECTOR_2D u_a;
 
@@ -241,14 +252,14 @@ sup_Error_aa(VECTOR_2D *Img_g, SIZE size, double sigmaD)
 
 
 double
-Error_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD)
+Error_Affine(const VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD)
 {
-	double (*rhoD)(double, double) = Geman_McClure_rho;
+	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double E = 0.0;
+	VECTOR_2D u_a;
+	int x, y;
 
 	for (int site = 0; site < size_img.width * size_img.height; site++) {
-		int x, y;
-		VECTOR_2D u_a;
 		x = site % size_img.width;
 		y = site / size_img.width;
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;

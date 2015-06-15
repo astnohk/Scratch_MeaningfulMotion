@@ -12,8 +12,8 @@
 
 
 
-double Geman_McClure_rho(double x, double sigma);
-double Geman_McClure_psi(double x, double sigma);
-double Lorentzian_rho(double x, double sigma);
-double Lorentzian_psi(double x, double sigma);
+double Geman_McClure_rho(const double &x, const double &sigma);
+double Geman_McClure_psi(const double &x, const double &sigma);
+double Lorentzian_rho(const double &x, const double &sigma);
+double Lorentzian_psi(const double &x, const double &sigma);
 

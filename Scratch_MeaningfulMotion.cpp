@@ -112,7 +112,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				Error.FunctionFail();
 				goto ExitError;
 			}
-			pnmd_in.free();
 			if (pnm_res.copy(pnmd_out, 1.0, "round") != PNM_FUNCTION_SUCCESS) {
 				Error.Function("pnm_double2int");
 				Error.Value("(pnmd_out -> pnm_res)");
@@ -125,6 +124,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				Error.FunctionFail();
 				goto ExitError;
 			}
+			pnmd_in.free();
 			pnmd_out.free();
 		} else {
 			if (pnm_in.copy(pnm_orig) != PNM_FUNCTION_SUCCESS) {
@@ -437,6 +437,7 @@ Write:
 		if (pnmd_in.isNULL() == false) {
 			pnmd_prev.copy(pnmd_in);
 		}
+		pnm_in.write("test.pgm");
 		pnmd_in.free();
 		pnm_out.free();
 		pnm_in.free();

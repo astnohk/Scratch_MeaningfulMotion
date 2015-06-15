@@ -120,7 +120,23 @@ VECTOR_2D::VECTOR_2D(double ix, double iy)
 	y = iy;
 }
 
+void
+VECTOR_2D::reset(void)
+{
+	x = .0;
+	y = .0;
+}
+
+
 VECTOR_AFFINE::VECTOR_AFFINE(void)
+{
+	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+		a[i] = .0;
+	}
+}
+
+void
+VECTOR_AFFINE::reset(void)
 {
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		a[i] = .0;

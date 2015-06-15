@@ -7,6 +7,9 @@
  * y         m
 */
 
+// Options for Old Compiler which is not available to use -std=c++11
+#define nullptr NULL
+
 
 // DEBUG Options
 //#define SHOW_GAUSSIAN_FILTER
@@ -229,6 +232,7 @@ struct VECTOR_2D
 	double y;
 	VECTOR_2D(void);
 	VECTOR_2D(double ix, double iy);
+	void reset(void);
 };
 
 #define NUM_AFFINE_PARAMETER 6
@@ -236,6 +240,7 @@ struct VECTOR_AFFINE
 {
 	double a[NUM_AFFINE_PARAMETER];
 	VECTOR_AFFINE(void);
+	void reset(void);
 };
 
 struct MULTIPLE_MOTION_PARAM

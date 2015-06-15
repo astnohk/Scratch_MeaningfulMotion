@@ -65,7 +65,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 
 	// Image Normalization
 	try {
-	It_normalize = new double[size_img.width * size_img.height];
+		It_normalize = new double[size_img.width * size_img.height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("It_normalize");
@@ -231,16 +231,20 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 		Error.Malloc();
 		return MEANINGFUL_FAILURE;
 	}
+	printf("E = %e\n", E);
+	// Reset sup_Error_uu max Img_g
+	sup_Error_uu(Img_g, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 	for (n = 0; n < IterMax; n++) {
-		sup_Error_uu(Img_g, size_img, lambdaD, lambdaS, sigmaD, sigmaS); // Reset sup_Error_uu max Img_g
 #pragma omp parallel for private(dE, sup)
 		for (site = 0; site < size_img.width * size_img.height; site++) { // Calc for all sites
 			dE = Error_u(site, u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 			sup = sup_Error_uu(nullptr, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u[site].x - dE.x / sup.x;
 			u_np1[site].y = u[site].y - dE.y / sup.y;
+			//u_np1[site].x = u[site].x - (fabs(dE.x) > 0.0 ? dE.x / sup.x : 0.0);
+			//u_np1[site].y = u[site].y - (fabs(dE.y) > 0.0 ? dE.y / sup.y : 0.0);
 		}
-		for (site = 0; site < size_img.width * size_img.height; site++) { // Calc for all sites
+		for (site = 0; site < size_img.width * size_img.height; site++) { // Copy
 			u[site] = u_np1[site];
 		}
 		if (level == 0) {
@@ -259,6 +263,7 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 #ifdef SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
 		if ((n & 0x3F) == 0) {
 			printf("E(%4d) = %e\n", n, E);
+			printf("u[1] = (%e, %e)\n", u[1].x, u[1].y);
 		}
 #endif
 		if (E < ErrorMinThreshold || ErrorIncrementCount > 2) {
@@ -273,8 +278,8 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 VECTOR_2D
 Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
-	double (*psiD)(double, double) = Geman_McClure_psi;
-	double (*psiS)(double, double) = Geman_McClure_psi;
+	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
+	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_2D us;
 	double Center;
 	VECTOR_2D Neighbor;
@@ -287,8 +292,6 @@ Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, 
 	us = u[site];
 	Center = (*psiD)(Img_g[site].x * us.x + Img_g[site].y * us.y + Img_t[site], sigmaD);
 
-	Neighbor.x = .0;
-	Neighbor.y = .0;
 	if (x > 0) {
 		Neighbor.x += (*psiS)(us.x - u[size_img.width * y + x - 1].x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u[size_img.width * y + x - 1].y, sigmaS);
@@ -316,8 +319,10 @@ VECTOR_2D
 sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
 	static VECTOR_2D Img_g_max;
+	VECTOR_2D sup;
 
 	if (Img_g != nullptr) {
+		Img_g_max.reset();
 		for (int i = 0; i < size.width * size.height; i++) {
 			if (Img_g_max.x < POW2(Img_g[i].x)) {
 				Img_g_max.x = POW2(Img_g[i].x);
@@ -327,24 +332,24 @@ sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double
 			}
 		}
 	}
-	return (VECTOR_2D){lambdaD * Img_g_max.x / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS),
+	sup = (VECTOR_2D){lambdaD * Img_g_max.x / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS),
 	    lambdaD * Img_g_max.y / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS)};
+	return sup;
 }
 
 
 double
 Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
 {
-	double (*rhoD)(double, double) = Geman_McClure_rho;
-	double (*rhoS)(double, double) = Geman_McClure_rho;
+	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
+	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
 	double E = 0.0;
+	VECTOR_2D us;
+	double Center;
+	VECTOR_2D Neighbor;
 
 	for (int y = 0; y < size_img.height; y++) {
 		for (int x = 0; x < size_img.width; x++) {
-			VECTOR_2D us;
-			double Center;
-			VECTOR_2D Neighbor;
-
 			us = u[size_img.width * y + x];
 			Neighbor.x = 0;
 			Neighbor.y = 0;

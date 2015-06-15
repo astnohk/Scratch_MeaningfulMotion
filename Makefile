@@ -1,7 +1,9 @@
 CC = g++
-OPTION = -W -Wall -fopenmp -std=c++11
+#OPTION = -W -Wall -fopenmp -std=c++11
+OPTION = -W -Wall -fopenmp
 LOADLIBES = -lm -lX11 -fopenmp
-OPTION_DEBUG = -W -Wall -std=c++11
+#OPTION_DEBUG = -W -Wall -std=c++11
+OPTION_DEBUG = -W -Wall
 LOADLIBES_DEBUG = -lm -lX11
 
 CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp Detection.cpp Exclusive.cpp Plotting.cpp Library.cpp ImgLibrary.cpp Affine_MultipleMotion.cpp OpticalFlow_MultipleMotion.cpp MultiResolution.cpp MEstimator.cpp Plot_X11.cpp pnm.cpp pnm_double.cpp pnm_library.cpp
