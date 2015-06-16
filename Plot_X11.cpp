@@ -449,13 +449,24 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 					return X_ESCAPE;
 				}
 				switch (key) {
-					case XK_0:
+					case XK_0: // Reset vision
 						X11_Param->Longitude = X11_Param->Latitude = 0;
 						X11_Param->Center_x = Img_size.width / 2;
 						X11_Param->Center_y = Img_size.height / 2;
 						X11_Param->Center_z = .0;
 						X11_Param->Scale = Window_size.width * 0.8 / Img_size.width;
-						X11_Param->Plot_Z_Scale = 1.0;
+						X11_Param->Plot_Z_Scale = DEFAULT_PLOT_Z_SCALE;
+						break;
+					case XK_q: // Reset all
+						X11_Param->Longitude = X11_Param->Latitude = 0;
+						X11_Param->Center_x = Img_size.width / 2;
+						X11_Param->Center_y = Img_size.height / 2;
+						X11_Param->Center_z = .0;
+						X11_Param->Scale = Window_size.width * 0.8 / Img_size.width;
+						X11_Param->Plot_Z_Scale = DEFAULT_PLOT_Z_SCALE;
+						X11_Param->ModeSwitch = 0;
+						X11_Param->FillSwitch = 0;
+						X11_Param->RotateSwitch = 0;
 						break;
 					case XK_c:
 						X11_Param->ModeSwitch = X11_Plot_GravityCorrupt;
@@ -1070,8 +1081,8 @@ PlotParameters(X11_PARAM X11_Param)
 	XSetForeground(disp, GCmono, WhitePixel(disp, 0));
 	sprintf(Str, "Center (%.2f, %.2f), Latitude %d, Longitude %d, Scale %.2f, WinSize (%d, %d)", X11_Param.Center_x, X11_Param.Center_y, X11_Param.Latitude, X11_Param.Longitude, X11_Param.Scale, Window_size.width, Window_size.height);
 	XDrawString(disp, pix, GCmono, 3, 12, Str, strlen(Str));
-	//sprintf(Str, "[0]reset, [r]otate, [m]ode, [f]ill grid, [g]araxy, [c]orrupt");
-	//XDrawString(disp, pix, GCmono, 3, Window_size.height - 12, Str, strlen(Str));
+	sprintf(Str, "Reset Vision : 0, Reset all : q");
+	XDrawString(disp, pix, GCmono, 3, 24, Str, strlen(Str));
 	sprintf(Str, "[r]otate");
 	if (X11_Param.RotateSwitch != 0) {
 		if (X11_Param.RotateSwitch <= 2) {

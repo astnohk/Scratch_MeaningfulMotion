@@ -24,7 +24,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 	img = pnm.get_double();
 
 	switch (FilterParam.type) {
-		case FILTER_ID_EPSILON: /* Epsilon Filter */
+		case FILTER_ID_EPSILON: // Epsilon Filter
 			printf("* Epsilon filtering on input\n");
 			if ((Ig = EpsilonFilter(img, size, FilterParam)) == nullptr) {
 				Error.Function("EpsilonFilter");
@@ -33,7 +33,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 				goto ExitError;
 			}
 			break;
-		case FILTER_ID_GAUSSIAN: /* Gaussian Filter */
+		case FILTER_ID_GAUSSIAN: // Gaussian Filter
 			printf("* Gaussian filtering on input\n");
 			if ((Ig = Gaussian(img, size, FilterParam)) == nullptr) {
 				Error.Function("Gaussian");
@@ -44,10 +44,20 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 			break;
 		default:
 			printf("* Do NOT any filtering\n");
+			Ig = img;
+			img = nullptr;
 	}
 #if defined(DEBUG_FILTER)
-	pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm.MaxInt(), Ig, 1.0);
-	pnm_out.write("filtered.pgm");
+	if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm.MaxInt(), Ig, 1.0) == PNM_FUNCTION_ERROR) {
+		Error.Function("pnm_out.copy");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+	if (pnm_out.write("filtered.pgm") == PNM_FUNCTION_ERROR) {
+		Error.Function("pnm_out.write");
+		Error.FunctionFail();
+		goto ExitError;
+	}
 	pnm_out.free();
 #endif
 
@@ -147,8 +157,8 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
 			if (AlignedCheck(angles, size, k_list, Pr_table, &list_segment, l_min, 0, n, x, y, Max_Length, Max_Output_Length)
 			    != MEANINGFUL_SUCCESS) {
+				printf("error\n");
 				ErrorDescription = "Occured at Upper side to Other 3 sides";
-				n = size.width;
 				break;
 			}
 			// Bottom side to Other 3 sides (n, size.height) -> (x, y)
@@ -162,8 +172,8 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
 			if (AlignedCheck(angles, size, k_list, Pr_table, &list_segment, l_min, size.height - 1, n, x, y, Max_Length, Max_Output_Length)
 			    != MEANINGFUL_SUCCESS) {
+				printf("error\n");
 				ErrorDescription = "Occured at Bottom side to Other 3 sides";
-				n = size.width;
 				break;
 			}
 #pragma omp critical
@@ -176,7 +186,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 			}
 		}
 	}
-	if (ErrorDescription.empty() != false) {
+	if (ErrorDescription.empty() == false) {
 		Error.Others(ErrorDescription.c_str());
 		goto ExitError;
 	}
@@ -303,33 +313,26 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 	    fragment_ref != list_fragment.end();
 	    ++fragment_ref) {
 		fragment_cur = list_fragment.begin();
-		while (fragment_cur != list_fragment.end()) {
-			if (fragment_cur->start < 0 || fragment_cur == fragment_ref) {
+		while (fragment_ref != list_fragment.end()
+		    && fragment_cur != list_fragment.end()) {
+			if (fragment_cur == fragment_ref) {
 				++fragment_cur;
-				continue;
-			}
-			if (fragment_ref->start <= fragment_cur->start && fragment_cur->end <= fragment_ref->end) {
+			} else if (fragment_ref->start <= fragment_cur->start && fragment_cur->end <= fragment_ref->end) {
 				// Delete the fragment which has higher probability
 				if (fragment_ref->Pr <= fragment_cur->Pr) {
-					fragment_cur->start = -1; // used as Flag of erase
-					++fragment_cur;
+					fragment_cur = list_fragment.erase(fragment_cur);
 				} else {
-					fragment_ref->start = -1; // used as Flag of erase
-					++fragment_ref;
+					fragment_ref = list_fragment.erase(fragment_ref);
 				}
 			} else if (fragment_cur->start <= fragment_ref->start && fragment_ref->end <= fragment_cur->end) {
+				// Delete the fragment which has higher probability
 				if (fragment_cur->Pr <= fragment_ref->Pr) {
-					fragment_ref->start = -1;
-					++fragment_ref;
+					fragment_ref = list_fragment.erase(fragment_ref);
 				} else {
-					fragment_cur->start = -1;
-					++fragment_cur;
+					fragment_cur = list_fragment.erase(fragment_cur);
 				}
 			} else {
 				++fragment_cur;
-			}
-			if (fragment_ref == list_fragment.end()){
-				break;
 			}
 		}
 	}
@@ -337,9 +340,6 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 	for (itr_fragment = list_fragment.begin();
 	    itr_fragment != list_fragment.end();
 	    ++itr_fragment) {
-		if (itr_fragment->start < 0) {
-			continue;
-		}
 		// If Max_Output_Length <= 0 then Do NOT Limit The Length of Segments
 		if (Max_Output_Length <= 0
 		    || (itr_fragment->end - itr_fragment->start + 1) <= Max_Output_Length) {
