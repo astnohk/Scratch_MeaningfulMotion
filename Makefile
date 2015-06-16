@@ -1,9 +1,9 @@
 CC = g++
-#OPTION = -W -Wall -fopenmp -std=c++11
 OPTION = -W -Wall -fopenmp
+OPTION_STDCPP11 = -W -Wall -fopenmp -std=c++11
 LOADLIBES = -lm -lX11 -fopenmp
-#OPTION_DEBUG = -W -Wall -std=c++11
 OPTION_DEBUG = -W -Wall
+OPTION_STDCPP11_DEBUG = -W -Wall -std=c++11
 LOADLIBES_DEBUG = -lm -lX11
 
 CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp Detection.cpp Exclusive.cpp Plotting.cpp Library.cpp ImgLibrary.cpp Affine_MultipleMotion.cpp OpticalFlow_MultipleMotion.cpp MultiResolution.cpp MEstimator.cpp Plot_X11.cpp pnm.cpp pnm_double.cpp pnm_library.cpp
@@ -13,7 +13,7 @@ OUTNAME = Scratch_MeaningfulMotion
 
 
 Scratch_MeaningfulMotion: $(OFILES)
-	$(CC) $(LOADLIBES) -O2 -o $@ $^
+	$(CC) $(LOADLIBES) -O2 -o $(OUTNAME) $^
 
 main.o: main.cpp
 	$(CC) $(OPTION) -c $^
@@ -65,6 +65,7 @@ pnm_double.o: pnm_double.cpp
 
 pnm_library.o: pnm_library.cpp
 	$(CC) $(OPTION) -c $^
+
 
 debug: $(CFILES)
 	$(CC) -g $(OPTION_DEBUG) $(LOADLIBES_DEBUG) -O2 -o $(OUTNAME) $^

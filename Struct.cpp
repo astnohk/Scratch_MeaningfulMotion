@@ -193,12 +193,12 @@ SEGMENT_X11::SEGMENT_X11(void)
 
 COORDINATE_3D::COORDINATE_3D(void)
 {
-	x = .0f;
-	y = .0f;
-	z = .0f;
+	x = .0;
+	y = .0;
+	z = .0;
 }
 
-COORDINATE_3D::COORDINATE_3D(float ix, float iy, float iz)
+COORDINATE_3D::COORDINATE_3D(double ix, double iy, double iz)
 {
 	x = ix;
 	y = iy;
@@ -206,7 +206,7 @@ COORDINATE_3D::COORDINATE_3D(float ix, float iy, float iz)
 }
 
 void
-COORDINATE_3D::set(float sx, float sy, float sz)
+COORDINATE_3D::set(double sx, double sy, double sz)
 {
 	x = sx;
 	y = sy;

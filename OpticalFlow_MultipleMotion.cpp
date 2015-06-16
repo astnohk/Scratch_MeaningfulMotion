@@ -331,11 +331,10 @@ sup_Error_uu(VECTOR_2D *Img_g, const SIZE &size, const double &lambdaD, const do
 {
 	static VECTOR_2D Img_g_max;
 	VECTOR_2D sup;
-	int i;
 
 	if (Img_g != nullptr) {
 		Img_g_max.reset();
-		for (i = 0; i < size.width * size.height; i++) {
+		for (int i = 0; i < size.width * size.height; i++) {
 			if (Img_g_max.x < POW2(Img_g[i].x)) {
 				Img_g_max.x = POW2(Img_g[i].x);
 			}
