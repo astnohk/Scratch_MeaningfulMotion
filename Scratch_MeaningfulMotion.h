@@ -311,12 +311,12 @@ struct SEGMENT_X11
 
 struct COORDINATE_3D
 {
-	double x;
-	double y;
-	double z;
+	float x;
+	float y;
+	float z;
 	COORDINATE_3D(void);
-	COORDINATE_3D(double ix, double iy, double iz);
-	void set(double sx, double sy, double sz);
+	COORDINATE_3D(float ix, float iy, float iz);
+	void set(float sx, float sy, float sz);
 };
 
 struct XPLOT

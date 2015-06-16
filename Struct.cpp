@@ -198,7 +198,7 @@ COORDINATE_3D::COORDINATE_3D(void)
 	z = .0f;
 }
 
-COORDINATE_3D::COORDINATE_3D(double ix, double iy, double iz)
+COORDINATE_3D::COORDINATE_3D(float ix, float iy, float iz)
 {
 	x = ix;
 	y = iy;
@@ -206,7 +206,7 @@ COORDINATE_3D::COORDINATE_3D(double ix, double iy, double iz)
 }
 
 void
-COORDINATE_3D::set(double sx, double sy, double sz)
+COORDINATE_3D::set(float sx, float sy, float sz)
 {
 	x = sx;
 	y = sy;

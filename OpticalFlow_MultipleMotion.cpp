@@ -4,7 +4,6 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-
 #include "Scratch_MeaningfulMotion.h"
 #include "MultiResolution.h"
 #include "OpticalFlow_MultipleMotion.h"
@@ -81,10 +80,18 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 		goto ExitError;
 	}
 	for (i = 0; i < size_img.width * size_img.height; i++) {
-		It_normalize[i] = (double)It[i] / MaxInt;
-		Itp1_normalize[i] = (double)Itp1[i] / MaxInt;
+		It_normalize[i] = It[i] / MaxInt;
+		Itp1_normalize[i] = Itp1[i] / MaxInt;
 	}
 	// Multiple Motion Vectors
+	try {
+		u = new VECTOR_2D[size_img.width * size_img.height];
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("u");
+		Error.Malloc();
+		goto ExitError;
+	}
 	try {
 		u_levels = new VECTOR_2D*[MotionParam.Level];
 	}
@@ -156,9 +163,9 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 		    IterMax, MotionParam.Error_Min_Threshold,
 		    level);
 	}
-	// Set Output
-	u = u_levels[0];
-	u_levels[0] = nullptr;
+	for (i = 0; i < size_img.width * size_img.height; i++) {
+		u[i] = u_levels[0][i];
+	}
 
 	for (level = 0; level < MotionParam.Level; level++) {
 		delete[] u_levels[level];
@@ -184,11 +191,11 @@ ExitError:
 		delete[] Itp1_levels[level];
 		delete[] It_levels[level];
 	}
-	delete[] u_levels;
 	delete[] grad_It_levels;
 	delete[] I_dt_levels;
 	delete[] Itp1_levels;
 	delete[] It_levels;
+	delete[] u_levels;
 	delete[] u;
 	delete[] Itp1_normalize;
 	delete[] It_normalize;
@@ -197,7 +204,7 @@ ExitError:
 
 
 void
-LevelDown(VECTOR_2D *u_l, SIZE size_l, VECTOR_2D *u_lp1, SIZE size_lp1)
+LevelDown(VECTOR_2D *u_l, SIZE size_l, VECTOR_2D *u_lp1, const SIZE &size_lp1)
 {
 	int x, y;
 
@@ -213,11 +220,10 @@ int
 IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
-
 	VECTOR_2D *u_np1 = nullptr;
 	VECTOR_2D sup;
 	VECTOR_2D dE;
-	double E = 1.0E10;
+	double E = 0.0;
 	double E_prev = 0.0;
 	int ErrorIncrementCount = 0;
 	int site;
@@ -229,22 +235,22 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 	catch (const std::bad_alloc &bad) {
 		Error.Value("u_np1");
 		Error.Malloc();
-		return MEANINGFUL_FAILURE;
+		goto ExitError;
 	}
-	printf("E = %e\n", E);
 	// Reset sup_Error_uu max Img_g
 	sup_Error_uu(Img_g, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
+	sup = sup_Error_uu(nullptr, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 	for (n = 0; n < IterMax; n++) {
 #pragma omp parallel for private(dE, sup)
-		for (site = 0; site < size_img.width * size_img.height; site++) { // Calc for all sites
+		// Calc for all sites
+		for (site = 0; site < size_img.width * size_img.height; site++) {
 			dE = Error_u(site, u, Img_g, Img_t, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 			sup = sup_Error_uu(nullptr, size_img, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u[site].x - dE.x / sup.x;
 			u_np1[site].y = u[site].y - dE.y / sup.y;
-			//u_np1[site].x = u[site].x - (fabs(dE.x) > 0.0 ? dE.x / sup.x : 0.0);
-			//u_np1[site].y = u[site].y - (fabs(dE.y) > 0.0 ? dE.y / sup.y : 0.0);
 		}
-		for (site = 0; site < size_img.width * size_img.height; site++) { // Copy
+		// Calc for all sites
+		for (site = 0; site < size_img.width * size_img.height; site++) {
 			u[site] = u_np1[site];
 		}
 		if (level == 0) {
@@ -263,7 +269,6 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 #ifdef SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
 		if ((n & 0x3F) == 0) {
 			printf("E(%4d) = %e\n", n, E);
-			printf("u[1] = (%e, %e)\n", u[1].x, u[1].y);
 		}
 #endif
 		if (E < ErrorMinThreshold || ErrorIncrementCount > 2) {
@@ -272,11 +277,15 @@ IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, S
 	}
 	delete[] u_np1;
 	return MEANINGFUL_SUCCESS;
+// Error
+ExitError:
+	delete[] u_np1;
+	return MEANINGFUL_FAILURE;
 }
 
 
 VECTOR_2D
-Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
+Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, const SIZE &size_img, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
@@ -292,6 +301,8 @@ Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, 
 	us = u[site];
 	Center = (*psiD)(Img_g[site].x * us.x + Img_g[site].y * us.y + Img_t[site], sigmaD);
 
+	Neighbor.x = .0;
+	Neighbor.y = .0;
 	if (x > 0) {
 		Neighbor.x += (*psiS)(us.x - u[size_img.width * y + x - 1].x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u[size_img.width * y + x - 1].y, sigmaS);
@@ -316,14 +327,15 @@ Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, 
 
 
 VECTOR_2D
-sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
+sup_Error_uu(VECTOR_2D *Img_g, const SIZE &size, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	static VECTOR_2D Img_g_max;
 	VECTOR_2D sup;
+	int i;
 
 	if (Img_g != nullptr) {
 		Img_g_max.reset();
-		for (int i = 0; i < size.width * size.height; i++) {
+		for (i = 0; i < size.width * size.height; i++) {
 			if (Img_g_max.x < POW2(Img_g[i].x)) {
 				Img_g_max.x = POW2(Img_g[i].x);
 			}
@@ -332,27 +344,29 @@ sup_Error_uu(VECTOR_2D *Img_g, SIZE size, double lambdaD, double lambdaS, double
 			}
 		}
 	}
-	sup = (VECTOR_2D){lambdaD * Img_g_max.x / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS),
-	    lambdaD * Img_g_max.y / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS)};
+	sup.x = lambdaD * Img_g_max.x / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS);
+	sup.y = lambdaD * Img_g_max.y / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS);
 	return sup;
 }
 
 
 double
-Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS)
+Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, const SIZE &size_img, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
-	double E = 0.0;
 	VECTOR_2D us;
 	double Center;
 	VECTOR_2D Neighbor;
+	double E = 0.0;
+	int x, y;
 
-	for (int y = 0; y < size_img.height; y++) {
-		for (int x = 0; x < size_img.width; x++) {
+#pragma omp parallel for private(x, us, Neighbor, Center) reduction(+:E)
+	for (y = 0; y < size_img.height; y++) {
+		for (x = 0; x < size_img.width; x++) {
 			us = u[size_img.width * y + x];
-			Neighbor.x = 0;
-			Neighbor.y = 0;
+			Neighbor.x = .0;
+			Neighbor.y = .0;
 			if (x > 0) {
 				Neighbor.x += (*rhoS)(us.x - u[size_img.width * y + x - 1].x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u[size_img.width * y + x - 1].y, sigmaS);
@@ -397,19 +411,14 @@ MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 		goto ExitError;
 	}
 
-	printf("* Output Optical Flow to '%s'\n", filename);
+	printf("* Output Optical Flow to '%s'(binary)\n", filename);
 	if ((fp = fopen(filename, "wb")) == nullptr) {
 		Error.Function("fopen");
-		Error.Value(filename);
-		Error.FileRead();
-		return MEANINGFUL_FAILURE;
+		Error.File(filename);
+		Error.FileWrite();
+		goto ErrorFileOpenFail;
 	}
-	if (fprintf(fp, "%d %d\n", size.width, size.height) < 0) {
-		Error.Function("fprintf");
-		Error.Value("size");
-		Error.FunctionFail();
-		goto ExitError;
-	}
+	fprintf(fp, "%d %d\n", size.width, size.height);
 	for (y = 0; y < size.height; y++) {
 		for (x = 0; x < size.width; x++) {
 			if (fwrite(&(u[size.width * y + x].x), sizeof(double), 1, fp) < 1) {
@@ -429,6 +438,8 @@ MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 	fclose(fp);
 	return MEANINGFUL_SUCCESS;
 // Error
+ErrorFileOpenFail:
+	return MEANINGFUL_FAILURE;
 ExitError:
 	fclose(fp);
 	return MEANINGFUL_FAILURE;
