@@ -243,24 +243,51 @@ struct VECTOR_AFFINE
 	void reset(void);
 };
 
-class HOG
+
+class Histogram_int
+{
+	private:
+		int bins;
+		int *hist;
+	public:
+		Histogram_int(void);
+		Histogram_int(int init_bins);
+		~Histogram_int(void);
+		bool reset(int init_bins);
+		// Read
+		int Bins(void) const;
+		int Hist(int bin) const;
+		const int *Data(void) const;
+		// Control
+		bool Add(int bin);
+		bool Sub(int bin);
+};
+
+class HOG // Histograms of Oriented Gradients
 {
 	private:
 		bool orient_signed;
 		int bins;
-		int *hist;
+		int width;
+		int height;
+		Histogram_int *hist;
 	public:
 		HOG(void);
-		HOG(bool init_signed, int num_bins);
+		HOG(bool init_signed, int init_width, int init_height, int init_bins);
+		bool reset(bool init_signed, int init_width, int init_height, int init_bins);
 		~HOG(void);
-		bool reset(bool init_signed, int num_bins);
+		void free(void);
 		void setSign(bool init_signed);
+		// Read
 		bool Signed(void) const;
 		int Bins(void) const;
-		int Hist(int bin) const;
-		const int *Data(void) const;
-		bool AddHist(int bin);
-		bool SubHist(int bin);
+		int Width(void) const;
+		int Height(void) const;
+		int Hist(int x, int y, int bin) const;
+		const Histogram_int *Data(void) const;
+		// control Histogram
+		bool AddHist(int x, int y, int bin);
+		bool SubHist(int x, int y, int bin);
 };
 
 
@@ -299,7 +326,7 @@ struct OPTIONS
 #define MODE_OUTPUT_BINARY_IMAGE 0x0020
 #define MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE 0x0040
 #define MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW 0x0080
-#define MODE_OUTPUT_OPTICALFLOW_AFFINE_PARAMETER 0x0100
+#define MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS 0x0100
 // PlotOptions
 #define PLOT_NEGATE 0x01
 #define PLOT_AS_RESAMPLE 0x02

@@ -25,7 +25,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	VECTOR_2D *MultipleMotion_u = nullptr;
-	HOG *hog = nullptr;
+	HOG hog;
 
 	int Initialize = 0;
 
@@ -251,6 +251,10 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Multiple Motions Optical Flow by method of M.J.Black\n");
 				MultipleMotion_u = MultipleMotion_OpticalFlow(pnmd_prev.Data(), pnmd_in.Data(), pnmd_in.MaxInt(), size_orig, Options.MultipleMotion_Param);
 			}
+		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0) {
+			printf("* Compute HOG\n");
+			pnmd_in.copy(pnm_orig, 1.0);
+			HistogramsOfOrientedGradients(&hog, pnmd_in);
 		} else {
 			// Scratch Detection
 			printf("* Detect Scratch like vertical lines\n");
@@ -426,6 +430,13 @@ Write:
 				Error.FunctionFail();
 				goto ExitError;
 			}
+		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0) {
+			if (HOG_write(hog, OutputNameNums.c_str()) == false) {
+				Error.Function("HOG_write");
+				Error.Value("hog");
+				Error.FunctionFail();
+				goto ExitError;
+			}
 		} else {
 			if (pnm_out.write(OutputNameNums.c_str()) == PNM_FUNCTION_ERROR) {
 				Error.Function("pnm_out.write");
@@ -434,6 +445,7 @@ Write:
 				goto ExitError;
 			}
 		}
+		hog.free();
 		delete[] MultipleMotion_u;
 		MultipleMotion_u = nullptr;
 		if (pnmd_in.isNULL() == false) {
@@ -457,7 +469,7 @@ Write:
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
-	delete[] hog;
+	hog.free();
 	delete[] MultipleMotion_u;
 	delete[] segments;
 	delete[] EPSegments;

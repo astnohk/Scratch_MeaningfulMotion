@@ -45,7 +45,7 @@ main(int argc, char *argv[])
 	    "      --binary                       : output middle data at Line Scratch detection\n"
 	    "      --multiple_affine              : output multiple motions' affine parameters estimated by method of M.J.Black\n"
 	    "      --multiple_opticalflow         : output multiple motions' optical flow estimated by method of M.J.Black\n"
-	    "      --opticalflow_Odobez           : output affine coeffs array of optical flow estimated by method of J.M.Odobez\n"
+	    "      --HOG                          : output Histograms of Oriented Gradients\n"
 	    "      --resample         [WxH]       : resampling the input image to size of [WxH] at first (e.g : --resample 128x128)\n"
 	    "      --resample_method  [method]    : set resampling method (z-hold, bicubic)\n"
 	    "      --plot_as_resample             : output size is same as resampled image\n"
@@ -216,12 +216,12 @@ main(int argc, char *argv[])
 							FilterParam.std_deviation = GAUSSIAN_STD_DEVIATION;
 						}
 					}
+				} else if (strcmp(argv[i], "--HOG") == 0) {
+					Options.mode = MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS;
 				} else if (strcmp(argv[i], "--multiple_affine") == 0) {
-					Options.mode |= MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
+					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
 				} else if (strcmp(argv[i], "--multiple_opticalflow") == 0) {
-					Options.mode |= MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW;
-				} else if (strcmp(argv[i], "--opticalflow_Odobez") == 0) {
-					Options.mode |= MODE_OUTPUT_OPTICALFLOW_AFFINE_PARAMETER;
+					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW;
 				} else if (strcmp(argv[i], "--plot_as_resample") == 0) {
 					Options.PlotOptions |= PLOT_AS_RESAMPLE;
 				} else if (strcmp(argv[i], "--plot_resampled_only") == 0) {

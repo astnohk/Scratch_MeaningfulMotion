@@ -2,15 +2,17 @@
 #include "HOG.h"
 
 
-HOG *
-HisotgramOfGradient(const PNM_DOUBLE &Img, SIZE size)
+bool
+HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
 {
-	ERROR Error("HistogramOfGradient");
-	HOG *hog = nullptr;
+	ERROR Error("HistogramOfOrientedGradients");
 	double *orient = nullptr;
+	SIZE size;
 	SIZE cell(3, 3);
 	int bins = 16;
 
+	size.width = Img.Width();
+	size.height = Img.Height();
 	orient = Orientation(Img, HOG_ORIENTATION_SIGNED);
 	if (orient == nullptr) {
 		Error.Function("Orientation");
@@ -18,19 +20,13 @@ HisotgramOfGradient(const PNM_DOUBLE &Img, SIZE size)
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	hog = ComputeHistogramOfGradient(orient, size, cell, bins, HOG_ORIENTATION_SIGNED);
-	if (hog == nullptr) {
-		Error.Function("ComputeHistogramOfGradient");
-		Error.Value("hog");
-		Error.FunctionFail();
-		goto ExitError;
-	}
-	return hog;
+	ComputeHistogramsOfOrientedGradients(hog, orient, size, cell, bins, HOG_ORIENTATION_SIGNED);
+	delete[] orient;
+	return true;
 // Error
 ExitError:
 	delete[] orient;
-	delete[] hog;
-	return nullptr;
+	return false;
 }
 
 
@@ -90,21 +86,17 @@ ExitError:
 	return nullptr;
 }
 
-HOG *
-ComputeHistogramOfGradient(const double *orient, SIZE size, SIZE cell, int bins, bool sign)
+bool
+ComputeHistogramsOfOrientedGradients(HOG *hog, const double *orient, SIZE size, SIZE cell, int bins, bool sign)
 {
-	ERROR Error("ComputeHistogramOfGradient");
+	ERROR Error("ComputeHistogramsOfOrientedGradients");
 	SIZE Cells;
-	HOG *hog = nullptr;
 	int x, y;
 	int m, n;
 
 	Cells.width = (int)ceil(size.width / cell.width);
 	Cells.height = (int)ceil(size.height / cell.height);
-	try {
-		hog = new HOG[Cells.width * Cells.height];
-	}
-	catch (const std::bad_alloc &bad) {
+	if (hog->reset(sign, Cells.width, Cells.height, bins) == false) {
 		Error.Value("hog");
 		Error.Malloc();
 		goto ExitError;
@@ -113,7 +105,6 @@ ComputeHistogramOfGradient(const double *orient, SIZE size, SIZE cell, int bins,
 		int Y = cell.height * y;
 		for (x = 0; x < Cells.width; x++) {
 			int X = cell.width * x;
-			hog[Cells.width * y + x].reset(sign, bins); // reset histogram with number of bins
 			for (m = 0; m < cell.height; m++) {
 				for (n = 0; n < cell.width; n++) {
 					int dir;
@@ -121,21 +112,21 @@ ComputeHistogramOfGradient(const double *orient, SIZE size, SIZE cell, int bins,
 					if (dir == bins) {
 						dir = dir - 1;
 					}
-					hog[Cells.width * y + x].AddHist(dir);
+					hog->AddHist(x, y, dir);
 				}
 			}
 		}
 	}
-	return hog;
+	return true;
 // Error
 ExitError:
-	delete[] hog;
-	return nullptr;
+	hog->free();
+	return false;
 }
 
 
 bool
-HOG_write(const HOG *hog, SIZE size, const char *filename)
+HOG_write(const HOG &hog, const char *filename)
 {
 	ERROR Error("HOG_write");
 	FILE *fp = nullptr;
@@ -147,14 +138,17 @@ HOG_write(const HOG *hog, SIZE size, const char *filename)
 		Error.FileRead();
 		goto ExitError;
 	}
-	fprintf(fp, "%d %d\n", size.width, size.height);
-	fprintf(fp, "%d\n", hog[0].Bins());
-	for (int i = 0; i < size.width * size.height; i++) {
-		fprintf(fp, "%d", hog[i].Hist(0));
-		for (int bin = 1; bin < hog[i].Bins(); bin++) {
-			fprintf(fp, " %d", hog[i].Hist(bin));
+	fprintf(fp, "%d\n", (int)hog.Signed());
+	fprintf(fp, "%d %d\n", hog.Width(), hog.Height());
+	fprintf(fp, "%d\n", hog.Bins());
+	for (int y = 0; y < hog.Height(); y++) {
+		for (int x = 0; x < hog.Height(); x++) {
+			fprintf(fp, "%d", hog.Hist(x, y, 0));
+			for (int bin = 1; bin < hog.Bins(); bin++) {
+				fprintf(fp, " %d", hog.Hist(x, y, bin));
+			}
+			fprintf(fp, "\n");
 		}
-		fprintf(fp, "\n");
 	}
 	fclose(fp);
 	return true;
