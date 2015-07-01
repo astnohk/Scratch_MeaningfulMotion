@@ -243,6 +243,26 @@ struct VECTOR_AFFINE
 	void reset(void);
 };
 
+class HOG
+{
+	private:
+		bool orient_signed;
+		int bins;
+		int *hist;
+	public:
+		HOG(void);
+		HOG(bool init_signed, int num_bins);
+		~HOG(void);
+		bool reset(bool init_signed, int num_bins);
+		void setSign(bool init_signed);
+		bool Signed(void) const;
+		int Bins(void) const;
+		const int *Hist(void) const;
+		bool AddHist(int bin);
+		bool SubHist(int bin);
+};
+
+
 struct MULTIPLE_MOTION_PARAM
 {
 	int Level;

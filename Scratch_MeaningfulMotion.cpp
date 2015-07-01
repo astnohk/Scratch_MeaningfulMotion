@@ -1,6 +1,7 @@
 #include "Scratch_MeaningfulMotion.h"
 #include "Affine_MultipleMotion.h"
 #include "OpticalFlow_MultipleMotion.h"
+#include "HOG.h"
 
 
 
@@ -24,6 +25,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	VECTOR_2D *MultipleMotion_u = nullptr;
+	HOG *hog = nullptr;
 
 	int Initialize = 0;
 
@@ -455,6 +457,7 @@ Write:
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
+	delete[] hog;
 	delete[] MultipleMotion_u;
 	delete[] segments;
 	delete[] EPSegments;
