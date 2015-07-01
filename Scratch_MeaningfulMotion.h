@@ -244,23 +244,22 @@ struct VECTOR_AFFINE
 };
 
 
-class Histogram_int
+class Histogram
 {
 	private:
 		int bins;
-		int *hist;
+		double *hist;
 	public:
-		Histogram_int(void);
-		Histogram_int(int init_bins);
-		~Histogram_int(void);
+		Histogram(void);
+		Histogram(int init_bins);
+		~Histogram(void);
 		bool reset(int init_bins);
 		// Read
 		int Bins(void) const;
-		int Hist(int bin) const;
-		const int *Data(void) const;
+		double Hist(int bin) const;
+		const double *Data(void) const;
 		// Control
-		bool Add(int bin);
-		bool Sub(int bin);
+		bool Add(int bin, double val);
 };
 
 class HOG // Histograms of Oriented Gradients
@@ -270,7 +269,7 @@ class HOG // Histograms of Oriented Gradients
 		int bins;
 		int width;
 		int height;
-		Histogram_int *hist;
+		Histogram *hist;
 	public:
 		HOG(void);
 		HOG(bool init_signed, int init_width, int init_height, int init_bins);
@@ -283,11 +282,10 @@ class HOG // Histograms of Oriented Gradients
 		int Bins(void) const;
 		int Width(void) const;
 		int Height(void) const;
-		int Hist(int x, int y, int bin) const;
-		const Histogram_int *Data(void) const;
+		double Hist(int x, int y, int bin) const;
+		const Histogram *Data(void) const;
 		// control Histogram
-		bool AddHist(int x, int y, int bin);
-		bool SubHist(int x, int y, int bin);
+		bool AddHist(int x, int y, int bin, double val);
 };
 
 

@@ -4,19 +4,19 @@
 
 
 
-Histogram_int::Histogram_int(void)
+Histogram::Histogram(void)
 {
 	bins = 0;
 	hist = nullptr;
 }
 
-Histogram_int::Histogram_int(int init_bins)
+Histogram::Histogram(int init_bins)
 {
-	ERROR Error("Histogram_int::Histogram_int");
+	ERROR Error("Histogram::Histogram");
 
 	bins = init_bins;
 	try {
-		hist = new int[bins];
+		hist = new double[bins];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("hist");
@@ -25,11 +25,11 @@ Histogram_int::Histogram_int(int init_bins)
 		return;
 	}
 	for (int i = 0; i < bins; i++) {
-		hist[i] = 0;
+		hist[i] = .0;
 	}
 }
 
-Histogram_int::~Histogram_int(void)
+Histogram::~Histogram(void)
 {
 	bins = 0;
 	delete[] hist;
@@ -37,13 +37,13 @@ Histogram_int::~Histogram_int(void)
 }
 
 bool
-Histogram_int::reset(int init_bins)
+Histogram::reset(int init_bins)
 {
-	ERROR Error("Histogram_int::reset");
+	ERROR Error("Histogram::reset");
 
 	bins = init_bins;
 	try {
-		hist = new int[bins];
+		hist = new double[bins];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("hist");
@@ -52,19 +52,19 @@ Histogram_int::reset(int init_bins)
 		return false;
 	}
 	for (int i = 0; i < bins; i++) {
-		hist[i] = 0;
+		hist[i] = .0;
 	}
 	return true;
 }
 
 int
-Histogram_int::Bins(void) const
+Histogram::Bins(void) const
 {
 	return bins;
 }
 
-int
-Histogram_int::Hist(int bin) const
+double
+Histogram::Hist(int bin) const
 {
 	if (bin < 0 || bins <= bin) {
 		return -2;
@@ -72,31 +72,19 @@ Histogram_int::Hist(int bin) const
 	return hist[bin];
 }
 
-const int *
-Histogram_int::Data(void) const
+const double *
+Histogram::Data(void) const
 {
 	return hist;
 }
 
 bool
-Histogram_int::Add(int bin)
+Histogram::Add(int bin, double val)
 {
 	if (bin < 0 || bins <= bin) {
 		return false;
 	}
-	hist[bin] += 1;
-	return true;
-}
-
-bool
-Histogram_int::Sub(int bin)
-{
-	if (bin < 0 || bins <= bin) {
-		return false;
-	}
-	if (hist[bin] > 0) {
-		hist[bin] -= 1;
-	}
+	hist[bin] += val;
 	return true;
 }
 
@@ -125,7 +113,7 @@ HOG::HOG(bool init_signed, int init_width, int init_height, int init_bins)
 	width = init_width;
 	height = init_height;
 	try {
-		hist = new Histogram_int[width * height];
+		hist = new Histogram[width * height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("hist");
@@ -166,7 +154,7 @@ HOG::reset(bool init_signed, int init_width, int init_height, int init_bins)
 	width = init_width;
 	height = init_height;
 	try {
-		hist = new Histogram_int[width * height];
+		hist = new Histogram[width * height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("hist");
@@ -247,44 +235,30 @@ HOG::Height(void) const
 	return height;
 }
 
-int
+double
 HOG::Hist(int x, int y, int bin) const
 {
 	if (x < 0 || width <= x
 	    || y < 0 || height <= y) {
-		return -1;
+		return -1.0;
 	}
 	return hist[width * y + x].Hist(bin);
 }
 
-const Histogram_int *
+const Histogram *
 HOG::Data(void) const
 {
 	return hist;
 }
 
 bool
-HOG::AddHist(int x, int y, int bin)
+HOG::AddHist(int x, int y, int bin, double val)
 {
 	if (x < 0 || width <= x
 	    || y < 0 || height <= y) {
 		return false;
 	}
-	if (hist[width * y + x].Add(bin) == false) {
-		return false;
-	}
-	return true;
-}
-
-bool
-HOG::SubHist(int x, int y, int bin)
-{
-	if (x < 0 || width <= x
-	    || y < 0 || height <= y
-	    || bin < 0 || bins <= bin) {
-		return false;
-	}
-	if (hist[width * y + x].Sub(bin) == false) {
+	if (hist[width * y + x].Add(bin, val) == false) {
 		return false;
 	}
 	return true;

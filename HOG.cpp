@@ -6,6 +6,7 @@ bool
 HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
 {
 	ERROR Error("HistogramOfOrientedGradients");
+	double *magnitude = nullptr;
 	double *orient = nullptr;
 	SIZE size;
 	SIZE cell(5, 5);
@@ -14,29 +15,38 @@ HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
 
 	size.width = Img.Width();
 	size.height = Img.Height();
-	orient = Orientation(Img, HOG_ORIENTATION_SIGNED);
-	if (orient == nullptr) {
+	try {
+		magnitude = new double[size.width * size.height];
+		orient = new double[size.width * size.height];
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("magnitude, orient");
+		Error.Malloc();
+		goto ExitError;
+	}
+	if (Orientation(magnitude, orient, Img, HOG_ORIENTATION_SIGNED) == false) {
 		Error.Function("Orientation");
 		Error.Value("orient");
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	ComputeHistogramsOfOrientedGradients(hog, orient, size, cell, bins_unsigned, HOG_ORIENTATION_SIGNED);
+	ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cell, bins_unsigned, HOG_ORIENTATION_SIGNED);
+	delete[] magnitude;
 	delete[] orient;
 	return true;
 // Error
 ExitError:
+	delete[] magnitude;
 	delete[] orient;
 	return false;
 }
 
 
-double *
-Orientation(const PNM_DOUBLE &Img, bool sign)
+bool
+Orientation(double *magnitude, double *orient, const PNM_DOUBLE &Img, bool sign)
 {
 	ERROR Error("Orientation");
 	SIZE size;
-	double *orient = nullptr;
 	VECTOR_2D *grad = nullptr;
 	int x, y;
 
@@ -56,21 +66,15 @@ Orientation(const PNM_DOUBLE &Img, bool sign)
 			grad[size.width * y + x].y = Img.Image(x, y + 1) - Img.Image(x, y - 1);
 		}
 	}
-	try {
-		orient = new double[size.width * size.height];
-	}
-	catch (const std::bad_alloc &bad) {
-		Error.Value("orient");
-		Error.Malloc();
-		goto ExitError;
-	}
 	for (int i = 0; i < size.width * size.height; i++) {
 		switch (sign) {
 			case HOG_ORIENTATION_SIGNED:
+				magnitude[i] = sqrt(POW2(grad[i].x) + POW2(grad[i].y));
 				orient[i] = atan2(grad[i].y, grad[i].x) / M_PI + 1.0;
 				break;
 			case HOG_ORIENTATION_UNSIGNED:
 			default:
+				magnitude[i] = sqrt(POW2(grad[i].x) + POW2(grad[i].y));
 				orient[i] = atan2(grad[i].y, grad[i].x) / M_PI;
 				if (orient[i] < .0) {
 					orient[i] += 1.0;
@@ -83,12 +87,11 @@ Orientation(const PNM_DOUBLE &Img, bool sign)
 // Error
 ExitError:
 	delete[] grad;
-	delete[] orient;
 	return nullptr;
 }
 
 bool
-ComputeHistogramsOfOrientedGradients(HOG *hog, const double *orient, SIZE size, SIZE cell, int bins_unsigned, bool sign)
+ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const double *orient, SIZE size, SIZE cell, int bins_unsigned, bool sign)
 {
 	ERROR Error("ComputeHistogramsOfOrientedGradients");
 	SIZE Cells;
@@ -119,7 +122,7 @@ ComputeHistogramsOfOrientedGradients(HOG *hog, const double *orient, SIZE size, 
 					if (dir == bins) {
 						dir = 0;
 					}
-					if (hog->AddHist(x, y, dir) == false) {
+					if (hog->AddHist(x, y, dir, magnitude[size.width * (Y + m) + X + n]) == false) {
 						Error.OthersWarning("The bin is out of bounds");
 					}
 				}
@@ -154,17 +157,17 @@ HOG_write(const HOG &hog, const char *filename)
 	for (int y = 0; y < hog.Height(); y++) {
 		for (int x = 0; x < hog.Height(); x++) {
 			/*
-			int tmp = hog.Hist(x, y, 0);
-			if (fwrite(&tmp, sizeof(int), 1, fp) < 1) {
+			double tmp = hog.Hist(x, y, 0);
+			if (fwrite(&tmp, sizeof(double), 1, fp) < 1) {
 				Error.Function("fwrite");
 				Error.Value("hist(x, y, bin)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			*/
-			fprintf(fp, "%d", hog.Hist(x, y, 0));
+			fprintf(fp, "%f", hog.Hist(x, y, 0));
 			for (int bin = 1; bin < hog.Bins(); bin++) {
-				fprintf(fp, " %d", hog.Hist(x, y, bin));
+				fprintf(fp, " %f", hog.Hist(x, y, bin));
 			}
 			fprintf(fp, "\n");
 		}
