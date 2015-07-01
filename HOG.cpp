@@ -134,122 +134,32 @@ ExitError:
 }
 
 
-HOG::HOG(void)
-{
-	orient_signed = false;
-	bins = 0;
-	hist = nullptr;
-}
-
-HOG::HOG(bool init_signed, int num_bins)
-{
-	ERROR Error("HOG::HOG(int)");
-
-	if (init_signed == false) {
-		orient_signed = false;
-	} else {
-		orient_signed = true;
-	}
-	bins = num_bins;
-	try {
-		hist = new int[bins];
-	}
-	catch (const std::bad_alloc &bad) {
-		Error.Value("hist");
-		Error.Malloc();
-		hist = nullptr;
-		bins = 0;
-		return;
-	}
-	for (int i = 0; i < bins; i++) {
-		hist[i] = 0;
-	}
-}
-
-HOG::~HOG(void)
-{
-	orient_signed = false;
-	bins = 0;
-	delete[] hist;
-	hist = nullptr;
-}
-
 bool
-HOG::reset(bool init_signed, int num_bins)
+HOG_write(const HOG *hog, SIZE size, const char *filename)
 {
-	ERROR Error("HOG::reset");
+	ERROR Error("HOG_write");
+	FILE *fp = nullptr;
 
-	delete[] hist;
-	hist = nullptr;
-	if (init_signed == false) {
-		orient_signed = false;
-	} else {
-		orient_signed = true;
+	fp = fopen(filename, "bw");
+	if (fp == nullptr) {
+		Error.Function("fopen");
+		Error.File("fp");
+		Error.FileRead();
+		goto ExitError;
 	}
-	bins = num_bins;
-	try {
-		hist = new int[bins];
+	fprintf(fp, "%d %d\n", size.width, size.height);
+	fprintf(fp, "%d\n", hog[0].Bins());
+	for (int i = 0; i < size.width * size.height; i++) {
+		fprintf(fp, "%d", hog[i].Hist(0));
+		for (int bin = 1; bin < hog[i].Bins(); bin++) {
+			fprintf(fp, " %d", hog[i].Hist(bin));
+		}
+		fprintf(fp, "\n");
 	}
-	catch (const std::bad_alloc &bad) {
-		Error.Value("hist");
-		Error.Malloc();
-		hist = nullptr;
-		bins = 0;
-		return false;
-	}
-	for (int i = 0; i < bins; i++) {
-		hist[i] = 0;
-	}
+	fclose(fp);
 	return true;
-}
-
-void
-HOG::setSign(bool init_signed)
-{
-	if (init_signed == false) {
-		orient_signed = false;
-	} else {
-		orient_signed = true;
-	}
-}
-
-bool
-HOG::Signed(void) const
-{
-	return orient_signed;
-}
-
-int
-HOG::Bins(void) const
-{
-	return bins;
-}
-
-const int *
-HOG::Hist(void) const
-{
-	return hist;
-}
-
-bool
-HOG::AddHist(int bin)
-{
-	if (bin < 0 || bins <= bin) {
-		return false;
-	}
-	hist[bin] += 1;
-	return true;
-}
-
-bool
-HOG::SubHist(int bin)
-{
-	if (bin < 0 || bins <= bin) {
-		return false;
-	}
-	if (hist[bin] > 0) {
-		hist[bin] -= 1;
-	}
-	return true;
+// Error
+ExitError:
+	return false;
 }
 

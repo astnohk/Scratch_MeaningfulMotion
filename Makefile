@@ -6,8 +6,8 @@ OPTION_DEBUG = -W -Wall
 OPTION_STDCPP11_DEBUG = -W -Wall -std=c++11
 LOADLIBES_DEBUG = -lm -lX11
 
-CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp Detection.cpp Exclusive.cpp Plotting.cpp Library.cpp ImgLibrary.cpp Affine_MultipleMotion.cpp OpticalFlow_MultipleMotion.cpp MultiResolution.cpp MEstimator.cpp HOG.cpp Plot_X11.cpp pnm.cpp pnm_double.cpp pnm_library.cpp
-OFILES = main.o Class.o Struct.o Scratch_MeaningfulMotion.o Detection.o Exclusive.o Plotting.o Library.o ImgLibrary.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o MultiResolution.o MEstimator.o HOG.o Plot_X11.o pnm.o pnm_double.o pnm_library.o
+CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp Detection.cpp Exclusive.cpp Plotting.cpp Library.cpp ImgLibrary.cpp Affine_MultipleMotion.cpp OpticalFlow_MultipleMotion.cpp MultiResolution.cpp MEstimator.cpp HOG.cpp HOG_class.cpp Plot_X11.cpp pnm.cpp pnm_double.cpp pnm_library.cpp
+OFILES = main.o Class.o Struct.o Scratch_MeaningfulMotion.o Detection.o Exclusive.o Plotting.o Library.o ImgLibrary.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o MultiResolution.o MEstimator.o HOG.o HOG_class.o Plot_X11.o pnm.o pnm_double.o pnm_library.o
 
 OUTNAME = Scratch_MeaningfulMotion
 
@@ -55,6 +55,9 @@ MEstimator.o: MEstimator.cpp
 	$(CC) $(OPTION) -c $^
 
 HOG.o: HOG.cpp
+	$(CC) $(OPTION) -c $^
+
+HOG_class.o: HOG_class.cpp
 	$(CC) $(OPTION) -c $^
 
 Plot_X11.o: Plot_X11.cpp

@@ -257,7 +257,8 @@ class HOG
 		void setSign(bool init_signed);
 		bool Signed(void) const;
 		int Bins(void) const;
-		const int *Hist(void) const;
+		int Hist(int bin) const;
+		const int *Data(void) const;
 		bool AddHist(int bin);
 		bool SubHist(int bin);
 };
