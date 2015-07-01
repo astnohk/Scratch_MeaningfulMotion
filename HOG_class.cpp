@@ -67,7 +67,7 @@ int
 Histogram_int::Hist(int bin) const
 {
 	if (bin < 0 || bins <= bin) {
-		return -1;
+		return -2;
 	}
 	return hist[bin];
 }
@@ -136,7 +136,7 @@ HOG::HOG(bool init_signed, int init_width, int init_height, int init_bins)
 		height = 0;
 		return;
 	}
-	for (int i = 0; i < bins; i++) {
+	for (int i = 0; i < width * height; i++) {
 		if (hist[i].reset(bins) == false) {
 			Error.Value("hist[i]");
 			Error.Malloc();
@@ -177,7 +177,7 @@ HOG::reset(bool init_signed, int init_width, int init_height, int init_bins)
 		height = 0;
 		return false;
 	}
-	for (int i = 0; i < bins; i++) {
+	for (int i = 0; i < width * height; i++) {
 		if (hist[i].reset(bins) == false) {
 			Error.Value("hist[i]");
 			Error.Malloc();
@@ -251,8 +251,7 @@ int
 HOG::Hist(int x, int y, int bin) const
 {
 	if (x < 0 || width <= x
-	    || y < 0 || height <= y
-	    || bin < 0 || bins <= bin) {
+	    || y < 0 || height <= y) {
 		return -1;
 	}
 	return hist[width * y + x].Hist(bin);
@@ -268,8 +267,7 @@ bool
 HOG::AddHist(int x, int y, int bin)
 {
 	if (x < 0 || width <= x
-	    || y < 0 || height <= y
-	    || bin < 0 || bins <= bin) {
+	    || y < 0 || height <= y) {
 		return false;
 	}
 	if (hist[width * y + x].Add(bin) == false) {

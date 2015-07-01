@@ -8,8 +8,9 @@ HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
 	ERROR Error("HistogramOfOrientedGradients");
 	double *orient = nullptr;
 	SIZE size;
-	SIZE cell(3, 3);
-	int bins = 16;
+	SIZE cell(5, 5);
+	SIZE block(3, 3);
+	int bins_unsigned = 16;
 
 	size.width = Img.Width();
 	size.height = Img.Height();
@@ -20,7 +21,7 @@ HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	ComputeHistogramsOfOrientedGradients(hog, orient, size, cell, bins, HOG_ORIENTATION_SIGNED);
+	ComputeHistogramsOfOrientedGradients(hog, orient, size, cell, bins_unsigned, HOG_ORIENTATION_SIGNED);
 	delete[] orient;
 	return true;
 // Error
@@ -66,7 +67,7 @@ Orientation(const PNM_DOUBLE &Img, bool sign)
 	for (int i = 0; i < size.width * size.height; i++) {
 		switch (sign) {
 			case HOG_ORIENTATION_SIGNED:
-				orient[i] = atan2(grad[i].y, grad[i].x) / M_PI;
+				orient[i] = atan2(grad[i].y, grad[i].x) / M_PI + 1.0;
 				break;
 			case HOG_ORIENTATION_UNSIGNED:
 			default:
@@ -87,13 +88,19 @@ ExitError:
 }
 
 bool
-ComputeHistogramsOfOrientedGradients(HOG *hog, const double *orient, SIZE size, SIZE cell, int bins, bool sign)
+ComputeHistogramsOfOrientedGradients(HOG *hog, const double *orient, SIZE size, SIZE cell, int bins_unsigned, bool sign)
 {
 	ERROR Error("ComputeHistogramsOfOrientedGradients");
 	SIZE Cells;
+	int bins;
 	int x, y;
 	int m, n;
 
+	if (sign == false) {
+		bins = bins_unsigned;
+	} else {
+		bins = 2 * bins_unsigned;
+	}
 	Cells.width = (int)ceil(size.width / cell.width);
 	Cells.height = (int)ceil(size.height / cell.height);
 	if (hog->reset(sign, Cells.width, Cells.height, bins) == false) {
@@ -108,11 +115,13 @@ ComputeHistogramsOfOrientedGradients(HOG *hog, const double *orient, SIZE size, 
 			for (m = 0; m < cell.height; m++) {
 				for (n = 0; n < cell.width; n++) {
 					int dir;
-					dir = (int)floor(bins * orient[size.width * (Y + m) + X + n]);
+					dir = (int)floor(bins_unsigned * orient[size.width * (Y + m) + X + n]);
 					if (dir == bins) {
-						dir = dir - 1;
+						dir = 0;
 					}
-					hog->AddHist(x, y, dir);
+					if (hog->AddHist(x, y, dir) == false) {
+						Error.OthersWarning("The bin is out of bounds");
+					}
 				}
 			}
 		}
@@ -131,18 +140,28 @@ HOG_write(const HOG &hog, const char *filename)
 	ERROR Error("HOG_write");
 	FILE *fp = nullptr;
 
-	fp = fopen(filename, "bw");
+	fp = fopen(filename, "wb");
 	if (fp == nullptr) {
 		Error.Function("fopen");
-		Error.File("fp");
-		Error.FileRead();
+		Error.File(filename);
+		Error.FileWrite();
 		goto ExitError;
 	}
+	printf("* Output HOG to '%s'\n", filename);
 	fprintf(fp, "%d\n", (int)hog.Signed());
 	fprintf(fp, "%d %d\n", hog.Width(), hog.Height());
 	fprintf(fp, "%d\n", hog.Bins());
 	for (int y = 0; y < hog.Height(); y++) {
 		for (int x = 0; x < hog.Height(); x++) {
+			/*
+			int tmp = hog.Hist(x, y, 0);
+			if (fwrite(&tmp, sizeof(int), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("hist(x, y, bin)");
+				Error.FunctionFail();
+				goto ExitError;
+			}
+			*/
 			fprintf(fp, "%d", hog.Hist(x, y, 0));
 			for (int bin = 1; bin < hog.Bins(); bin++) {
 				fprintf(fp, " %d", hog.Hist(x, y, bin));
