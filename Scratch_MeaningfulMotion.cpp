@@ -253,7 +253,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0) {
 			printf("* Compute HOG\n");
-			pnmd_in.copy(pnm_orig, 1.0);
+			pnmd_in.copy(pnm_orig, 1.0 / pnm_orig.MaxInt());
 			HistogramsOfOrientedGradients(&hog, pnmd_in);
 		} else {
 			// Scratch Detection

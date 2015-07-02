@@ -4,7 +4,7 @@
 
 
 bool HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img);
-bool Orientation(double *magnitude, double *orient, const PNM_DOUBLE &Img, bool sign);
+bool Orientation(double *magnitude, double *orient, const PNM_DOUBLE &Img);
 bool ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const double *orient, SIZE size, SIZE cell, int bins, bool sign);
 bool HOG_write(const HOG &hog, const char *filename);
 
