@@ -4,13 +4,13 @@
 
 
 ERROR::ERROR(void)
+    : FunctionName("[undefined]")
 {
-	FunctionName = "[undefined]";
 }
 
 ERROR::ERROR(const char *name)
+    : FunctionName(name)
 {
-	FunctionName = name;
 }
 
 const char *

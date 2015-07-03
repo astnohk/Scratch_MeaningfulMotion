@@ -251,8 +251,10 @@ class Histogram
 		double *hist;
 	public:
 		Histogram(void);
+		Histogram(const Histogram &copy);
 		Histogram(int init_bins);
 		~Histogram(void);
+		bool copy(const Histogram &copy);
 		bool reset(int init_bins);
 		// Read
 		int Bins(void) const;
@@ -272,6 +274,7 @@ class HOG // Histograms of Oriented Gradients
 		Histogram *hist;
 	public:
 		HOG(void);
+		HOG(const HOG &copy);
 		HOG(bool init_signed, int init_width, int init_height, int init_bins);
 		bool reset(bool init_signed, int init_width, int init_height, int init_bins);
 		~HOG(void);
