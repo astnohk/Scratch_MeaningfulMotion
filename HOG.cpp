@@ -3,14 +3,14 @@
 
 
 bool
-HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
+HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img)
 {
 	ERROR Error("HistogramOfOrientedGradients");
 	double *magnitude = nullptr;
 	double *orient = nullptr;
 	SIZE size;
-	SIZE cell(5, 5);
-	SIZE block(3, 3);
+	SIZE cellsize(5, 5);
+	SIZE blocksize(3, 3);
 	bool orient_signed = HOG_ORIENTATION_UNSIGNED;
 	int bins = 9;
 
@@ -31,9 +31,22 @@ HistogramsOfOrientedGradients(HOG *hog, const PNM_DOUBLE &Img)
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cell, bins, orient_signed);
+	if (ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cellsize, bins, orient_signed)
+	    == false) {
+		Error.Function("ComputeHistogramOfOrientedGradients");
+		Error.Value("hog");
+		Error.FunctionFail();
+		goto ExitError;
+	}
 	delete[] magnitude;
 	delete[] orient;
+	if (HOG_BlockNormalize(block, hog, blocksize)
+	    == false) {
+		Error.Function("HOG_BlockNormalize");
+		Error.Value("block");
+		Error.FunctionFail();
+		goto ExitError;
+	}
 	return true;
 // Error
 ExitError:
@@ -132,6 +145,60 @@ ExitError:
 	return false;
 }
 
+bool
+HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
+{
+	ERROR Error("HOG_BlockNormalize");
+	SIZE size;
+	double *orig_hist = nullptr;
+	const double ep = 1E-6;
+	int x, y;
+
+	size.width = hog->Width() - (blocksize.width - 1);
+	size.height = hog->Height() - (blocksize.height - 1);
+	if (block->reset(hog->Signed(), size.width, size.height, blocksize.width * blocksize.height * hog->Bins())
+	    == false) {
+		Error.Function("block->reset");
+		Error.Value("NULL");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+	try {
+		orig_hist = new double[size.width * size.height * hog->Bins()];
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("orig_hist");
+		Error.Malloc();
+		goto ExitError;
+	}
+	for (y = 0; y < size.height; y++) {
+		for (x = 0; x < size.width; x++) {
+			int num = 0;
+			double norm = .0;
+			for (int m = 0; m < size.height; m++) {
+				for (int n = 0; n < size.width; n++) {
+					for (int bin = 0; bin < hog->Bins(); bin++) {
+						orig_hist[num] = hog->Hist(x + n, y + m, bin);
+						norm += POW2(orig_hist[num]);
+						num++;
+					}
+				}
+			}
+			for (int bin = 0; bin < block->Bins(); bin++) {
+				double coeff = 1.0 / sqrt(norm + POW2(ep));
+				block->AddHist(x, y, bin, orig_hist[bin] * coeff);
+			}
+		}
+	}
+	delete[] orig_hist;
+	return true;
+// Error
+ExitError:
+	delete[] orig_hist;
+	block->free();
+	return false;
+}
+
 
 bool
 HOG_write(const HOG &hog, const char *filename)
@@ -152,20 +219,22 @@ HOG_write(const HOG &hog, const char *filename)
 	fprintf(fp, "%d\n", hog.Bins());
 	for (int y = 0; y < hog.Height(); y++) {
 		for (int x = 0; x < hog.Height(); x++) {
-			/*
-			double tmp = hog.Hist(x, y, 0);
-			if (fwrite(&tmp, sizeof(double), 1, fp) < 1) {
-				Error.Function("fwrite");
-				Error.Value("hist(x, y, bin)");
-				Error.FunctionFail();
-				goto ExitError;
+			double tmp;
+
+			for (int bin = 0; bin < hog.Bins(); bin ++) {
+				tmp = hog.Hist(x, y, bin);
+				if (fwrite(&tmp, sizeof(double), 1, fp) < 1) {
+					Error.Function("fwrite");
+					Error.Value("hog.Hist(x, y, bin)");
+					Error.FunctionFail();
+					goto ExitError;
+				}
 			}
-			*/
-			fprintf(fp, "%f", hog.Hist(x, y, 0));
-			for (int bin = 1; bin < hog.Bins(); bin++) {
-				fprintf(fp, " %f", hog.Hist(x, y, bin));
-			}
-			fprintf(fp, "\n");
+			//fprintf(fp, "%f", hog.Hist(x, y, 0));
+			//for (int bin = 1; bin < hog.Bins(); bin++) {
+			//	fprintf(fp, " %f", hog.Hist(x, y, bin));
+			//}
+			//fprintf(fp, "\n");
 		}
 	}
 	fclose(fp);

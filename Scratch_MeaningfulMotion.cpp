@@ -25,6 +25,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	VECTOR_2D *MultipleMotion_u = nullptr;
+	HOG hog_raw;
 	HOG hog;
 
 	int Initialize = 0;
@@ -251,10 +252,11 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Multiple Motions Optical Flow by method of M.J.Black\n");
 				MultipleMotion_u = MultipleMotion_OpticalFlow(pnmd_prev.Data(), pnmd_in.Data(), pnmd_in.MaxInt(), size_orig, Options.MultipleMotion_Param);
 			}
-		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0) {
+		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
+		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
 			printf("* Compute HOG\n");
 			pnmd_in.copy(pnm_orig, 1.0 / pnm_orig.MaxInt());
-			HistogramsOfOrientedGradients(&hog, pnmd_in);
+			HistogramsOfOrientedGradients(&hog_raw, &hog, pnmd_in);
 		} else {
 			// Scratch Detection
 			printf("* Detect Scratch like vertical lines\n");
@@ -427,6 +429,13 @@ Write:
 			    && MultipleMotion_write(MultipleMotion_u, size_orig, OutputNameNums.c_str()) == MEANINGFUL_FAILURE) {
 				Error.Function("MultipleMotion_write");
 				Error.Value("MultipleMotions_u");
+				Error.FunctionFail();
+				goto ExitError;
+			}
+		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
+			if (HOG_write(hog_raw, OutputNameNums.c_str()) == false) {
+				Error.Function("HOG_write");
+				Error.Value("hog");
 				Error.FunctionFail();
 				goto ExitError;
 			}
