@@ -218,7 +218,7 @@ HOG_write(const HOG &hog, const char *filename)
 	fprintf(fp, "%d %d\n", hog.Width(), hog.Height());
 	fprintf(fp, "%d\n", hog.Bins());
 	for (int y = 0; y < hog.Height(); y++) {
-		for (int x = 0; x < hog.Height(); x++) {
+		for (int x = 0; x < hog.Width(); x++) {
 			double tmp;
 
 			for (int bin = 0; bin < hog.Bins(); bin ++) {

@@ -253,9 +253,10 @@ class Histogram
 		Histogram(void);
 		Histogram(const Histogram &copy);
 		Histogram(int init_bins);
-		~Histogram(void);
 		bool copy(const Histogram &copy);
 		bool reset(int init_bins);
+		~Histogram(void);
+		void free(void);
 		// Read
 		int Bins(void) const;
 		double Hist(int bin) const;
@@ -276,6 +277,7 @@ class HOG // Histograms of Oriented Gradients
 		HOG(void);
 		HOG(const HOG &copy);
 		HOG(bool init_signed, int init_width, int init_height, int init_bins);
+		bool copy(const HOG &copy);
 		bool reset(bool init_signed, int init_width, int init_height, int init_bins);
 		~HOG(void);
 		void free(void);
@@ -287,6 +289,7 @@ class HOG // Histograms of Oriented Gradients
 		int Height(void) const;
 		double Hist(int x, int y, int bin) const;
 		const Histogram *Data(void) const;
+		const Histogram *Data(int x, int y) const;
 		// control Histogram
 		bool AddHist(int x, int y, int bin, double val);
 };
@@ -329,6 +332,7 @@ struct OPTIONS
 #define MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW 0x0080
 #define MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG 0x0100
 #define MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS 0x0200
+#define MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR 0x0400
 // PlotOptions
 #define PLOT_NEGATE 0x01
 #define PLOT_AS_RESAMPLE 0x02

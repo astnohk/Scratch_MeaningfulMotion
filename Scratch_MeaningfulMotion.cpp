@@ -27,6 +27,9 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	VECTOR_2D *MultipleMotion_u = nullptr;
 	HOG hog_raw;
 	HOG hog;
+	HOG hog_raw_prv;
+	HOG hog_prv;
+	VECTOR_2D *hog_vector = nullptr;
 
 	int Initialize = 0;
 
@@ -253,9 +256,14 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				MultipleMotion_u = MultipleMotion_OpticalFlow(pnmd_prev.Data(), pnmd_in.Data(), pnmd_in.MaxInt(), size_orig, Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
-		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
+		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
+		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR) != 0) {
 			printf("* Compute HOG\n");
 			pnmd_in.copy(pnm_orig, 1.0 / pnm_orig.MaxInt());
+			hog_raw_prv.copy(hog_raw);
+			hog_prv.copy(hog);
+			hog_raw.free();
+			hog.free();
 			HistogramsOfOrientedGradients(&hog_raw, &hog, pnmd_in);
 		} else {
 			// Scratch Detection
@@ -446,6 +454,20 @@ Write:
 				Error.FunctionFail();
 				goto ExitError;
 			}
+		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR) != 0) {
+			if (hog_prv.Bins() == hog.Bins()) {
+				hog_vector = HOG_Matching(&hog_prv, &hog);
+				if (HOG_vector_write(hog_vector, hog.Width(), hog.Height(), OutputNameNums.c_str()) == false) {
+					Error.Function("HOG_vector_write");
+					Error.Value("hog_vector");
+					Error.FunctionFail();
+					goto ExitError;
+				}
+				delete[] hog_vector;
+				hog_vector = nullptr;
+			} else {
+				printf("There are NO previous HOG data\n");
+			}
 		} else {
 			if (pnm_out.write(OutputNameNums.c_str()) == PNM_FUNCTION_ERROR) {
 				Error.Function("pnm_out.write");
@@ -454,7 +476,6 @@ Write:
 				goto ExitError;
 			}
 		}
-		hog.free();
 		delete[] MultipleMotion_u;
 		MultipleMotion_u = nullptr;
 		if (pnmd_in.isNULL() == false) {
@@ -467,6 +488,11 @@ Write:
 		pnm_res.free();
 		pnm_orig.free();
 	}
+	delete[] hog_vector;
+	hog_raw_prv.free();
+	hog_prv.free();
+	hog_raw.free();
+	hog.free();
 	pnmd_prev.free();
 	pnmd_in.free();
 	pnm_out.free();
@@ -478,6 +504,10 @@ Write:
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
+	delete[] hog_vector;
+	hog_raw_prv.free();
+	hog_prv.free();
+	hog_raw.free();
 	hog.free();
 	delete[] MultipleMotion_u;
 	delete[] segments;

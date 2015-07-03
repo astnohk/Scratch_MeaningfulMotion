@@ -55,11 +55,20 @@ Histogram::~Histogram(void)
 	hist = nullptr;
 }
 
+void
+Histogram::free(void)
+{
+	bins = 0;
+	delete[] hist;
+	hist = nullptr;
+}
+
 bool
 Histogram::copy(const Histogram &copy)
 {
 	ERROR Error("Histogram::copy(const Histogram&)");
 
+	this->free();
 	bins = copy.bins;
 	try {
 		hist = new double[bins];
@@ -204,6 +213,34 @@ HOG::HOG(bool init_signed, int init_width, int init_height, int init_bins)
 }
 
 bool
+HOG::copy(const HOG &copy)
+{
+	ERROR Error("HOG::copy(const HOG&)");
+
+	this->free();
+	orient_signed = copy.orient_signed;
+	bins = copy.bins;
+	width = copy.width;
+	height = copy.height;
+	try {
+		hist = new Histogram[width * height];
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("hist");
+		Error.Malloc();
+		hist = nullptr;
+		bins = 0;
+		width = 0;
+		height = 0;
+		return false;
+	}
+	for (int i = 0; i < width * height; i++) {
+		hist[i].copy(copy.hist[i]);
+	}
+	return true;
+}
+
+bool
 HOG::reset(bool init_signed, int init_width, int init_height, int init_bins)
 {
 	ERROR Error("HOG::reset");
@@ -314,6 +351,12 @@ const Histogram *
 HOG::Data(void) const
 {
 	return hist;
+}
+
+const Histogram *
+HOG::Data(int x, int y) const
+{
+	return &(hist[width * y + x]);
 }
 
 bool
