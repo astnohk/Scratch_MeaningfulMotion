@@ -456,6 +456,7 @@ Write:
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR) != 0) {
 			if (hog_prv.Bins() == hog.Bins()) {
+				printf("* Compute matching each images HOG feature\n");
 				hog_vector = HOG_Matching(&hog_prv, &hog);
 				if (HOG_vector_write(hog_vector, hog.Width(), hog.Height(), OutputNameNums.c_str()) == false) {
 					Error.Function("HOG_vector_write");
