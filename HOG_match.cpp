@@ -8,11 +8,9 @@ VECTOR_2D *
 HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 {
 	ERROR Error("HOG_Matching");
-	int *match = nullptr;
 	VECTOR_2D *vector = nullptr;
 	double d1;
 	double d2;
-	int index;
 	int W, H;
 	double d;
 	int x, y;
@@ -21,14 +19,14 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 	W = hog_cur->Width();
 	H = hog_cur->Height();
 	try {
-		match = new int[W * H];
+		vector = new VECTOR_2D[W * H];
 	}
 	catch (const std::bad_alloc &bad) {
-		Error.Value("match");
+		Error.Value("vector");
 		Error.Malloc();
 		goto ExitError;
 	}
-#pragma omp parallel for private(x, xc, yc, d, d1, d2, index)
+#pragma omp parallel for private(x, xc, yc, d, d1, d2)
 	for (y = 0; y < H; y++) {
 		for (x = 0; x < W; x++) {
 			d1 = 1.0E10;
@@ -39,32 +37,18 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 					if (d < d1) {
 						d2 = d1;
 						d1 = d;
-						index = W * yc + xc;
+						vector[W * y + x].x = xc - x;
+						vector[W * y + x].y = yc - y;
 					} else if (d < d2) {
 						d2 = d;
 					}
 				}
 			}
-			match[W * y + x] = index;
 		}
 	}
-	try {
-		vector = new VECTOR_2D[W * H];
-	}
-	catch (const std::bad_alloc &bad) {
-		Error.Value("vector");
-		Error.Malloc();
-		goto ExitError;
-	}
-	for (int i = 0; i < W * H; i++) {
-		vector[i].x = (double)(match[i] % W);
-		vector[i].y = (double)(match[i] / W);
-	}
-	delete[] match;
 	return vector;
 // Error
 ExitError:
-	delete[] match;
 	delete[] vector;
 	return nullptr;
 }
