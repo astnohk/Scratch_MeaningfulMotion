@@ -3,35 +3,39 @@
 
 
 bool
-HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img)
+HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool denseHOG)
 {
 	ERROR Error("HistogramOfOrientedGradients");
 	double *magnitude = nullptr;
-	double *orient = nullptr;
+	int *orient = nullptr;
 	SIZE size;
-	SIZE cellsize(5, 5);
+	SIZE cellsize(7, 7);
 	SIZE blocksize(3, 3);
 	bool orient_signed = HOG_ORIENTATION_UNSIGNED;
+//	bool orient_signed = HOG_ORIENTATION_SIGNED;
 	int bins = 9;
+//	int bins = 16;
 
 	size.width = Img.Width();
 	size.height = Img.Height();
 	try {
 		magnitude = new double[size.width * size.height];
-		orient = new double[size.width * size.height];
+		orient = new int[size.width * size.height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("magnitude, orient");
 		Error.Malloc();
 		goto ExitError;
 	}
-	if (Orientation(magnitude, orient, Img) == false) {
+	printf("* * Compute Orientation\n");
+	if (Orientation(magnitude, orient, Img, bins, orient_signed) == false) {
 		Error.Function("Orientation");
 		Error.Value("orient");
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	if (ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cellsize, bins, orient_signed)
+	printf("* * Compute Histogram\n");
+	if (ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cellsize, bins, orient_signed, denseHOG)
 	    == false) {
 		Error.Function("ComputeHistogramOfOrientedGradients");
 		Error.Value("hog");
@@ -40,6 +44,7 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img)
 	}
 	delete[] magnitude;
 	delete[] orient;
+	printf("* * Normalize the block\n");
 	if (HOG_BlockNormalize(block, hog, blocksize)
 	    == false) {
 		Error.Function("HOG_BlockNormalize");
@@ -57,7 +62,7 @@ ExitError:
 
 
 bool
-Orientation(double *magnitude, double *orient, const PNM_DOUBLE &Img)
+Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, bool sign)
 {
 	ERROR Error("Orientation");
 	SIZE size;
@@ -81,58 +86,72 @@ Orientation(double *magnitude, double *orient, const PNM_DOUBLE &Img)
 		}
 	}
 	for (int i = 0; i < size.width * size.height; i++) {
+		double tmp;
+		double angle;
+
 		magnitude[i] = sqrt(POW2(grad[i].x) + POW2(grad[i].y));
-		orient[i] = atan2(grad[i].y, grad[i].x) / M_PI;
+		tmp = atan2(grad[i].y, grad[i].x) / M_PI;
+		if (sign == false) {
+			if (tmp < .0) {
+				angle = 1.0 + tmp;
+			} else {
+				angle = tmp;
+			}
+		} else {
+			angle = (tmp + 1.0) / 2.0;
+		}
+		orient[i] = (int)floor(bins * angle);
+		if (orient[i] == bins) {
+			orient[i] = 0;
+		}
 	}
 	delete[] grad;
 	grad = nullptr;
-	return orient;
+	return true;
 // Error
 ExitError:
 	delete[] grad;
-	return nullptr;
+	return false;
 }
 
 bool
-ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const double *orient, SIZE size, SIZE cell, int bins, bool sign)
+ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const int *orient, SIZE size, SIZE cell, int bins, bool sign, bool denseHOG)
 {
 	ERROR Error("ComputeHistogramsOfOrientedGradients");
 	SIZE Cells;
+	int dir;
+	int X, Y;
 	int x, y;
 	int m, n;
 
-	Cells.width = (int)ceil(size.width / cell.width);
-	Cells.height = (int)ceil(size.height / cell.height);
+	if (denseHOG == false) {
+		Cells.width = (int)ceil(size.width / cell.width);
+		Cells.height = (int)ceil(size.height / cell.height);
+	} else {
+		Cells.width = size.width - (cell.width - 1);
+		Cells.height = size.height - (cell.height - 1);
+	}
 	if (hog->reset(sign, Cells.width, Cells.height, bins) == false) {
 		Error.Value("hog");
 		Error.Malloc();
 		goto ExitError;
 	}
+#pragma omp parallel for private(Y, x, X, m, n, dir)
 	for (y = 0; y < Cells.height; y++) {
-		int Y = cell.height * y;
 		for (x = 0; x < Cells.width; x++) {
-			int X = cell.width * x;
+			if (denseHOG == false) {
+				X = cell.width * x;
+				Y = cell.height * y;
+			} else {
+				X = x;
+				Y = y;
+			}
 			for (m = 0; m < cell.height; m++) {
 				for (n = 0; n < cell.width; n++) {
-					int dir;
-					double angle;
-
-					if (sign == false) {
-						if (orient[size.width * (Y + m) + X + n] < .0) {
-							angle = 1.0 + orient[size.width * (Y + m) + X + n];
-						} else {
-							angle = orient[size.width * (Y + m) + X + n];
-						}
-					} else {
-						angle = orient[size.width * (Y + m) + X + n] / 2.0 + 1.0;
-					}
-					dir = (int)floor(bins * angle);
-					if (dir == bins) {
-						dir = 0;
-					}
+					dir = orient[size.width * (Y + m) + X + n];
 					if (hog->AddHist(x, y, dir, magnitude[size.width * (Y + m) + X + n]) == false) {
 						Error.OthersWarning("The bin is out of bounds");
-						printf("orient = %f, angle = %f, bin = %d\n", orient[size.width * (Y + m) + X + n], angle, dir);
+						printf("orient = %.0f, bin = %d\n", (double)orient[size.width * (Y + m) + X + n] / bins * 360.0, dir);
 					}
 				}
 			}
@@ -150,12 +169,18 @@ HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
 {
 	ERROR Error("HOG_BlockNormalize");
 	SIZE size;
-	double *orig_hist = nullptr;
+	int WxH;
+	double *integral_hist_norm = nullptr;
 	const double ep = 1E-6;
+	double norm;
+	double coeff;
 	int x, y;
+	int m, n;
+	int bin;
 
 	size.width = hog->Width() - (blocksize.width - 1);
 	size.height = hog->Height() - (blocksize.height - 1);
+	WxH = size.width * size.height;
 	if (block->reset(hog->Signed(), size.width, size.height, blocksize.width * blocksize.height * hog->Bins())
 	    == false) {
 		Error.Function("block->reset");
@@ -164,37 +189,44 @@ HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
 		goto ExitError;
 	}
 	try {
-		orig_hist = new double[size.width * size.height * hog->Bins()];
+		integral_hist_norm = new double[(size.width + 1) * (size.height + 1)];
 	}
 	catch (const std::bad_alloc &bad) {
-		Error.Value("orig_hist");
+		Error.Value("integral_hist_norm");
 		Error.Malloc();
 		goto ExitError;
 	}
 	for (y = 0; y < size.height; y++) {
+		norm = 0.0;
 		for (x = 0; x < size.width; x++) {
-			int num = 0;
-			double norm = .0;
-			for (int m = 0; m < size.height; m++) {
-				for (int n = 0; n < size.width; n++) {
-					for (int bin = 0; bin < hog->Bins(); bin++) {
-						orig_hist[num] = hog->Hist(x + n, y + m, bin);
-						norm += POW2(orig_hist[num]);
-						num++;
+			for (bin = 0; bin < hog->Bins(); bin++) {
+				norm += POW2(hog->Hist(x, y, bin));
+			}
+			integral_hist_norm[size.width * (y + 1) + x + 1] = norm + integral_hist_norm[size.width * y + x + 1];
+		}
+	}
+#pragma omp parallel for private(x, norm, m, n, bin, coeff)
+	for (y = 0; y < size.height; y++) {
+		for (x = 0; x < size.width; x++) {
+			norm = integral_hist_norm[size.width * (y + blocksize.height) + x + blocksize.width];
+			norm -= integral_hist_norm[size.width * (y + blocksize.height) + x];
+			norm -= integral_hist_norm[size.width * y + x + blocksize.width];
+			norm += integral_hist_norm[size.width * y + x];
+			coeff = 1.0 / sqrt(norm + POW2(ep));
+			for (m = 0; m < blocksize.height; m++) {
+				for (n = 0; n < blocksize.width; n++) {
+					for (bin = 0; bin < hog->Bins(); bin++) {
+						block->AddHist(x, y, (m * blocksize.width + n) * hog->Bins() + bin, hog->Hist(x + n, y + m, bin) * coeff);
 					}
 				}
 			}
-			for (int bin = 0; bin < block->Bins(); bin++) {
-				double coeff = 1.0 / sqrt(norm + POW2(ep));
-				block->AddHist(x, y, bin, orig_hist[bin] * coeff);
-			}
 		}
 	}
-	delete[] orig_hist;
+	delete[] integral_hist_norm;
 	return true;
 // Error
 ExitError:
-	delete[] orig_hist;
+	delete[] integral_hist_norm;
 	block->free();
 	return false;
 }
@@ -230,11 +262,6 @@ HOG_write(const HOG &hog, const char *filename)
 					goto ExitError;
 				}
 			}
-			//fprintf(fp, "%f", hog.Hist(x, y, 0));
-			//for (int bin = 1; bin < hog.Bins(); bin++) {
-			//	fprintf(fp, " %f", hog.Hist(x, y, bin));
-			//}
-			//fprintf(fp, "\n");
 		}
 	}
 	fclose(fp);

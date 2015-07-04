@@ -25,6 +25,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	VECTOR_2D *MultipleMotion_u = nullptr;
+	bool denseHOG = false; // dense trajectory
 	HOG hog_raw;
 	HOG hog;
 	HOG hog_raw_prv;
@@ -264,7 +265,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			hog_prv.copy(hog);
 			hog_raw.free();
 			hog.free();
-			HistogramsOfOrientedGradients(&hog_raw, &hog, pnmd_in);
+			HistogramsOfOrientedGradients(&hog_raw, &hog, pnmd_in, denseHOG);
 		} else {
 			// Scratch Detection
 			printf("* Detect Scratch like vertical lines\n");
