@@ -169,7 +169,6 @@ HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
 {
 	ERROR Error("HOG_BlockNormalize");
 	SIZE size;
-	int WxH;
 	double *integral_hist_norm = nullptr;
 	const double ep = 1E-6;
 	double norm;
@@ -180,7 +179,6 @@ HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
 
 	size.width = hog->Width() - (blocksize.width - 1);
 	size.height = hog->Height() - (blocksize.height - 1);
-	WxH = size.width * size.height;
 	if (block->reset(hog->Signed(), size.width, size.height, blocksize.width * blocksize.height * hog->Bins())
 	    == false) {
 		Error.Function("block->reset");
