@@ -10,13 +10,13 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 	ERROR Error("HOG_Matching");
 	int *match = nullptr;
 	VECTOR_2D *vector = nullptr;
-	double d1 = 1.0E5;
-	double d2 = 1.0E5;
+	double d1;
+	double d2;
 	int index;
 	int W, H;
 	double d;
 	int x, y;
-	int m, n;
+	int xc, yc;
 
 	W = hog_cur->Width();
 	H = hog_cur->Height();
@@ -28,16 +28,18 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 		Error.Malloc();
 		goto ExitError;
 	}
-#pragma omp parallel for private(x, m, n, d, d1, d2, index)
-	for (y = 0; y < hog_prv->Height(); y++) {
-		for (x = 0; x < hog_prv->Width(); x++) {
-			for (m = 0; m < hog_cur->Height(); m++) {
-				for (n = 0; n < hog_cur->Width(); n++) {
-					d = HOG_Distance(hog_prv->Data(x, y), hog_cur->Data(n, m));
+#pragma omp parallel for private(x, xc, yc, d, d1, d2, index)
+	for (y = 0; y < H; y++) {
+		for (x = 0; x < W; x++) {
+			d1 = 1.0E10;
+			d2 = 1.0E10;
+			for (yc = 0; yc < H; yc++) {
+				for (xc = 0; xc < W; xc++) {
+					d = HOG_Distance(hog_prv->Data(x, y), hog_cur->Data(xc, yc));
 					if (d < d1) {
 						d2 = d1;
 						d1 = d;
-						index = m * hog_cur->Width() + n;
+						index = W * yc + xc;
 					} else if (d < d2) {
 						d2 = d;
 					}
@@ -55,8 +57,8 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 		goto ExitError;
 	}
 	for (int i = 0; i < W * H; i++) {
-		vector[i].x = match[i] % W;
-		vector[i].y = match[i] / W;
+		vector[i].x = (double)(match[i] % W);
+		vector[i].y = (double)(match[i] / W);
 	}
 	delete[] match;
 	return vector;
