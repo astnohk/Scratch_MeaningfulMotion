@@ -11,10 +11,11 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool 
 	SIZE size;
 	SIZE cellsize(7, 7);
 	SIZE blocksize(3, 3);
-	bool orient_signed = HOG_ORIENTATION_UNSIGNED;
-//	bool orient_signed = HOG_ORIENTATION_SIGNED;
-	int bins = 9;
-//	int bins = 16;
+	SIZE distance(4, 4);
+//	bool orient_signed = HOG_ORIENTATION_UNSIGNED;
+	bool orient_signed = HOG_ORIENTATION_SIGNED;
+//	int bins = 9;
+	int bins = 16;
 
 	size.width = Img.Width();
 	size.height = Img.Height();
@@ -45,8 +46,8 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool 
 	delete[] magnitude;
 	delete[] orient;
 	printf("* * Normalize the block\n");
-	if (HOG_BlockNormalize(block, hog, blocksize)
-	    == false) {
+//	if (HOG_BlockNormalize(block, hog, blocksize) == false) {
+	if (HOG_BlockNormalize(block, hog, blocksize, distance) == false) {
 		Error.Function("HOG_BlockNormalize");
 		Error.Value("block");
 		Error.FunctionFail();
@@ -225,6 +226,63 @@ HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
 // Error
 ExitError:
 	delete[] integral_hist_norm;
+	block->free();
+	return false;
+}
+
+bool
+HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize, SIZE distance)
+{
+	ERROR Error("HOG_BlockNormalize");
+	SIZE size;
+	SIZE margin;
+	const double ep = 1E-6;
+	double norm;
+	double coeff;
+	int x, y;
+	int m, n;
+	int M, N;
+	int bin;
+
+	margin.width = (blocksize.width - 1) / 2 * distance.width;
+	margin.height = (blocksize.height - 1) / 2 * distance.height;
+	size.width = hog->Width() - 2 * margin.width;
+	size.height = hog->Height() - 2 * margin.height;
+	if (block->reset(hog->Signed(), size.width, size.height, blocksize.width * blocksize.height * hog->Bins())
+	    == false) {
+		Error.Function("block->reset");
+		Error.Value("NULL");
+		Error.FunctionFail();
+		goto ExitError;
+	}
+#pragma omp parallel for private(x, norm, m, M, n, N, bin, coeff)
+	for (y = 0; y < size.height; y++) {
+		for (x = 0; x < size.width; x++) {
+			norm = 0.0;
+			for (m = 0; m < blocksize.height; m++) {
+				M = m * distance.height;
+				for (n = 0; n < blocksize.width; n++) {
+					N = n * distance.width;
+					for (bin = 0; bin < hog->Bins(); bin++) {
+						norm += POW2(hog->Hist(x + N, y + M, bin));
+					}
+				}
+			}
+			coeff = 1.0 / sqrt(norm + POW2(ep));
+			for (m = 0; m < blocksize.height; m++) {
+				M = m * distance.height;
+				for (n = 0; n < blocksize.width; n++) {
+					N = n * distance.width;
+					for (bin = 0; bin < hog->Bins(); bin++) {
+						block->AddHist(x, y, (m * blocksize.width + n) * hog->Bins() + bin, hog->Hist(x + N, y + M, bin) * coeff);
+					}
+				}
+			}
+		}
+	}
+	return true;
+// Error
+ExitError:
 	block->free();
 	return false;
 }

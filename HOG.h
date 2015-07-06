@@ -8,6 +8,7 @@ bool HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, 
 bool Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, bool sign);
 bool ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const int *orient, SIZE size, SIZE cell, int bins, bool sign, bool denseHOG);
 bool HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize);
+bool HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize, SIZE distance);
 
 bool HOG_write(const HOG &hog, const char *filename);
 

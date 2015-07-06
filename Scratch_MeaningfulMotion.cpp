@@ -25,7 +25,8 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	VECTOR_2D *MultipleMotion_u = nullptr;
-	bool denseHOG = false; // dense trajectory
+//	bool denseHOG = false; // dense trajectory
+	bool denseHOG = true; // dense trajectory
 	HOG hog_raw;
 	HOG hog;
 	HOG hog_raw_prv;
