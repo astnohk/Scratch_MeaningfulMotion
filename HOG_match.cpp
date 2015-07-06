@@ -32,20 +32,20 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 		for (x = 0; x < W; x++) {
 			d1 = 1.0E10;
 			d2 = 1.0E10;
-			for (yc = 0; yc < search_region.height; yc++) {
+			for (yc = -search_region.height / 2; yc < search_region.height / 2; yc++) {
 				if (y + yc < 0 || y + yc >= H) {
 					continue;
 				}
-				for (xc = 0; xc < search_region.width; xc++) {
+				for (xc = -search_region.width / 2; xc < search_region.width / 2; xc++) {
 					if (x + xc < 0 || x + xc >= W) {
 						continue;
 					}
-					d = HOG_Distance(hog_prv->Data(x, y), hog_cur->Data(xc, yc));
+					d = HOG_Distance(hog_prv->Data(x, y), hog_cur->Data(x + xc, y + yc));
 					if (d < d1) {
 						d2 = d1;
 						d1 = d;
-						vector[W * y + x].x = xc - x;
-						vector[W * y + x].y = yc - y;
+						vector[W * y + x].x = xc;
+						vector[W * y + x].y = yc;
 					} else if (d < d2) {
 						d2 = d;
 					}
