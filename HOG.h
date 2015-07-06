@@ -13,8 +13,8 @@ bool HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize, SIZE distanc
 bool HOG_write(const HOG &hog, const char *filename);
 
 // Matching
-VECTOR_2D* HOG_Matching(const HOG *hog_prv, const HOG *hog_cur);
+VECTOR_2D_W_SCORE* HOG_Matching(const HOG *hog_prv, const HOG *hog_cur);
 double HOG_Distance(const Histogram *Hist1, const Histogram *Hist2);
 
-bool HOG_vector_write(const VECTOR_2D *vector, int width, int height, const char *filename);
+bool HOG_vector_write(const VECTOR_2D_W_SCORE *vector, int width, int height, const char *filename);
 

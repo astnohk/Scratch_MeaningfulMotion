@@ -4,11 +4,12 @@
 
 
 
-VECTOR_2D *
+VECTOR_2D_W_SCORE *
 HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 {
 	ERROR Error("HOG_Matching");
-	VECTOR_2D *vector = nullptr;
+	const double ep = 1.0E-6;
+	VECTOR_2D_W_SCORE *vector = nullptr;
 	SIZE search_region(25, 25);
 	double d1;
 	double d2;
@@ -20,7 +21,7 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 	W = hog_cur->Width();
 	H = hog_cur->Height();
 	try {
-		vector = new VECTOR_2D[W * H];
+		vector = new VECTOR_2D_W_SCORE[W * H];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("vector");
@@ -51,6 +52,7 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 					}
 				}
 			}
+			vector[W * y + x].score = (d2 - d1) / (d1 + ep);
 		}
 	}
 	return vector;
@@ -73,7 +75,7 @@ HOG_Distance(const Histogram *Hist1, const Histogram *Hist2)
 
 
 bool
-HOG_vector_write(const VECTOR_2D *vector, int width, int height, const char *filename)
+HOG_vector_write(const VECTOR_2D_W_SCORE *vector, int width, int height, const char *filename)
 {
 	ERROR Error("HOG_vector_write");
 	FILE *fp = nullptr;
@@ -100,6 +102,13 @@ HOG_vector_write(const VECTOR_2D *vector, int width, int height, const char *fil
 		if (fwrite(&tmp, sizeof(double), 1, fp) < 1) {
 			Error.Function("fwrite");
 			Error.Value("vector[].y");
+			Error.FunctionFail();
+			goto ExitError;
+		}
+		tmp = vector[i].score;
+		if (fwrite(&tmp, sizeof(double), 1, fp) < 1) {
+			Error.Function("fwrite");
+			Error.Value("vector[].score");
 			Error.FunctionFail();
 			goto ExitError;
 		}

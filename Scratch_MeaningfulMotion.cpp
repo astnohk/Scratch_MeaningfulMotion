@@ -31,7 +31,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	HOG hog;
 	HOG hog_raw_prv;
 	HOG hog_prv;
-	VECTOR_2D *hog_vector = nullptr;
+	VECTOR_2D_W_SCORE *hog_vector = nullptr;
 
 	int Initialize = 0;
 

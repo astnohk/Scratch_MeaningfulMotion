@@ -235,6 +235,16 @@ struct VECTOR_2D
 	void reset(void);
 };
 
+struct VECTOR_2D_W_SCORE
+{
+	double x;
+	double y;
+	double score;
+	VECTOR_2D_W_SCORE(void);
+	VECTOR_2D_W_SCORE(double ix, double iy, double iscore);
+	void reset(void);
+};
+
 #define NUM_AFFINE_PARAMETER 6
 struct VECTOR_AFFINE
 {
