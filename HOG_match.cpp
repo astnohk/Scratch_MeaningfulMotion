@@ -9,6 +9,7 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 {
 	ERROR Error("HOG_Matching");
 	VECTOR_2D *vector = nullptr;
+	SIZE search_region(25, 25);
 	double d1;
 	double d2;
 	int W, H;
@@ -31,8 +32,14 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 		for (x = 0; x < W; x++) {
 			d1 = 1.0E10;
 			d2 = 1.0E10;
-			for (yc = 0; yc < H; yc++) {
-				for (xc = 0; xc < W; xc++) {
+			for (yc = 0; yc < search_region.height; yc++) {
+				if (y + yc < 0 || y + yc >= H) {
+					continue;
+				}
+				for (xc = 0; xc < search_region.width; xc++) {
+					if (x + xc < 0 || x + xc >= W) {
+						continue;
+					}
 					d = HOG_Distance(hog_prv->Data(x, y), hog_cur->Data(xc, yc));
 					if (d < d1) {
 						d2 = d1;

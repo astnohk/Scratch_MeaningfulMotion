@@ -233,6 +233,7 @@ ExitError:
 bool
 HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize, SIZE distance)
 {
+	// For dense trajectories
 	ERROR Error("HOG_BlockNormalize");
 	SIZE size;
 	SIZE margin;
