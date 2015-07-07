@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulMotion.h"
+ginclude "Scratch_MeaningfulMotion.h"
 #include "Affine_MultipleMotion.h"
 #include "OpticalFlow_MultipleMotion.h"
 #include "HOG.h"
@@ -484,7 +484,6 @@ Write:
 		if (pnmd_in.isNULL() == false) {
 			pnmd_prev.copy(pnmd_in);
 		}
-		pnm_in.write("test.pgm");
 		pnmd_in.free();
 		pnm_out.free();
 		pnm_in.free();
