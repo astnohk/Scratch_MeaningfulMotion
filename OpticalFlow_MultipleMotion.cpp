@@ -157,7 +157,7 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 			continue;
 		}
 #endif
-		IterMax = 5 * MAX(size_img_l.width, size_img_l.height);
+		IterMax = 10 * MAX(size_img_l.width, size_img_l.height);
 		IRLS_MultipleMotion_OpticalFlow(u_levels[level], grad_It_levels[level], I_dt_levels[level], size_img_l,
 		    lambdaD, lambdaS, sigmaD, sigmaS,
 		    IterMax, MotionParam.Error_Min_Threshold,
