@@ -1,4 +1,3 @@
-//#define nullptr NULL
 /*
  * In this program. the coordinate system defined as below.
  * --->x     --->n
@@ -128,7 +127,7 @@ class ERROR
 	public:
 		// Error data set
 		ERROR(void);
-		ERROR(const char *name);
+		explicit ERROR(const char *name);
 		const char* OutputFunctionName(void);
 		void Function(const char *name);
 		void Value(const char *name);
@@ -262,7 +261,7 @@ class Histogram
 	public:
 		Histogram(void);
 		Histogram(const Histogram &copy);
-		Histogram(int init_bins);
+		explicit Histogram(int init_bins);
 		bool copy(const Histogram &copy);
 		bool reset(int init_bins);
 		~Histogram(void);
