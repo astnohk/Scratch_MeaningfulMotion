@@ -1,4 +1,4 @@
-ginclude "Scratch_MeaningfulMotion.h"
+#include "Scratch_MeaningfulMotion.h"
 #include "Affine_MultipleMotion.h"
 #include "OpticalFlow_MultipleMotion.h"
 #include "HOG.h"

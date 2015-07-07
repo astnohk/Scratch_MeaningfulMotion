@@ -10,7 +10,7 @@ HOG_Matching(const HOG *hog_prv, const HOG *hog_cur)
 	ERROR Error("HOG_Matching");
 	const double ep = 1.0E-6;
 	VECTOR_2D_W_SCORE *vector = nullptr;
-	SIZE search_region(25, 25);
+	SIZE search_region(65, 65); // recommends using odd number for the size of search region
 	double d1;
 	double d2;
 	int W, H;
