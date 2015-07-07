@@ -314,6 +314,7 @@ struct MULTIPLE_MOTION_PARAM
 	double sigmaD;
 	double sigmaS;
 	MULTIPLE_MOTION_PARAM(void);
+	void set_default(const char *val);
 };
 
 struct OPTIONS

@@ -136,11 +136,11 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 			sigmaD = sigmaD_l0;
 			sigmaS = sigmaS_l0;
 		}
-		printf("\nLevel %d :\n  sigmaD = %f\n  sigmaS = %f\n", level, sigmaD, sigmaS);
-		size_img_lp1.width = (int)floor(size_img.width * pow_int(0.5, level + 1));
-		size_img_lp1.height = (int)floor(size_img.height * pow_int(0.5, level + 1));
-		size_img_l.width = (int)floor(size_img.width * pow_int(0.5, level));
-		size_img_l.height = (int)floor(size_img.height * pow_int(0.5, level));
+		size_img_lp1.width = (int)ceil(size_img.width * pow_int(0.5, level + 1));
+		size_img_lp1.height = (int)ceil(size_img.height * pow_int(0.5, level + 1));
+		size_img_l.width = (int)ceil(size_img.width * pow_int(0.5, level));
+		size_img_l.height = (int)ceil(size_img.height * pow_int(0.5, level));
+		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), size_img_l.width, size_img_l.height, sigmaD, sigmaS);
 		try {
 			u_levels[level] = new VECTOR_2D[size_img_l.width * size_img_l.height];
 		}
@@ -166,7 +166,6 @@ MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_im
 	for (i = 0; i < size_img.width * size_img.height; i++) {
 		u[i] = u_levels[0][i];
 	}
-
 	for (level = 0; level < MotionParam.Level; level++) {
 		delete[] u_levels[level];
 		delete[] grad_It_levels[level];

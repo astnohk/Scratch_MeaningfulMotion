@@ -97,8 +97,8 @@ MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MU
 		printf("grad %e\n", grad_It_levels[level][100].x);
 		u.a[0] *= 2;
 		u.a[3] *= 2;
-		size_img_l.width = floor(size_img.width * pow_int(0.5, level));
-		size_img_l.height = floor(size_img.height * pow_int(0.5, level));
+		size_img_l.width = ceil(size_img.width * pow_int(0.5, level));
+		size_img_l.height = ceil(size_img.height * pow_int(0.5, level));
 		IterMax = 2 * MAX(size_img_l.width, size_img_l.height);
 		IRLS_MultipleMotion_Affine(&u, grad_It_levels[level], I_dt_levels[level], size_img_l,
 		    sigmaD,

@@ -69,8 +69,8 @@ Pyramider(double *img, SIZE size, int Level)
 	/* Make image pyramid (l > 0) */
 	for (l = 1; l < Level; l++) {
 		size_lm1 = size_l;
-		size_l.width = (int)floor(size.width * pow_int(0.5, l));
-		size_l.height = (int)floor(size.height * pow_int(0.5, l));
+		size_l.width = (int)ceil(size.width * pow_int(0.5, l));
+		size_l.height = (int)ceil(size.height * pow_int(0.5, l));
 		if (size_l.width <= 0 || size_l.height <= 0) {
 			Error.OthersWarning("The image reaches minimum size in Pyramid");
 			break;
@@ -111,7 +111,7 @@ Pyramider(double *img, SIZE size, int Level)
 		pnm.free();
 	}
 	return Pyramid;
-/* Error */
+// Error
 ExitError:
 	for (l = 0; Pyramid != nullptr && l < Level; l++) {
 		delete[] Pyramid[l];
@@ -126,14 +126,14 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 {
 	ERROR Error("grad_Pyramid");
 
-	/* Note that convolution invert *Filter */
+	// Note that convolution invert *Filter
 	VECTOR_2D **grad_levels = nullptr;
 	SIZE size_l;
 	int x, y;
 	int m, n;
 	int l;
 
-	/* img_tp1 is allowed to be NULL */
+	// img_tp1 is allowed to be NULL
 	if (img_t == nullptr) {
 		Error.Value("img_t");
 		Error.PointerNull();
@@ -148,8 +148,8 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		goto ExitError;
 	}
 	for (l = 0; l < Level; l++) {
-		size_l.width = (int)floor((double)size.width * pow_int(0.5, l));
-		size_l.height = (int)floor((double)size.height * pow_int(0.5, l));
+		size_l.width = (int)ceil((double)size.width * pow_int(0.5, l));
+		size_l.height = (int)ceil((double)size.height * pow_int(0.5, l));
 		try {
 			grad_levels[l] = new VECTOR_2D[size_l.width * size_l.height];
 		}
@@ -162,23 +162,23 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 			y = SATURATE(m, 0, size_l.height - 2);
 			for (n = 0; n < size_l.width; n++) {
 				x = SATURATE(n, 0, size_l.width - 2);
-				/* dx */
+				// dx
 				grad_levels[l][size_l.width * m + n].x =
 				    (img_t[l][size_l.width * y + x + 1] - img_t[l][size_l.width * y + x]
 				    + img_t[l][size_l.width * (y + 1) + x + 1] - img_t[l][size_l.width * (y + 1) + x])
 				    / 2.0;
-				/* dy */
+				// dy
 				grad_levels[l][size_l.width * m + n].y =
 				    (img_t[l][size_l.width * (y + 1) + x] - img_t[l][size_l.width * y + x]
 				    + img_t[l][size_l.width * (y + 1) + x + 1] - img_t[l][size_l.width * y + x + 1])
 				    / 2.0;
 				if (img_tp1 != NULL) {
-					/* dx */
+					// dx
 					grad_levels[l][size_l.width * m + n].x +=
 					    (img_tp1[l][size_l.width * y + x + 1] - img_tp1[l][size_l.width * y + x]
 					    + img_tp1[l][size_l.width * (y + 1) + x + 1] - img_tp1[l][size_l.width * (y + 1) + x])
 					    / 2.0;
-					/* dy */
+					// dy
 					grad_levels[l][size_l.width * m + n].y +=
 					    (img_tp1[l][size_l.width * (y + 1) + x] - img_tp1[l][size_l.width * y + x]
 					    + img_tp1[l][size_l.width * (y + 1) + x + 1] - img_tp1[l][size_l.width * y + x + 1])
@@ -230,8 +230,8 @@ dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		goto ExitError;
 	}
 	for (l = 0; l < Level; l++) {
-		size_l.width = (int)floor((double)size.width * pow_int(0.5, l));
-		size_l.height = (int)floor((double)size.height * pow_int(0.5, l));
+		size_l.width = (int)ceil((double)size.width * pow_int(0.5, l));
+		size_l.height = (int)ceil((double)size.height * pow_int(0.5, l));
 		try {
 			dt_levels[l] = new double[size_l.width * size_l.height];
 		}

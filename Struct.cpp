@@ -165,16 +165,48 @@ VECTOR_AFFINE::reset(void)
 	}
 }
 
+
+// Multiple Motion Parameters
+#define MULTIPLE_MOTION_PARAM_Level 5
+#define MULTIPLE_MOTION_PARAM_IRLS_Iter_Max 300
+#define MULTIPLE_MOTION_PARAM_Error_Min_Threshold (1.0E-6)
+#define MULTIPLE_MOTION_PARAM_lambdaD 5
+#define MULTIPLE_MOTION_PARAM_lambdaS 1
+#define MULTIPLE_MOTION_PARAM_sigmaD 12.72
+#define MULTIPLE_MOTION_PARAM_sigmaS 2.121
 MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
 {
-	Level = 5;
-	IRLS_Iter_Max = 300;
-	Error_Min_Threshold = 1.0E-6;
-	lambdaD = 5;
-	lambdaS = 1;
-	sigmaD = 12.72;
-	sigmaS = 2.121;
+	Level = MULTIPLE_MOTION_PARAM_Level;
+	IRLS_Iter_Max = MULTIPLE_MOTION_PARAM_IRLS_Iter_Max;
+	Error_Min_Threshold = MULTIPLE_MOTION_PARAM_Error_Min_Threshold;
+	lambdaD = MULTIPLE_MOTION_PARAM_lambdaD;
+	lambdaS = MULTIPLE_MOTION_PARAM_lambdaS;
+	sigmaD = MULTIPLE_MOTION_PARAM_sigmaD;
+	sigmaS = MULTIPLE_MOTION_PARAM_sigmaS;
 }
+
+void
+MULTIPLE_MOTION_PARAM::set_default(const char *val)
+{
+	if (strcmp(val, "Level") == 0) {
+		Level = MULTIPLE_MOTION_PARAM_Level;
+	} else if (strcmp(val, "IRLS_Iter_Max") == 0) {
+		IRLS_Iter_Max = MULTIPLE_MOTION_PARAM_IRLS_Iter_Max;
+	} else if (strcmp(val, "Error_Min_Threshold") == 0) {
+		Error_Min_Threshold = MULTIPLE_MOTION_PARAM_Error_Min_Threshold;
+	} else if (strcmp(val, "lambdaD") == 0) {
+		lambdaD = MULTIPLE_MOTION_PARAM_lambdaD;
+	} else if (strcmp(val, "lambdaS") == 0) {
+		lambdaS = MULTIPLE_MOTION_PARAM_lambdaS;
+	} else if (strcmp(val, "sigmaD") == 0) {
+		sigmaD = MULTIPLE_MOTION_PARAM_sigmaD;
+	} else if (strcmp(val, "sigmaS") == 0) {
+		sigmaS = MULTIPLE_MOTION_PARAM_sigmaS;
+	} else {
+		fprintf(stderr, "*** MULTIPLE_MOTION_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", val);
+	}
+}
+
 
 OPTIONS::OPTIONS(void)
 {
@@ -191,6 +223,7 @@ OPTIONS::OPTIONS(void)
 	ep = EPSILON;
 	Exclusive_Max_Radius = EXCLUSIVE_PRINCIPLE_MAX_RADIUS;
 }
+
 
 X11_PARAM::X11_PARAM(void)
 {

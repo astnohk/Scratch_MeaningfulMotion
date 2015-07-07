@@ -45,11 +45,12 @@ main(int argc, char *argv[])
 	    "      --binary                       : output middle data at Line Scratch detection\n"
 	    "      --multiple_affine              : output multiple motions' affine parameters estimated by method of M.J.Black\n"
 	    "      --multiple_opticalflow         : output multiple motions' optical flow estimated by method of M.J.Black\n"
+	    "      --mm_level [value]             : set maximum level of multi resolution gaussian pyramid (default : 4)\n"
 	    "      --HOG                          : output block normalized Histograms of Oriented Gradients\n"
 	    "      --HOG_raw                      : output raw Histograms of Oriented Gradients\n"
 	    "      --HOG_matching_vector          : output vector of matching by Histograms of Oriented Gradients\n"
-	    "      --resample         [WxH]       : resampling the input image to size of [WxH] at first (e.g : --resample 128x128)\n"
-	    "      --resample_method  [method]    : set resampling method (z-hold, bicubic)\n"
+	    "      --resample [WxH]               : resampling the input image to size of [WxH] at first (e.g : --resample 128x128)\n"
+	    "      --resample_method [method]     : set resampling method (z-hold, bicubic)\n"
 	    "      --plot_as_resample             : output size is same as resampled image\n"
 	    "      --plot_resampled_only          : output the resampled image without any other processing\n"
 	    "\n"
@@ -228,6 +229,21 @@ main(int argc, char *argv[])
 					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
 				} else if (strcmp(argv[i], "--multiple_opticalflow") == 0) {
 					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW;
+				} else if (strcmp(argv[i], "--mm_level") == 0) {
+					if (i + 1 >= argc) {
+						fprintf(stderr, "*** Please input value after '--mm_level' option ***\n");
+						errors |= OPTION_INSUFFICIENT;
+					} else {
+						i++;
+						if (sscanf(argv[i], "%7d", &(Options.MultipleMotion_Param.Level)) != 1) {
+							fprintf(stderr, "*** Cannot read value for the maximum level of Multi-Resolution Pyramid ***\n*** Use default value instead ***\n");
+							errors |= OPTION_INCORRECT;
+							Options.MultipleMotion_Param.set_default("Level");
+						}
+						if (Options.MultipleMotion_Param.Level < 1) {
+							Options.MultipleMotion_Param.Level = 1;
+						}
+					}
 				} else if (strcmp(argv[i], "--plot_as_resample") == 0) {
 					Options.PlotOptions |= PLOT_AS_RESAMPLE;
 				} else if (strcmp(argv[i], "--plot_resampled_only") == 0) {
