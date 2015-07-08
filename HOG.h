@@ -1,10 +1,5 @@
-#define HOG_ORIENTATION_UNSIGNED false
-#define HOG_ORIENTATION_SIGNED true
-
-
-
 // HOG
-bool HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool denseHOG);
+bool HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_PARAM &HOG_Param);
 bool Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, bool sign);
 bool ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const int *orient, SIZE size, SIZE cell, int bins, bool sign, bool denseHOG);
 bool HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize);

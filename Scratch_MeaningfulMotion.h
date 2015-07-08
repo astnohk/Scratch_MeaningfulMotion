@@ -317,6 +317,15 @@ struct MULTIPLE_MOTION_PARAM
 	void set_default(const char *val);
 };
 
+struct HOG_PARAM
+{
+	int Bins;
+	bool Dense;
+	bool SignedOrient;
+	HOG_PARAM(void);
+	void set_default(const char *val);
+};
+
 struct OPTIONS
 {
 	SIZE ResampleSize;
@@ -333,6 +342,7 @@ struct OPTIONS
 	double ep;
 	double Exclusive_Max_Radius;
 	MULTIPLE_MOTION_PARAM MultipleMotion_Param;
+	HOG_PARAM HOG_Param;
 	OPTIONS(void);
 };
 // Mode Options

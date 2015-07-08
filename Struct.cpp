@@ -207,6 +207,29 @@ MULTIPLE_MOTION_PARAM::set_default(const char *val)
 	}
 }
 
+#define HOG_PARAM_Bins 16
+#define HOG_PARAM_Dense true
+#define HOG_PARAM_SignedOrient true
+HOG_PARAM::HOG_PARAM(void)
+{
+	Bins = HOG_PARAM_Bins;
+	Dense = HOG_PARAM_Dense;
+	SignedOrient= HOG_PARAM_SignedOrient;
+}
+
+void
+HOG_PARAM::set_default(const char *val)
+{
+	if (strcmp(val, "Bins")) {
+		Bins = HOG_PARAM_Bins;
+	} else if (strcmp(val, "Dense")) {
+		Dense = HOG_PARAM_Dense;
+	} else if (strcmp(val, "SignedOrient")) {
+		SignedOrient = HOG_PARAM_SignedOrient;
+	} else {
+		fprintf(stderr, "*** HOG_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", val);
+	}
+}
 
 OPTIONS::OPTIONS(void)
 {

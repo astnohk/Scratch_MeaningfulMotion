@@ -49,6 +49,11 @@ main(int argc, char *argv[])
 	    "      --HOG                          : output block normalized Histograms of Oriented Gradients\n"
 	    "      --HOG_raw                      : output raw Histograms of Oriented Gradients\n"
 	    "      --HOG_matching_vector          : output vector of matching by Histograms of Oriented Gradients\n"
+	    "      --HOG_bins [value]             : set the number of bins of histogram of gradients (default : 16)\n"
+	    "      --HOG_densely                  : compute HOG feature at each pixels (default)\n"
+	    "      --HOG_less_densely             : compute HOG feature at NOT overlapped cells (NOT default)\n"
+	    "      --HOG_signed                   : use signed orientation for HOG feature (default)\n"
+	    "      --HOG_unsigned                 : neglect sign of orientation for HOG feature (NOT default)\n"
 	    "      --resample [WxH]               : resampling the input image to size of [WxH] at first (e.g : --resample 128x128)\n"
 	    "      --resample_method [method]     : set resampling method (z-hold, bicubic)\n"
 	    "      --plot_as_resample             : output size is same as resampled image\n"
@@ -225,6 +230,29 @@ main(int argc, char *argv[])
 					Options.mode = MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG;
 				} else if (strcmp(argv[i], "--HOG_matching_vector") == 0) {
 					Options.mode = MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR;
+				} else if (strcmp(argv[i], "--HOG_bins") == 0) {
+					if (i + 1 >= argc) {
+						fprintf(stderr, "*** Please input value after '--HOG_bins' option ***\n");
+						errors |= OPTION_INSUFFICIENT;
+					} else {
+						i++;
+						if (sscanf(argv[i], "%7d", &(Options.HOG_Param.Bins)) != 1) {
+							fprintf(stderr, "*** Cannot read value for the number of Bins of histograms ***\n*** Use default value instead ***\n");
+							errors |= OPTION_INCORRECT;
+							Options.HOG_Param.set_default("Bins");
+						}
+						if (Options.HOG_Param.Bins < 1) {
+							Options.HOG_Param.Bins = 1;
+						}
+					}
+				} else if (strcmp(argv[i], "--HOG_densely") == 0) {
+					Options.HOG_Param.Dense = true;
+				} else if (strcmp(argv[i], "--HOG_less_densely") == 0) {
+					Options.HOG_Param.Dense = false;
+				} else if (strcmp(argv[i], "--HOG_signed") == 0) {
+					Options.HOG_Param.SignedOrient = true;
+				} else if (strcmp(argv[i], "--HOG_unsigned") == 0) {
+					Options.HOG_Param.SignedOrient = false;
 				} else if (strcmp(argv[i], "--multiple_affine") == 0) {
 					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
 				} else if (strcmp(argv[i], "--multiple_opticalflow") == 0) {

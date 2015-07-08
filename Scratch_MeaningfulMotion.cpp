@@ -25,8 +25,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM_DOUBLE pnmd_prev;
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	VECTOR_2D *MultipleMotion_u = nullptr;
-//	bool denseHOG = false; // dense trajectory
-	bool denseHOG = true; // dense trajectory
 	HOG hog_raw;
 	HOG hog;
 	HOG hog_raw_prv;
@@ -241,7 +239,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			filtered = nullptr;
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			// Computte and output Multiple Motion Affine Parameters by method of M.J.Black
-			pnmd_in.copy(pnm_orig, 1.0);
+			pnmd_in.copy(pnm_in, 1.0);
 			if (pnmd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
@@ -250,7 +248,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			// Computte and output Multiple Motion Optical Flow by method of M.J.Black
-			pnmd_in.copy(pnm_orig, 1.0);
+			pnmd_in.copy(pnm_in, 1.0);
 			if (pnmd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions while there is NOT any previous frame\n");
 			} else {
@@ -261,12 +259,12 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR) != 0) {
 			printf("* Compute HOG\n");
-			pnmd_in.copy(pnm_orig, 1.0 / pnm_orig.MaxInt());
+			pnmd_in.copy(pnm_in, 1.0 / pnm_in.MaxInt());
 			hog_raw_prv.copy(hog_raw);
 			hog_prv.copy(hog);
 			hog_raw.free();
 			hog.free();
-			HistogramsOfOrientedGradients(&hog_raw, &hog, pnmd_in, denseHOG);
+			HistogramsOfOrientedGradients(&hog_raw, &hog, pnmd_in, Options.HOG_Param);
 		} else {
 			// Scratch Detection
 			printf("* Detect Scratch like vertical lines\n");

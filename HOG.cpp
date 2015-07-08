@@ -3,7 +3,7 @@
 
 
 bool
-HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool denseHOG)
+HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_PARAM &HOG_Param)
 {
 	ERROR Error("HistogramOfOrientedGradients");
 	double *magnitude = nullptr;
@@ -12,10 +12,6 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool 
 	SIZE cellsize(7, 7);
 	SIZE blocksize(3, 3);
 	SIZE distance(4, 4);
-//	bool orient_signed = HOG_ORIENTATION_UNSIGNED;
-	bool orient_signed = HOG_ORIENTATION_SIGNED;
-//	int bins = 9;
-	int bins = 16;
 
 	size.width = Img.Width();
 	size.height = Img.Height();
@@ -29,14 +25,14 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool 
 		goto ExitError;
 	}
 	printf("* * Compute Orientation\n");
-	if (Orientation(magnitude, orient, Img, bins, orient_signed) == false) {
+	if (Orientation(magnitude, orient, Img, HOG_Param.Bins, HOG_Param.SignedOrient) == false) {
 		Error.Function("Orientation");
 		Error.Value("orient");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	printf("* * Compute Histogram\n");
-	if (ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cellsize, bins, orient_signed, denseHOG)
+	if (ComputeHistogramsOfOrientedGradients(hog, magnitude, orient, size, cellsize, HOG_Param.Bins, HOG_Param.SignedOrient, HOG_Param.Dense)
 	    == false) {
 		Error.Function("ComputeHistogramOfOrientedGradients");
 		Error.Value("hog");
@@ -46,7 +42,6 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, bool 
 	delete[] magnitude;
 	delete[] orient;
 	printf("* * Normalize the block\n");
-//	if (HOG_BlockNormalize(block, hog, blocksize) == false) {
 	if (HOG_BlockNormalize(block, hog, blocksize, distance) == false) {
 		Error.Function("HOG_BlockNormalize");
 		Error.Value("block");
