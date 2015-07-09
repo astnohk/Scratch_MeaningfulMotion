@@ -171,6 +171,7 @@ struct SIZE
 	SIZE(void);
 	SIZE(int w, int h);
 	void reset(void);
+	void set_size(const SIZE *size);
 };
 
 struct COORDINATE
@@ -210,20 +211,6 @@ struct LINEPOLE
 	LINEPOLE(void);
 	LINEPOLE(double rad, double th, double icos, double isin);
 };
-
-struct FILTER_PARAM
-{
-	int type;
-	SIZE size;
-	double std_deviation;
-	double epsilon;
-	FILTER_PARAM(void);
-	void ChangeFilter(char newtype);
-};
-#define NUM_FILTER_TYPE 3
-#define FILTER_ID_UNDEFINED 0
-#define FILTER_ID_EPSILON 1
-#define FILTER_ID_GAUSSIAN 2
 
 struct VECTOR_2D
 {
@@ -304,6 +291,22 @@ class HOG // Histograms of Oriented Gradients
 };
 
 
+#define NUM_FILTER_TYPE 3
+#define FILTER_ID_UNDEFINED 0
+#define FILTER_ID_EPSILON 1
+#define FILTER_ID_GAUSSIAN 2
+struct FILTER_PARAM
+{
+	int type;
+	SIZE size;
+	double std_deviation;
+	double epsilon;
+	FILTER_PARAM(void);
+	bool ChangeFilter(const char *name);
+	void set_default(const char *name);
+	void set_value(const char *name, const void *value);
+};
+
 struct MULTIPLE_MOTION_PARAM
 {
 	int Level;
@@ -314,7 +317,8 @@ struct MULTIPLE_MOTION_PARAM
 	double sigmaD;
 	double sigmaS;
 	MULTIPLE_MOTION_PARAM(void);
-	void set_default(const char *val);
+	void set_default(const char *name);
+	void set_value(const char *name, void *value);
 };
 
 struct HOG_PARAM
@@ -323,7 +327,8 @@ struct HOG_PARAM
 	bool Dense;
 	bool SignedOrient;
 	HOG_PARAM(void);
-	void set_default(const char *val);
+	void set_default(const char *name);
+	void set_value(const char *name, const void *value);
 };
 
 struct OPTIONS
@@ -333,7 +338,7 @@ struct OPTIONS
 	int mode;
 	int Max_Length;
 	int Max_Output_Length;
-	int ExclusivePrinciple;
+	bool ExclusivePrinciple;
 	int Superimpose;
 	int PlotOptions;
 	int s_med;
@@ -344,6 +349,9 @@ struct OPTIONS
 	MULTIPLE_MOTION_PARAM MultipleMotion_Param;
 	HOG_PARAM HOG_Param;
 	OPTIONS(void);
+	bool ChangeResampleMethod(const char *name);
+	void set_default(const char *name);
+	void set_value(const char *name, const void *value);
 };
 // Mode Options
 #define MODE_OUTPUT_FILTERED_IMAGE 0x0010

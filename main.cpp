@@ -92,6 +92,8 @@ main(int argc, char *argv[])
 	int inf = 0, outf = 0;
 	char *strtmp = nullptr;
 	char *strdivp = nullptr;
+	int ival;
+	double dval;
 	int i, k;
 
 	for (i = 1; i < argc; i++) {
@@ -108,27 +110,22 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						sscanf(argv[i], "%10lf", &Options.ep);
-						if (Options.ep <= 0.0) {
-							Options.ep = EPSILON;
-						}
+						sscanf(argv[i], "%10lf", &dval);
+						Options.set_value("ep", &dval);
 					}
 				} else if (strcmp(argv[i], "--exclusive") == 0) {
-					Options.ExclusivePrinciple = 1;
+					Options.ExclusivePrinciple = true;
 				} else if (strcmp(argv[i], "--exclusive_rad") == 0) {
 					if (i + 1 >= argc) {
 						fprintf(stderr, "*** Please input value after '--exclusive_rad' option ***\n");
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%10lf", &Options.Exclusive_Max_Radius) != 1) {
+						if (sscanf(argv[i], "%10lf", &dval) != 1) {
 							fprintf(stderr, "*** Cannot read value for Exclusive Principle Max Radius correctly ***\n*** Use default value instead ***\n");
 							errors |= OPTION_INCORRECT;
-							Options.Exclusive_Max_Radius = EXCLUSIVE_PRINCIPLE_MAX_RADIUS;
 						}
-						if (Options.Exclusive_Max_Radius <= 0.0) {
-							Options.Exclusive_Max_Radius = EXCLUSIVE_PRINCIPLE_MAX_RADIUS;
-						}
+						Options.set_value("Exclusive_Max_Radius", &dval);
 					}
 				} else if (strcmp(argv[i], "--filtered") == 0) {
 					Options.mode |= MODE_OUTPUT_FILTERED_IMAGE;
@@ -138,14 +135,11 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%10lf", &FilterParam.epsilon) != 1) {
+						if (sscanf(argv[i], "%10lf", &dval) != 1) {
 							fprintf(stderr, "*** Cannot read value for Epsilon Filter's epsilon correctly ***\n");
 							errors |= OPTION_INCORRECT;
-							FilterParam.epsilon = EPSILONFILTER_EPSILON;
 						}
-						if (FilterParam.epsilon < 0.0) {
-							FilterParam.epsilon = EPSILONFILTER_EPSILON;
-						}
+						FilterParam.set_value("epsilon", &dval);
 					}
 				} else if (strcmp(argv[i], "--filter_size") == 0) {
 					if (i + 1 >= argc) {
@@ -203,11 +197,7 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (strcmp(argv[i], "Epsilon") == 0) {
-							FilterParam.ChangeFilter('e');
-						} else if (strcmp(argv[i], "Gaussian") == 0) {
-							FilterParam.ChangeFilter('g');
-						}
+						FilterParam.ChangeFilter(argv[i]);
 					}
 				} else if (strcmp(argv[i], "--gauss_stddev") == 0) {
 					if (i + 1 >= argc) {
@@ -215,14 +205,11 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%10lf", &(FilterParam.std_deviation)) != 1) {
+						if (sscanf(argv[i], "%10lf", &dval) != 1) {
 							fprintf(stderr, "*** Cannot read value for Gaussian Filter Variance correctly ***\n*** Use default value instead ***\n");
 							errors |= OPTION_INCORRECT;
-							FilterParam.std_deviation = GAUSSIAN_STD_DEVIATION;
 						}
-						if (FilterParam.std_deviation <= 0.0) {
-							FilterParam.std_deviation = GAUSSIAN_STD_DEVIATION;
-						}
+						FilterParam.set_value("std_deviation", &dval);
 					}
 				} else if (strcmp(argv[i], "--HOG") == 0) {
 					Options.mode = MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS;
@@ -236,14 +223,11 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%7d", &(Options.HOG_Param.Bins)) != 1) {
+						if (sscanf(argv[i], "%7d", &ival) != 1) {
 							fprintf(stderr, "*** Cannot read value for the number of Bins of histograms ***\n*** Use default value instead ***\n");
 							errors |= OPTION_INCORRECT;
-							Options.HOG_Param.set_default("Bins");
 						}
-						if (Options.HOG_Param.Bins < 1) {
-							Options.HOG_Param.Bins = 1;
-						}
+						Options.HOG_Param.set_value("Bins", &ival);
 					}
 				} else if (strcmp(argv[i], "--HOG_densely") == 0) {
 					Options.HOG_Param.Dense = true;
@@ -263,14 +247,11 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%7d", &(Options.MultipleMotion_Param.Level)) != 1) {
+						if (sscanf(argv[i], "%7d", &ival) != 1) {
 							fprintf(stderr, "*** Cannot read value for the maximum level of Multi-Resolution Pyramid ***\n*** Use default value instead ***\n");
 							errors |= OPTION_INCORRECT;
-							Options.MultipleMotion_Param.set_default("Level");
 						}
-						if (Options.MultipleMotion_Param.Level < 1) {
-							Options.MultipleMotion_Param.Level = 1;
-						}
+						Options.MultipleMotion_Param.set_value("Level", &ival);
 					}
 				} else if (strcmp(argv[i], "--plot_as_resample") == 0) {
 					Options.PlotOptions |= PLOT_AS_RESAMPLE;
@@ -291,7 +272,7 @@ main(int argc, char *argv[])
 							Options.ResampleSize.width = Options.ResampleSize.height;
 						} else {
 							c_tmp = *delimiter;
-							*delimiter = '\0';
+							*delimiter = '\0'; // set end point of width
 							if (sscanf(argv[i], "%7d", &Options.ResampleSize.width) != 1) {
 								fprintf(stderr, "*** Cannot read value for ResampleSize.width ***\n");
 								errors |= OPTION_INCORRECT;
@@ -302,7 +283,7 @@ main(int argc, char *argv[])
 								errors |= OPTION_INCORRECT;
 								Options.ResampleSize.height = 0;
 							}
-							*delimiter = c_tmp;
+							*delimiter = c_tmp; // recover original character
 						}
 					}
 				} else if (strcmp(argv[i], "--resample_method") == 0) {
@@ -315,11 +296,7 @@ main(int argc, char *argv[])
 							fprintf(stderr, "*** '%s' is NOT method name ***\n", argv[i]);
 							errors |= OPTION_INCORRECT;
 						} else {
-							if (strcmp("z-hold", argv[i]) == 0) {
-								Options.ResampleMethod = PNM_Resize_ZeroOrderHold;
-							} else if (strcmp("bicubic", argv[i]) == 0) {
-								Options.ResampleMethod = PNM_Resize_Bicubic;
-							}
+							Options.ChangeResampleMethod(argv[i]);
 						}
 					}
 				} else if (strcmp(argv[i], "--s_avg") == 0) { // set s_avg
@@ -328,14 +305,11 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%7d", &Options.s_avg) != 1) {
+						if (sscanf(argv[i], "%7d", &ival) != 1) {
 							fprintf(stderr, "*** Cannot read the value of 's_avg' correctly ***\n");
 							errors |= OPTION_INCORRECT;
-							Options.s_avg = SCRATCH_AVG_THRESHOLD;
 						}
-						if (Options.s_avg < 0) {
-							Options.s_avg = SCRATCH_AVG_THRESHOLD;
-						}
+						Options.set_value("s_avg", &ival);
 					}
 				} else if (strcmp(argv[i], "--s_med") == 0) { // set s_med
 					if (i + 1 >= argc) {
@@ -343,14 +317,11 @@ main(int argc, char *argv[])
 						errors |= OPTION_INSUFFICIENT;
 					} else {
 						i++;
-						if (sscanf(argv[i], "%7d", &Options.s_med) != 1) {
+						if (sscanf(argv[i], "%7d", &ival) != 1) {
 							fprintf(stderr, "*** Cannot read the value of 's_med' correctly ***\n");
 							errors |= OPTION_INCORRECT;
-							Options.s_med = SCRATCH_MED_THRESHOLD;
 						}
-						if (Options.s_med < 0) {
-							Options.s_med = SCRATCH_MED_THRESHOLD;
-						}
+						Options.set_value("s_med", &ival);
 					}
 				} else if (strcmp(argv[i], "--superimpose") == 0) { // Color output superimpose
 					if (i + 1 >= argc) {
@@ -409,14 +380,11 @@ main(int argc, char *argv[])
 							errors |= OPTION_INSUFFICIENT;
 						} else {
 							i++;
-							if (sscanf(argv[i], "%7d", &Options.Max_Output_Length) != 1) {
+							if (sscanf(argv[i], "%7d", &ival) != 1) {
 								fprintf(stderr, "*** Cannot read value for Maximum Length Limits of Output Segments correctly ***\n*** Use default value instead ***\n");
 								errors |= OPTION_INCORRECT;
-								Options.Max_Output_Length = 0;
 							}
-							if (Options.Max_Output_Length < 0) {
-								Options.Max_Output_Length = 0;
-							}
+							Options.set_value("Max_Output_Length", &ival);
 						}
 						break;
 					case 'l':
@@ -425,14 +393,11 @@ main(int argc, char *argv[])
 							errors |= OPTION_INSUFFICIENT;
 						} else {
 							i++;
-							if (sscanf(argv[i], "%7d", &Options.Max_Length) != 1) {
+							if (sscanf(argv[i], "%7d", &ival) != 1) {
 								fprintf(stderr, "*** Cannot read value for Maximum Length Limits of Searching Segments correctly ***\n*** Use default value instead ***\n");
 								errors |= OPTION_INCORRECT;
-								Options.Max_Length = 0;
 							}
-							if (Options.Max_Length < 0) {
-								Options.Max_Length = 0;
-							}
+							Options.set_value("Max_Length", &ival);
 						}
 						break;
 					case 'n':
