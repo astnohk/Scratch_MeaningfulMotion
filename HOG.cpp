@@ -6,7 +6,6 @@ bool
 HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_PARAM &HOG_Param)
 {
 	ERROR Error("HistogramOfOrientedGradients");
-	const char *YesNo[2] = {"Yes", "No"};
 	double *magnitude = nullptr;
 	int *orient = nullptr;
 	SIZE size;
@@ -16,8 +15,8 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_P
 
 	// Show Parameters
 	printf("The number of Bins  : %d\n", HOG_Param.Bins);
-	printf("Compute HOG densely : %s\n", YesNo[HOG_Param.Dense]);
-	printf("Orientation signed  : %s\n\n", YesNo[HOG_Param.SignedOrient]);
+	printf("Compute HOG densely : %s\n", HOG_Param.Dense ? "Yes" : "No");
+	printf("Orientation signed  : %s\n\n", HOG_Param.SignedOrient ? "Yes" : "No");
 
 	size.width = Img.Width();
 	size.height = Img.Height();
