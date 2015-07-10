@@ -15,9 +15,9 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_P
 	SIZE distance(4, 4);
 
 	// Show Parameters
-	printf("The number of Bins of histogram : %d\n", HOG_Param.Bins);
+	printf("The number of Bins  : %d\n", HOG_Param.Bins);
 	printf("Compute HOG densely : %s\n", YesNo[HOG_Param.Dense]);
-	printf("Orientation signed : %s\n\n", YesNo[HOG_Param.SignedOrient]);
+	printf("Orientation signed  : %s\n\n", YesNo[HOG_Param.SignedOrient]);
 
 	size.width = Img.Width();
 	size.height = Img.Height();
