@@ -9,7 +9,7 @@ regexp(char *string)
 {
 	ERROR Error("regexp");
 
-	char *s = string;
+	char *s = nullptr;
 	char *start_after = nullptr;
 	char tmp[4 + REGEXP_MAX_DIGITS];
 	char *out = nullptr;
@@ -19,9 +19,22 @@ regexp(char *string)
 	unsigned int length = 0;
 	unsigned int i;
 
+	s = string;
 	while (*s != '\0' && *s != '#') {
 		len_before++;
 		s++;
+	}
+	if (*s == '\0') { // There are NO # in string
+		try {
+			out = new char[strlen(string) + 1u];
+		}
+		catch (const std::bad_alloc &bad) {
+			Error.Value("out");
+			Error.Malloc();
+			goto ExitError;
+		}
+		strcpy(out, string);
+		return out;
 	}
 	while (*s != '\0' && *s == '#') {
 		num_sharp++;
@@ -35,22 +48,6 @@ regexp(char *string)
 	if (num_sharp > REGEXP_MAX_DIGITS) {
 		Error.Others("Expression digits over REGEXP_MAX_DIGITS");
 		exit(EXIT_FAILURE);
-	} else if (num_sharp == 0) {
-		fprintf(stderr, "*** regexp - do nothing because the filename '%s' does not include '#' ***\n", string);
-		try {
-			out = new char[strlen(string) + 1u];
-		}
-		catch (const std::bad_alloc &bad) {
-			Error.Function("new");
-			Error.Value("out");
-			Error.Malloc();
-			goto ExitError;
-		}
-		for (i = 0; i < strlen(string); i++) {
-			out[i] = string[i];
-		}
-		string[i] = '\0';
-		return out;
 	}
 	sprintf(tmp, "%%0%ud", num_sharp);
 	length = len_before + strlen(tmp) + len_after;
@@ -58,7 +55,6 @@ regexp(char *string)
 		out = new char[length + 1];
 	}
 	catch (const std::bad_alloc &bad) {
-		Error.Function("new");
 		Error.Value("out");
 		Error.Malloc();
 		goto ExitError;

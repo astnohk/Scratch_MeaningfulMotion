@@ -450,21 +450,19 @@ main(int argc, char *argv[])
 		strcpy(argv[outf] + strlen(argv[outf]) - PPM_EXTENSION_LENGTH, "ppm");
 		printf("Output as %s line Superimpose on Original image\nChange output filename to \"%s\" due to --superimpose option\n", Superimpose_Color_List[(Options.Superimpose - 1) % OVERLAY_COLOR_PATTERNS].c_str(), argv[outf]);
 	}
+	// Regular expression
 	InputName = regexp(argv[inf]);
 	OutputName = regexp(argv[outf]);
+	// main routine
 	if (Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam)
 	    != MEANINGFUL_SUCCESS) {
 		fprintf(stderr, "*** FATAL main error - There are some error on Scratch_MeaningfulMotion() ***\n");
 		delete[] InputName;
-		InputName = nullptr;
 		delete[] OutputName;
-		OutputName = nullptr;
 		exit(EXIT_FAILURE);
 	}
 	delete[] OutputName;
-	OutputName = nullptr;
 	delete[] InputName;
-	InputName = nullptr;
 	return EXIT_SUCCESS;
 // Error
 ExitError:

@@ -176,17 +176,17 @@ void
 FILTER_PARAM::set_value(const char *name, const void *value)
 {
 	if (strcmp(name, "type") == 0) {
-		type = *(int *)value;
+		type = *static_cast<const int*>(value);
 		if (type < 0 || type >= NUM_FILTER_TYPE) {
 			type = 0;
 		}
 	} else if (strcmp(name, "std_deviation") == 0) {
-		std_deviation = *(double *)value;
+		std_deviation = *static_cast<const double*>(value);
 		if (std_deviation < .0) {
 			std_deviation = .0;
 		}
 	} else if (strcmp(name, "epsilon") == 0) {
-		epsilon = *(double *)value;
+		epsilon = *static_cast<const double*>(value);
 		if (epsilon < .0) {
 			epsilon = .0;
 		}
@@ -292,28 +292,28 @@ void
 MULTIPLE_MOTION_PARAM::set_value(const char *name, void *value)
 {
 	if (strcmp(name, "Level") == 0) {
-		Level = *(int *)value;
+		Level = *static_cast<const int*>(value);
 		if (Level < 1) {
 			Level = 1;
 		}
 	} else if (strcmp(name, "IRLS_Iter_Max") == 0) {
-		IRLS_Iter_Max = *(int *)value;
+		IRLS_Iter_Max = *static_cast<const int*>(value);
 		if (IRLS_Iter_Max < 0) {
 			IRLS_Iter_Max = 0;
 		}
 	} else if (strcmp(name, "Error_Min_Threshold") == 0) {
-		Error_Min_Threshold = *(double *)value;
+		Error_Min_Threshold = *static_cast<const double*>(value);
 		if (Error_Min_Threshold < .0) {
 			Error_Min_Threshold = .0;
 		}
 	} else if (strcmp(name, "lambdaD") == 0) {
-		lambdaD = *(double *)value;
+		lambdaD = *static_cast<const double*>(value);
 	} else if (strcmp(name, "lambdaS") == 0) {
-		lambdaS = *(double *)value;
+		lambdaS = *static_cast<const double*>(value);
 	} else if (strcmp(name, "sigmaD") == 0) {
-		sigmaD = *(double *)value;
+		sigmaD = *static_cast<const double*>(value);
 	} else if (strcmp(name, "sigmaS") == 0) {
-		sigmaS = *(double *)value;
+		sigmaS = *static_cast<const double*>(value);
 	} else {
 		fprintf(stderr, "*** MULTIPLE_MOTION_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}
@@ -347,14 +347,14 @@ void
 HOG_PARAM::set_value(const char *name, const void *value)
 {
 	if (strcmp(name, "Bins") == 0) {
-		Bins = *(int *)value;
+		Bins = *static_cast<const int*>(value);
 		if (Bins < 1) {
 			Bins = 1;
 		}
 	} else if (strcmp(name, "Dense") == 0) {
-		Dense = *(bool *)value;
+		Dense = *static_cast<const bool*>(value);
 	} else if (strcmp(name, "SignedOrient") == 0) {
-		SignedOrient = *(bool *)value;
+		SignedOrient = *static_cast<const bool*>(value);
 	} else {
 		fprintf(stderr, "*** HOG_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}
@@ -409,27 +409,27 @@ OPTIONS::set_default(const char *name)
 {
 	if (strcmp(name, "ResampleSize") == 0) {
 		ResampleSize.reset();
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "mode") == 0) {
 		mode = 0;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "Max_Length") == 0) {
 		Max_Length = 0;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "Max_Output_Length") == 0) {
 		Max_Output_Length = 0;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "ExclusivePrinciple") == 0) {
 		ExclusivePrinciple = false;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "Superimpose") == 0) {
 		Superimpose = 0;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "PlotOptions") == 0) {
 		PlotOptions = 0;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "s_med") == 0) {
 		s_med = SCRATCH_MED_THRESHOLD;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "s_avg") == 0) {
 		s_avg = SCRATCH_AVG_THRESHOLD;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "p") == 0) {
 		p = DIR_PROBABILITY;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "ep") == 0) {
 		ep = EPSILON;
-	} else if (strcmp(name, "") == 0) {
+	} else if (strcmp(name, "Exclusive_Max_Radius") == 0) {
 		Exclusive_Max_Radius = EXCLUSIVE_PRINCIPLE_MAX_RADIUS;
 	} else {
 		fprintf(stderr, "*** OPTIONS::set_default() error - There are NOT such a parameter '%s' ***\n", name);
@@ -440,29 +440,29 @@ void
 OPTIONS::set_value(const char *name, const void *value)
 {
 	if (strcmp(name, "ResampleSize") == 0) {
-		ResampleSize.set_size((SIZE *)value);
-	} else if (strcmp(name, "") == 0) {
-		mode = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		Max_Length = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		Max_Output_Length = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		ExclusivePrinciple = *(bool *)value;
-	} else if (strcmp(name, "") == 0) {
-		Superimpose = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		PlotOptions = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		s_med = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		s_avg = *(int *)value;
-	} else if (strcmp(name, "") == 0) {
-		p = *(double *)value;
-	} else if (strcmp(name, "") == 0) {
-		ep = *(double *)value;
-	} else if (strcmp(name, "") == 0) {
-		Exclusive_Max_Radius = *(double *)value;
+		ResampleSize.set_size(static_cast<const SIZE*>(value));
+	} else if (strcmp(name, "mode") == 0) {
+		mode = *static_cast<const int*>(value);
+	} else if (strcmp(name, "Max_Length") == 0) {
+		Max_Length = *static_cast<const int*>(value);
+	} else if (strcmp(name, "Max_Output_Length") == 0) {
+		Max_Output_Length = *static_cast<const int*>(value);
+	} else if (strcmp(name, "ExclusivePrinciple") == 0) {
+		ExclusivePrinciple = *static_cast<const bool*>(value);
+	} else if (strcmp(name, "Superimpose") == 0) {
+		Superimpose = *static_cast<const int*>(value);
+	} else if (strcmp(name, "PlotOptions") == 0) {
+		PlotOptions = *static_cast<const int*>(value);
+	} else if (strcmp(name, "s_med") == 0) {
+		s_med = *static_cast<const int*>(value);
+	} else if (strcmp(name, "s_avg") == 0) {
+		s_avg = *static_cast<const int*>(value);
+	} else if (strcmp(name, "p") == 0) {
+		p = *static_cast<const double*>(value);
+	} else if (strcmp(name, "ep") == 0) {
+		ep = *static_cast<const double*>(value);
+	} else if (strcmp(name, "Exclusive_Max_Radius") == 0) {
+		Exclusive_Max_Radius = *static_cast<const double*>(value);
 	} else {
 		fprintf(stderr, "*** OPTIONS::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}
