@@ -94,6 +94,7 @@ main(int argc, char *argv[])
 	char *strdivp = nullptr;
 	int ival;
 	double dval;
+	SIZE tmpsize;
 	int i, k;
 
 	for (i = 1; i < argc; i++) {
@@ -158,38 +159,30 @@ main(int argc, char *argv[])
 						strcpy(strtmp, argv[i]);
 						strdivp = strchr(strtmp, 'x');
 						if (strdivp != nullptr) {
-							if (sscanf(strdivp + 1, "%7d", &FilterParam.size.height) != 1) {
+							if (sscanf(strdivp + 1, "%7d", &tmpsize.height) != 1) {
 								Error.Function("sscanf");
-								Error.Value("FilterParam.size.height");
+								Error.Value("tmpsize.height");
 								Error.FunctionFail();
 								goto ExitError;
 							}
-							while (*strdivp != '\0') {
-								*strdivp = '\0';
-								strdivp++;
-							}
+							*strdivp = '\0';
 							strdivp = nullptr;
-							if (sscanf(strtmp, "%7d", &FilterParam.size.width) != 1) {
+							if (sscanf(strtmp, "%7d", &tmpsize.width) != 1) {
 								Error.Function("sscanf");
-								Error.Value("FilterParam.size.width");
+								Error.Value("tmpsize.width");
 								Error.FunctionFail();
 								goto ExitError;
 							}
 						} else {
-							if (sscanf(argv[i], "%7d", &FilterParam.size.width) != 1) {
+							if (sscanf(argv[i], "%7d", &tmpsize.width) != 1) {
 								fprintf(stderr, "*** Cannot read value for Filter Size correctly ***\n*** Use default value instead ***\n");
 								errors |= OPTION_INCORRECT;
-								FilterParam.size = GAUSSIAN_SIZE;
 							}
-							FilterParam.size.height = FilterParam.size.width;
+							tmpsize.height = tmpsize.width;
 						}
 						delete[] strtmp;
 						strtmp = nullptr;
-						if (FilterParam.size.width < 1) {
-							FilterParam.size.width = 1;
-						} else if (FilterParam.size.height < 1) {
-							FilterParam.size.height = 1;
-						}
+						FilterParam.set_value("size", &tmpsize);
 					}
 				} else if (strcmp(argv[i], "--filter_type") == 0) {
 					if (i + 1 >= argc) {
@@ -264,27 +257,25 @@ main(int argc, char *argv[])
 					} else {
 						i++;
 						if ((delimiter = strchr(argv[i], 'x')) == nullptr) {
-							if (sscanf(argv[i], "%7d", &Options.ResampleSize.height) != 1) {
+							if (sscanf(argv[i], "%7d", &tmpsize.height) != 1) {
 								fprintf(stderr, "*** Cannot read value for ResampleSize.height ***\n");
 								errors |= OPTION_INCORRECT;
-								Options.ResampleSize.height = 0;
 							}
-							Options.ResampleSize.width = Options.ResampleSize.height;
+							tmpsize.width = tmpsize.height;
 						} else {
 							c_tmp = *delimiter;
 							*delimiter = '\0'; // set end point of width
-							if (sscanf(argv[i], "%7d", &Options.ResampleSize.width) != 1) {
+							if (sscanf(argv[i], "%7d", &tmpsize.width) != 1) {
 								fprintf(stderr, "*** Cannot read value for ResampleSize.width ***\n");
 								errors |= OPTION_INCORRECT;
-								Options.ResampleSize.width = 0;
 							}
-							if (sscanf(delimiter + 1, "%7d", &Options.ResampleSize.height) != 1) {
+							if (sscanf(delimiter + 1, "%7d", &tmpsize.height) != 1) {
 								fprintf(stderr, "*** Cannot read value for ResampleSize.height ***\n");
 								errors |= OPTION_INCORRECT;
-								Options.ResampleSize.height = 0;
 							}
 							*delimiter = c_tmp; // recover original character
 						}
+						Options.set_value("ResampleSize", &tmpsize);
 					}
 				} else if (strcmp(argv[i], "--resample_method") == 0) {
 					if (i + 1 >= argc) {
