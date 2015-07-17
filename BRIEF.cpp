@@ -3,9 +3,32 @@
 
 
 
-int
-BRIEF(int *Img, SIZE size, int x, int y)
+bool
+BRIEF(BRIEF *Features, const PNM &Img)
 {
-	return 0;
+	ERROR Error("BRIEF");
+	BRIEF_Patch Patch;
+
+	if (Features == nullptr) {
+		Error.Value("Features");
+		Error.PointerNull();
+		goto ExitError;
+	}
+	BRIEF_MakePatch(&Patch);
+	return true;
+// Error
+ExitError:
+	return false;
+}
+
+bool
+BRIEF_MakePatch(BRIEF_Patch *Patch)
+{
+	ERROR Error("BRIEF_MakePatch");
+
+	return true;
+// Error
+ExitError:
+	return false;
 }
 
