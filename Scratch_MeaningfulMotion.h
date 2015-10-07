@@ -463,10 +463,11 @@ int TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *s
 int TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot);
 int TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE Img_size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot);
 int TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot);
-int Plot_3DPoint(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
-int Plot_3DPointANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
-int Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
+int Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
+int Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
+int Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
 void PlotParameters(X11_PARAM X11_Param);
+int Set_Pixmap2Window(void);
 int reset_index(int *Img_index, int N);
 int sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N);
 // /X11 Plotting

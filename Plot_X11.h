@@ -29,12 +29,4 @@ extern double sin_a[ROTATE_ANGLE_MAX];
 /* Other Parameters for Plot_X11 */
 #define DEFAULT_INTENSITY_INTERVAL 8
 #define DEFAULT_PLOT_Z_SCALE 0.1
-#define NUMBER_OF_MODE 3
-/* * Plot Mode */
-#define X11_Plot_Point 0
-#define X11_Plot_Point_A_Segment 1
-#define X11_Plot_Grid_A_Segment 2
-#define X11_Plot_Garaxy 3
-#define X11_Plot_GravityCorrupt 4
-/* * /Plot Mode */
 

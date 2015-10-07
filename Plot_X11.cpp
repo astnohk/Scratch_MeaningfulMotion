@@ -25,6 +25,27 @@ double cos_a[ROTATE_ANGLE_MAX];
 double sin_a[ROTATE_ANGLE_MAX];
 
 
+// Plot Modes
+#define NUMBER_OF_MODE 6
+#define NUMBER_OF_MODE_SELECTED_BY_SWITCH 4
+
+#define X11_Plot_Points 0
+#define X11_Plot_Points_And_Segments 1
+#define X11_Plot_Grid 2
+#define X11_Plot_Grid_And_Segments 3
+#define X11_Plot_Garaxy 4
+#define X11_Plot_GravityCorrupt 5
+const char *Plot_Mode[NUMBER_OF_MODE] = {
+    "Points",
+    "Points and Segments",
+    "Grid",
+    "Grid and Segments",
+    "Garaxy",
+    "Gravity Corruption"
+};
+
+
+
 
 int
 ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *segments, unsigned int Num_Segments)
@@ -48,11 +69,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	double X, Y;
 	unsigned int k;
 
-	if (segments == nullptr) {
-		Error.Value("segments");
-		Error.PointerNull();
-		goto ExitError;
-	} else if (MaxInt < 1) {
+	if (MaxInt < 1) {
 		Error.Value("MaxInt");
 		Error.ValueIncorrect();
 		goto ExitError;
@@ -180,7 +197,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 			}
 		}
 		switch (X11_Param.ModeSwitch) {
-			case X11_Plot_Point: // Plot Image Intensity with Points
+			case X11_Plot_Points: // Plot Image Intensity with Points
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
 				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
@@ -190,9 +207,9 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoint(X11_Param, Img, Img_plot, Img_index, Img_size);
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
 				break;
-			case X11_Plot_Point_A_Segment: // Plot Image Intensity with Points
+			case X11_Plot_Points_And_Segments: // Plot Image Intensity with Points
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
 				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
@@ -202,9 +219,21 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPointANDSegment(X11_Param, Img, Img_plot, Img_index, Img_size, segments_plot, Num_Segments);
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
+				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
 				break;
-			case X11_Plot_Grid_A_Segment: // Plot Image Intensity on Grid
+			case X11_Plot_Grid: // Plot Image Intensity on Grid
+				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
+				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+					Error.Function("reset_index");
+					Error.Value("Img_index");
+					Error.FunctionFail();
+					goto ExitError;
+				}
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
+				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index, Img_size);
+				break;
+			case X11_Plot_Grid_And_Segments: // Plot Image Intensity on Grid
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
 				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
 				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
@@ -214,7 +243,8 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DGridANDSegment(X11_Param, Img, Img_plot, Img_index, Img_size, segments_plot, Num_Segments);
+				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index, Img_size);
+				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
 				break;
 			case X11_Plot_Garaxy: // Plot Image Gravity Motion (Garaxy)
 				TransGaraxy_3DPoint(X11_Param, Img, Img_size, Img_coord, Img_vel, GaraxyCenter, Img_plot);
@@ -225,7 +255,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoint(X11_Param, Img, Img_plot, Img_index, Img_size);
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
 				break;
 			case X11_Plot_GravityCorrupt: // Plot Image Gravity Motion
 				TransGravity_3DPoint(X11_Param, Img, Img_size, Img_coord, Img_vel, Img_plot);
@@ -236,8 +266,10 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoint(X11_Param, Img, Img_plot, Img_index, Img_size);
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
 		}
+		PlotParameters(X11_Param);
+		Set_Pixmap2Window();
 		usleep(WAIT_TIME);
 	}
 
@@ -445,7 +477,8 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 				Current_Mice_Pos.y = event.xbutton.y;
 				break;
 			case KeyPress:
-				if ((key = XLookupKeysym(&event.xkey, 0)) == XK_Escape) {
+				if ((key = XLookupKeysym(&event.xkey, 0)) == XK_Escape
+				    || key == XK_q) {
 					return X_ESCAPE;
 				}
 				switch (key) {
@@ -457,7 +490,7 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 						X11_Param->Scale = Window_size.width * 0.8 / Img_size.width;
 						X11_Param->Plot_Z_Scale = DEFAULT_PLOT_Z_SCALE;
 						break;
-					case XK_q: // Reset all
+					case XK_y: // Reset all
 						X11_Param->Longitude = X11_Param->Latitude = 0;
 						X11_Param->Center_x = Img_size.width / 2;
 						X11_Param->Center_y = Img_size.height / 2;
@@ -469,16 +502,16 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 						X11_Param->RotateSwitch = 0;
 						break;
 					case XK_c:
-						X11_Param->ModeSwitch = X11_Plot_GravityCorrupt;
+						X11_Param->ModeSwitch = X11_Param->ModeSwitch != X11_Plot_GravityCorrupt ? X11_Plot_GravityCorrupt : 0;
 						break;
 					case XK_f:
 						X11_Param->FillSwitch = !X11_Param->FillSwitch;
 						break;
 					case XK_g:
-						X11_Param->ModeSwitch = X11_Plot_Garaxy;
+						X11_Param->ModeSwitch = X11_Param->ModeSwitch != X11_Plot_Garaxy ? X11_Plot_Garaxy : 0;
 						break;
 					case XK_m:
-						X11_Param->ModeSwitch = (X11_Param->ModeSwitch + 1) % NUMBER_OF_MODE;
+						X11_Param->ModeSwitch = (X11_Param->ModeSwitch + 1) % NUMBER_OF_MODE_SELECTED_BY_SWITCH;
 						break;
 					case XK_r:
 						X11_Param->RotateSwitch = (X11_Param->RotateSwitch + 1) % 5;
@@ -518,10 +551,10 @@ TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segme
 	double Scale_x = 1.0;
 	double Scale_y = 1.0;
 
-	if (segments == nullptr) {
-		Error.Value("segments");
-		Error.PointerNull();
-		goto ExitError;
+	if (Num_Segments < 1) {
+		// Do NOT anything
+		segments_plot = nullptr;
+		return MEANINGFUL_SUCCESS;
 	} else if (segments_plot == nullptr) {
 		Error.Value("segments_plot");
 		Error.PointerNull();
@@ -739,10 +772,9 @@ ExitError:
 
 
 int
-Plot_3DPoint(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
+Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
 {
 	ERROR Error("Plot_3DPoint");
-	XEvent noev;
 	int Min_Intensity, Max_Intensity;
 	SIZE rectsize;
 	int index;
@@ -798,11 +830,6 @@ Plot_3DPoint(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZ
 			}
 		}
 	}
-	// Show Parameters
-	PlotParameters(X11_Param);
-	// Copy pixmap to the window
-	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
-	XMaskEvent(disp, ExposureMask, &noev);
 	return MEANINGFUL_SUCCESS;
 // Error
 ExitError:
@@ -811,107 +838,15 @@ ExitError:
 
 
 int
-Plot_3DPointANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
-{
-	ERROR Error("Plot_3DPointANDSegment");
-	XEvent noev;
-	int Min_Intensity, Max_Intensity;
-	SIZE rectsize;
-	int index;
-	int i;
-	unsigned int n;
-
-	if (Img == nullptr) {
-		Error.Value("Img");
-		Error.PointerNull();
-		goto ExitError;
-	} else if (Img_plot == nullptr) {
-		Error.Value("Img_plot");
-		Error.PointerNull();
-		goto ExitError;
-	} else if (segments_plot == nullptr) {
-		Error.Value("segments_plot");
-		Error.PointerNull();
-		goto ExitError;
-	}
-
-	rectsize.width = MAX(1, round(X11_Param.Scale * 0.25));
-	rectsize.height = MAX(1, floor(X11_Param.Scale * 0.25));
-	// Scan Intensity MIN and MAX
-	Min_Intensity = Max_Intensity = Img[0];
-	for (i = 1; i < size.width * size.height; i++) {
-		if (Img[i] < Min_Intensity) {
-			Min_Intensity = Img[i];
-		} else if (Img[i] > Max_Intensity) {
-			Max_Intensity = Img[i];
-		}
-	}
-	// Fill the window with Black
-	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
-	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
-	// Draw The Points
-	for (i = 0; i < size.width * size.height; i++) {
-		index = Img_index[i];
-		if (0 <= Img_plot[index].point.x && Img_plot[index].point.x < Window_size.width
-		    && 0 <= Img_plot[index].point.y && Img_plot[index].point.y < Window_size.height) {
-			if (Img[index] > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
-				if (rectsize.width == 1) {
-					XDrawPoint(disp, pix, GCcol[0], Img_plot[index].point.x, Img_plot[index].point.y);
-				} else {
-					XFillRectangle(disp, pix, GCcol[0], Img_plot[index].point.x, Img_plot[index].point.y, rectsize.width, rectsize.height);
-				}
-			} else if (Img[index] > (Max_Intensity - Min_Intensity) * 0.25 + Min_Intensity) {
-				if (rectsize.width == 1) {
-					XDrawPoint(disp, pix, GCcol[1], Img_plot[index].point.x, Img_plot[index].point.y);
-				} else {
-					XFillRectangle(disp, pix, GCcol[1], Img_plot[index].point.x, Img_plot[index].point.y, rectsize.width, rectsize.height);
-				}
-			} else {                                                                         
-				if (rectsize.width == 1) {
-					XDrawPoint(disp, pix, GCcol[2], Img_plot[index].point.x, Img_plot[index].point.y);
-				} else {
-					XFillRectangle(disp, pix, GCcol[2], Img_plot[index].point.x, Img_plot[index].point.y, rectsize.width, rectsize.height);
-				}
-			}
-		}
-		if (X11_Param.Scale < 1.0) {
-			i += round(1.0 / X11_Param.Scale);
-			i = i % size.width;
-			i--;
-		}
-	}
-	// Draw The Segments
-	// * Set Line width
-	XSetLineAttributes(disp, GCcol[0], MAX(1, (int)round(X11_Param.Scale * 0.5)), LineSolid, CapNotLast, JoinMiter);
-	for (n = 0; n < Num_Segments; n++) {
-		XDrawLine(disp, pix, GCcol[0], segments_plot[n].start.x, segments_plot[n].start.y, segments_plot[n].end.x, segments_plot[n].end.y);
-	}
-	// * Reset Line width
-	XSetLineAttributes(disp, GCcol[0], 0, LineSolid, CapNotLast, JoinMiter);
-	// Show Parameters
-	PlotParameters(X11_Param);
-	// Copy pixmap to the window
-	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
-	XMaskEvent(disp, ExposureMask, &noev);
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
-}
-
-
-int
-Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
+Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
 {
 	ERROR Error("Plot_3DGridANDSegment");
 	XPoint Triplet[8];
-	XEvent noev;
 	int Min_Intensity, Max_Intensity;
 	int local_Min, local_Max;
 	int local_Min2, local_Max2;
 	short x, y;
 	int n, i;
-	unsigned int num;
 	int count1, count2;
 
 	if (Img == nullptr) {
@@ -924,10 +859,6 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 		goto ExitError;
 	} else if (Img_index == nullptr) {
 		Error.Value("Img_index");
-		Error.PointerNull();
-		goto ExitError;
-	} else if (segments_plot == nullptr) {
-		Error.Value("segments_plot");
 		Error.PointerNull();
 		goto ExitError;
 	}
@@ -1052,6 +983,21 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 			}
 		}
 	}
+	return MEANINGFUL_SUCCESS;
+// Error
+ExitError:
+	return MEANINGFUL_FAILURE;
+}
+
+
+int
+Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
+{
+	unsigned int num;
+
+	if (Num_Segments < 1) {
+		return MEANINGFUL_SUCCESS;
+	}
 	// Draw The Segments
 	// * Set Line width
 	XSetLineAttributes(disp, GCcol[0], MAX(1, (int)round(X11_Param.Scale * 0.5)), LineSolid, CapNotLast, JoinMiter);
@@ -1060,15 +1006,7 @@ Plot_3DGridANDSegment(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_i
 	}
 	// * Reset Line width
 	XSetLineAttributes(disp, GCcol[0], 0, LineSolid, CapNotLast, JoinMiter);
-	// Show Parameters
-	PlotParameters(X11_Param);
-	// Copy pixmap to the window
-	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
-	XMaskEvent(disp, ExposureMask, &noev);
 	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
@@ -1080,37 +1018,53 @@ PlotParameters(X11_PARAM X11_Param)
 
 	XSetForeground(disp, GCmono, WhitePixel(disp, 0));
 	sprintf(Str, "Center (%.2f, %.2f), Latitude %d, Longitude %d, Scale %.2f, WinSize (%d, %d)", X11_Param.Center_x, X11_Param.Center_y, X11_Param.Latitude, X11_Param.Longitude, X11_Param.Scale, Window_size.width, Window_size.height);
-	XDrawString(disp, pix, GCmono, 3, 12, Str, strlen(Str));
-	sprintf(Str, "Reset Vision : 0, Reset all : q");
-	XDrawString(disp, pix, GCmono, 3, 24, Str, strlen(Str));
+	XDrawString(disp, pix, GCmono, 4, 12, Str, strlen(Str));
+	sprintf(Str, "[0] Reset Vision, [y] Reset all");
+	XDrawString(disp, pix, GCmono, 4, 24, Str, strlen(Str));
+	// Switches mode
+	sprintf(Str, "[m]ode :");
+	XDrawString(disp, pix, GCmono, 4, Window_size.height - 27, Str, strlen(Str));
+	XDrawString(disp, pix, GCmono, 60, Window_size.height - 27, Plot_Mode[X11_Param.ModeSwitch], strlen(Plot_Mode[X11_Param.ModeSwitch]));
+	// Switches
 	sprintf(Str, "[r]otate");
 	if (X11_Param.RotateSwitch != 0) {
 		if (X11_Param.RotateSwitch <= 2) {
-			XDrawString(disp, pix, GCcol[1], 3, Window_size.height - 12, Str, strlen(Str));
+			XDrawString(disp, pix, GCcol[1], 4, Window_size.height - 8, Str, strlen(Str));
 		} else {
-			XDrawString(disp, pix, GCcol[0], 3, Window_size.height - 12, Str, strlen(Str));
+			XDrawString(disp, pix, GCcol[0], 4, Window_size.height - 8, Str, strlen(Str));
 		}
 	} else {
-		XDrawString(disp, pix, GCmono, 3, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 4, Window_size.height - 8, Str, strlen(Str));
 	}
 	sprintf(Str, "[f]ill_grid");
 	if (X11_Param.FillSwitch != 0) {
-		XDrawString(disp, pix, GCcol[0], 60, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCcol[0], 64, Window_size.height - 8, Str, strlen(Str));
 	} else {
-		XDrawString(disp, pix, GCmono, 60, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 64, Window_size.height - 8, Str, strlen(Str));
 	}
 	sprintf(Str, "[g]araxy");
 	if (X11_Param.ModeSwitch == X11_Plot_Garaxy) {
-		XDrawString(disp, pix, GCcol[0], 135, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCcol[0], 142, Window_size.height - 8, Str, strlen(Str));
 	} else {
-		XDrawString(disp, pix, GCmono, 135, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 142, Window_size.height - 8, Str, strlen(Str));
 	}
 	sprintf(Str, "[c]orrupt");
 	if (X11_Param.ModeSwitch == X11_Plot_GravityCorrupt) {
-		XDrawString(disp, pix, GCcol[0], 192, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCcol[0], 202, Window_size.height - 8, Str, strlen(Str));
 	} else {
-		XDrawString(disp, pix, GCmono, 192, Window_size.height - 12, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 202, Window_size.height - 8, Str, strlen(Str));
 	}
+}
+
+
+int
+Set_Pixmap2Window(void)
+{
+	XEvent noev;
+	// Copy pixmap to the window
+	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
+	XMaskEvent(disp, ExposureMask, &noev);
+	return MEANINGFUL_SUCCESS;
 }
 
 

@@ -338,6 +338,9 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					goto ExitError;
 				}
 				printf("* Compute Segments and Maximal Meaningfulness\n");
+				if (MaximalSegments == nullptr) {
+					delete[] MaximalSegments;
+				}
 				MaximalSegments = AlignedSegment_vertical(angles, size, k_list, l_min, Pr_table, &Num_Segments, Options.Max_Length, Options.Max_Output_Length);
 				if (MaximalSegments == nullptr) {
 					Error.Function("AlignedSegment_vertical");
@@ -393,20 +396,20 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size_out.width, size_out.height, pnm_orig.MaxInt(), segments);
 				}
 
-				// X11 Plotting
-				ShowSegments_X11(pnm_orig.Data(), size_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
-				// /X11 Plotting
 
 				delete[] segments;
 				segments = nullptr;
 				delete[] angles;
 				angles = nullptr;
-				delete[] MaximalSegments;
-				MaximalSegments = nullptr;
 			}
 			delete[] scratches;
 			scratches = nullptr;
 		}
+		// X11 Plotting
+		ShowSegments_X11(pnm_orig.Data(), size_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
+		// /X11 Plotting
+		delete[] MaximalSegments;
+		MaximalSegments = nullptr;
 Write:
 		if (strchr(OutputName, '%') == nullptr) {
 			OutputNameNums = OutputName;
