@@ -122,6 +122,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	int L;
 	double dx, dy;
 	SEGMENT *array_segment = nullptr;
+	std::list<FRAGMENT>* list_fragment = nullptr;
 	std::list<SEGMENT> list_segment;
 	std::list<SEGMENT>::iterator itr_segment;
 	double progress;
@@ -143,7 +144,7 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	progress = .0;
 	current_count = 0;
 	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
-#pragma omp parallel for schedule(dynamic) private(r, x, y, dx, dy)
+#pragma omp parallel for schedule(dynamic) private(list_fragment, r, x, y, dx, dy)
 	for (n = 0; n < size.width; n++) {
 		for (r = 0; r < DIV_ANGLE; r++) {
 			// Upper side to Other 3 sides (n, 0) -> (x, y)
@@ -155,11 +156,21 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 				dy = round(-n * tan_list[r]);
 			}
 			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
-			if (AlignedCheck(angles, size, k_list, Pr_table, &list_segment, l_min, 0, n, x, y, Max_Length, Max_Output_Length)
-			    != MEANINGFUL_SUCCESS) {
+			list_fragment = AlignedCheck(angles, size, k_list, Pr_table, l_min, 0, n, x, y, Max_Length);
+			if (list_fragment == nullptr) {
 				printf("error\n");
 				ErrorDescription = "Occured at Upper side to Other 3 sides";
 				break;
+			}
+			if (MaximalMeaningfulness(&list_segment, list_fragment, 0, n, x, y, Max_Output_Length) != MEANINGFUL_SUCCESS) {
+				printf("error\n");
+				ErrorDescription = "Occured at Bottom side to Other 3 sides";
+				break;
+			}
+			if (list_fragment != nullptr) {
+				list_fragment->clear();
+				delete list_fragment;
+				list_fragment = nullptr;
 			}
 			// Bottom side to Other 3 sides (n, size.height) -> (x, y)
 			dx = n + round(-(size.height - 1) / tan_list[r]);
@@ -170,11 +181,21 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 				dy = size.height - 1 + round((size.width - 1 - n) * tan_list[r]);
 			}
 			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
-			if (AlignedCheck(angles, size, k_list, Pr_table, &list_segment, l_min, size.height - 1, n, x, y, Max_Length, Max_Output_Length)
-			    != MEANINGFUL_SUCCESS) {
+			list_fragment = AlignedCheck(angles, size, k_list, Pr_table, l_min, size.height - 1, n, x, y, Max_Length);
+			if (list_fragment == nullptr) {
 				printf("error\n");
 				ErrorDescription = "Occured at Bottom side to Other 3 sides";
 				break;
+			}
+			if (MaximalMeaningfulness(&list_segment, list_fragment, size.height - 1, n, x, y, Max_Output_Length) != MEANINGFUL_SUCCESS) {
+				printf("error\n");
+				ErrorDescription = "Occured at Bottom side to Other 3 sides";
+				break;
+			}
+			if (list_fragment != nullptr) {
+				list_fragment->clear();
+				delete list_fragment;
+				list_fragment = nullptr;
 			}
 #pragma omp critical
 			{
@@ -223,15 +244,12 @@ ExitError:
 }
 
 
-int
-AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list<SEGMENT>* list_segment, int l_min, int m, int n, int x, int y, int Max_Length, int Max_Output_Length)
+std::list<FRAGMENT> *
+AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length)
 {
 	ERROR Error("AlignedCheck");
 	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
-	std::list<FRAGMENT> list_fragment;
-	std::list<FRAGMENT>::iterator itr_fragment;
-	std::list<FRAGMENT>::iterator fragment_ref;
-	std::list<FRAGMENT>::iterator fragment_cur;
+	std::list<FRAGMENT>* list_fragment = nullptr;
 	FRAGMENT fragment_data;
 	SEGMENT segment_data;
 	double Pr_max, Pr_new;
@@ -252,6 +270,15 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 	}
 	dx = (x - n) / (double)(L - 1.0);
 	dy = (y - m) / (double)(L - 1.0);
+	try {
+		list_fragment = new std::list<FRAGMENT>;
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Function("new");
+		Error.Value("list_fragment");
+		Error.Malloc();
+		goto ExitError;
+	}
 	for (t_start = 0; t_start <= L - l_min; t_start++) {
 		int tmpx, tmpy;
 		tmpx = (int)round(dx * t_start + n);
@@ -268,7 +295,7 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 					if (t_end_max > 0 && t_end_max - t_start + 1 <= Max_Length && t_end - t_start + 1 > Max_Length) {
 						// The length of the segment EXCEEDS the length limit
 						fragment_data = (FRAGMENT){t_start, t_end_max, Pr_max};
-						list_fragment.push_front(fragment_data);
+						list_fragment->push_front(fragment_data);
 						// Reset "t_end_max" but keep "Pr_max" to search the Longer Segments as if the process not limited by Length.
 						t_end_max = 0;
 					}
@@ -304,32 +331,63 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 			}
 			if (t_end_max > 0) {
 				fragment_data = (FRAGMENT){t_start, t_end_max, Pr_max};
-				list_fragment.push_front(fragment_data);
+				list_fragment->push_front(fragment_data);
 			}
 		}
 	}
+	return list_fragment;
+// Error
+ExitError:
+	if (list_fragment != nullptr) {
+		list_fragment->clear();
+		delete list_fragment;
+	}
+	return nullptr;
+}
+
+
+int
+MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length)
+{
+	std::list<FRAGMENT>::iterator itr_fragment;
+	std::list<FRAGMENT>::iterator fragment_ref;
+	std::list<FRAGMENT>::iterator fragment_cur;
+	int L;
+	double dx, dy;
+	SEGMENT segment_data;
+
+	if (list_fragment == nullptr) {
+		return MEANINGFUL_SUCCESS;
+	}
+	if (abs(x - n) > abs(y - m)) {
+		L = abs(x - n) + 1;
+	} else {
+		L = abs(y - m) + 1;
+	}
+	dx = (x - n) / (double)(L - 1.0);
+	dy = (y - m) / (double)(L - 1.0);
 	// Maximal Meaningfulness
-	for (fragment_ref = list_fragment.begin();
-	    fragment_ref != list_fragment.end();
+	for (fragment_ref = list_fragment->begin();
+	    fragment_ref != list_fragment->end();
 	    ++fragment_ref) {
-		fragment_cur = list_fragment.begin();
-		while (fragment_ref != list_fragment.end()
-		    && fragment_cur != list_fragment.end()) {
+		fragment_cur = list_fragment->begin();
+		while (fragment_ref != list_fragment->end()
+		    && fragment_cur != list_fragment->end()) {
 			if (fragment_cur == fragment_ref) {
 				++fragment_cur;
 			} else if (fragment_ref->start <= fragment_cur->start && fragment_cur->end <= fragment_ref->end) {
 				// Delete the fragment which has higher probability
 				if (fragment_ref->Pr <= fragment_cur->Pr) {
-					fragment_cur = list_fragment.erase(fragment_cur);
+					fragment_cur = list_fragment->erase(fragment_cur);
 				} else {
-					fragment_ref = list_fragment.erase(fragment_ref);
+					fragment_ref = list_fragment->erase(fragment_ref);
 				}
 			} else if (fragment_cur->start <= fragment_ref->start && fragment_ref->end <= fragment_cur->end) {
 				// Delete the fragment which has higher probability
 				if (fragment_cur->Pr <= fragment_ref->Pr) {
-					fragment_ref = list_fragment.erase(fragment_ref);
+					fragment_ref = list_fragment->erase(fragment_ref);
 				} else {
-					fragment_cur = list_fragment.erase(fragment_cur);
+					fragment_cur = list_fragment->erase(fragment_cur);
 				}
 			} else {
 				++fragment_cur;
@@ -337,8 +395,8 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 		}
 	}
 	// Write out to coord_list
-	for (itr_fragment = list_fragment.begin();
-	    itr_fragment != list_fragment.end();
+	for (itr_fragment = list_fragment->begin();
+	    itr_fragment != list_fragment->end();
 	    ++itr_fragment) {
 		// If Max_Output_Length <= 0 then Do NOT Limit The Length of Segments
 		if (Max_Output_Length <= 0
@@ -355,7 +413,6 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, std::list
 			}
 		}
 	}
-	list_fragment.clear();
 	return MEANINGFUL_SUCCESS;
 }
 

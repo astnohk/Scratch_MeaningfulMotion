@@ -877,8 +877,8 @@ Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE
 	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
 	// Draw The Grid
 	for (n = 0; n < size.width * size.height; n++) {
-		x = n % size.width;
-		y = n / size.width;
+		x = Img_index[n] % size.width;
+		y = Img_index[n] / size.width;
 		if (x == size.width - 1 || y == size.height - 1) {
 			continue;
 		}
