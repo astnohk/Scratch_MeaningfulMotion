@@ -10,6 +10,8 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	int *IndexMap = nullptr;
 	SEGMENT *MaxEPSegments = nullptr;
 
+	PNM pnm;
+
 	// Compute Exclusive Index Map
 	IndexMap = ExclusiveIndexMap(size, MaximalSegments, Num_Segments, Exclusive_max_radius);
 	if (IndexMap == nullptr) {
@@ -19,6 +21,12 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		goto ExitError;
 	}
 	printf("\nComplete!\n");
+	// DEBUG : Output IndexMap
+	pnm.copy(PORTABLE_GRAYMAP_ASCII, size.width, size.height, (*Num_Segments) - 1, IndexMap);
+	if (pnm.write("IndexMap.pgm") == PNM_FUNCTION_ERROR) {
+		fprintf(stderr, "*** ExclusivePrinciple error - CanNOT write out the IndexMap to \"IndexMap.pgm\" ***\n");
+	}
+	pnm.free();
 	// Select the segments which satisfy The Maximal Exclusive Principle
 	MaxEPSegments = ExclusiveSegments(IndexMap, angles, size, MaximalSegments, Num_Segments, k_list, Pr_table);
 	if (MaxEPSegments == nullptr) {
@@ -28,6 +36,8 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		goto ExitError;
 	}
 	printf("\nComplete!\n");
+	delete[] IndexMap;
+	IndexMap = nullptr;
 	return MaxEPSegments;
 // Error
 ExitError:
@@ -67,7 +77,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 		goto ExitError;
 	}
 	try {
-		Lines = new LINEPOLE[*Num_Segments];
+		Lines = new LINEPOLE[(*Num_Segments)];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -148,7 +158,6 @@ ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegm
 
 	double *EPSegments_Pr = nullptr;
 	int Num_EPSegments = 0;
-	PNM pnm;
 
 	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
 	int maxMN = (size.height > size.width ? size.height : size.width);
@@ -165,7 +174,7 @@ ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegm
 	int present_count;
 
 	try {
-		EPSegments_Pr = new double[*Num_Segments];
+		EPSegments_Pr = new double[(*Num_Segments)];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -223,14 +232,7 @@ ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegm
 			}
 		}
 	}
-	pnm.copy(PORTABLE_GRAYMAP_ASCII, size.width, size.height, *Num_Segments - 1, IndexMap);
-	if (pnm.write("IndexMap.pgm") == PNM_FUNCTION_ERROR) {
-		fprintf(stderr, "*** ExclusivePrinciple error - CanNOT write out the IndexMap to \"IndexMap.pgm\" ***\n");
-		// Do NOT EXIT because it is NOT FATAL ERROR
-	}
-	pnm.free();
-	delete[] IndexMap;
-	IndexMap = nullptr;
+	// Make the maximal exclusive principle segments list
 	try {
 		MaxEPSegments = new SEGMENT[Num_EPSegments];
 	}

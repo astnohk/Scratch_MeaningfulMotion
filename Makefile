@@ -8,7 +8,7 @@ OPTION_STDCPP11 = -std=c++11
 LIBRARY_CFILES = lib/Library.cpp lib/ImgLibrary.cpp
 MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Exclusive.cpp
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow_MultipleMotion.cpp
-HOG_CFILES = HOG/HOG.cpp, HOG/HOG_class.cpp HOG/HOG_match.cpp
+HOG_CFILES = HOG/HOG.cpp HOG/HOG_class.cpp HOG/HOG_match.cpp
 PLOT_CFILES = Plot/Plotting.cpp Plot/Plot_X11.cpp Plot/Plot_X11_Struct.cpp
 PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
 
