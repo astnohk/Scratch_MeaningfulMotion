@@ -29,8 +29,8 @@
 
 #define MEANINGFUL_TRUE 1
 #define MEANINGFUL_FALSE 0
-#define MEANINGFUL_SUCCESS 1
-#define MEANINGFUL_FAILURE 0
+#define MEANINGFUL_SUCCESS true
+#define MEANINGFUL_FAILURE false
 
 
 // C++
@@ -42,7 +42,7 @@
 #include <iostream>
 #include <list>
 #include <string>
-#include "pnm.h"
+#include "PNM/pnm.h"
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
@@ -447,29 +447,31 @@ double* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM F
 // Meaningful Alignments
 SEGMENT* AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
 std::list<FRAGMENT>* AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length);
-int MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length);
+bool MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length);
 SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
+int* ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
+SEGMENT* ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table);
 
 // Plotting
 int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
-int Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate);
+bool Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate);
 
 
 // X11 Plotting
-int ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
-int Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
+bool ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
+bool Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
 int XEventor(X11_PARAM *X11_Param, SIZE Img_size);
 void SwitchEventer(X11_PARAM *X11_Param);
-int TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample);
-int TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot);
-int TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE Img_size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot);
-int TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot);
-int Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
-int Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
-int Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
+bool TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample);
+bool TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot);
+bool TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE Img_size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot);
+bool TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot);
+bool Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
+bool Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
+bool Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
 void PlotParameters(X11_PARAM X11_Param);
-int Set_Pixmap2Window(void);
-int reset_index(int *Img_index, int N);
-int sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N);
+bool Set_Pixmap2Window(void);
+bool reset_index(int *Img_index, int N);
+bool sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N);
 // /X11 Plotting
 

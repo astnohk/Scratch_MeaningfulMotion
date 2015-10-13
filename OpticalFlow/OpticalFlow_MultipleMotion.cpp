@@ -4,8 +4,7 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-#include "Scratch_MeaningfulMotion.h"
-#include "MultiResolution.h"
+#include "../Scratch_MeaningfulMotion.h"
 #include "OpticalFlow_MultipleMotion.h"
 
 
@@ -215,7 +214,7 @@ LevelDown(VECTOR_2D *u_l, SIZE size_l, VECTOR_2D *u_lp1, const SIZE &size_lp1)
 }
 
 
-int
+bool
 IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
@@ -392,7 +391,7 @@ Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, const SIZE &
 }
 
 
-int
+bool
 MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename)
 {
 	ERROR Error("MultipleMotion_write");

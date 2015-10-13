@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulMotion.h"
+#include "../Scratch_MeaningfulMotion.h"
 
 #define DEBUG_FILTER
 
@@ -110,7 +110,7 @@ ExitError:
 }
 
 
-SEGMENT*
+SEGMENT *
 AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_Segments, int Max_Length, int Max_Output_Length)
 {
 	ERROR Error("AlignedSegment_vertical");
@@ -128,6 +128,23 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	double progress;
 	int current_count;
 
+	if (angles == nullptr) {
+		Error.Value("angles");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (k_list == nullptr) {
+		Error.Value("k_list");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Pr_table == nullptr) {
+		Error.Value("Pr_table");
+		Error.PointerNull();
+		goto ExitError;
+	} else if (Num_Segments == nullptr) {
+		Error.Value("Num_Segments");
+		Error.PointerNull();
+		goto ExitError;
+	}
 	printf("- Search only the segments that satisfy\n\tlength > %d", l_min);
 	if (Max_Length > 0) {
 		printf(" AND length <= %d", Max_Length);
@@ -346,7 +363,7 @@ ExitError:
 }
 
 
-int
+bool
 MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length)
 {
 	std::list<FRAGMENT>::iterator itr_fragment;

@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulMotion.h"
+#include "../Scratch_MeaningfulMotion.h"
 
 //#define SHOW_GAUSSIAN_FILTER
 
@@ -332,7 +332,7 @@ DerivativeAngler(double *img, SIZE size)
 		goto ExitError;
 	}
 	try {
-		angles = new double[size.height * size.width];
+		angles = new double[size.width * size.height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");

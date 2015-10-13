@@ -1,4 +1,4 @@
-#include "Scratch_MeaningfulMotion.h"
+#include "../Scratch_MeaningfulMotion.h"
 #include "Plot_X11.h"
 
 /* Coordinate System
@@ -47,7 +47,7 @@ const char *Plot_Mode[NUMBER_OF_MODE] = {
 
 
 
-int
+bool
 ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *segments, unsigned int Num_Segments)
 {
 	ERROR Error("ShowBounds_X11");
@@ -313,7 +313,7 @@ ExitError:
 }
 
 
-int
+bool
 Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 {
 	ERROR Error("Init_X11()");
@@ -542,7 +542,7 @@ SwitchEventer(X11_PARAM *X11_Param)
 }
 
 
-int
+bool
 TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample)
 {
 	ERROR Error("TransRotate_3DSegment");
@@ -589,7 +589,7 @@ ExitError:
 }
 
 
-int
+bool
 TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot)
 {
 	ERROR Error("TransRotate_3DPoint");
@@ -624,7 +624,7 @@ ExitError:
 }
 
 
-int
+bool
 TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot)
 {
 	ERROR Error("TransGaraxy_3DPoint");
@@ -684,7 +684,7 @@ ExitError:
 }
 
 
-int
+bool
 TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot)
 {
 	ERROR Error("TransGravity_3DPoint");
@@ -771,7 +771,7 @@ ExitError:
 }
 
 
-int
+bool
 Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
 {
 	ERROR Error("Plot_3DPoint");
@@ -837,7 +837,7 @@ ExitError:
 }
 
 
-int
+bool
 Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
 {
 	ERROR Error("Plot_3DGridANDSegment");
@@ -990,7 +990,7 @@ ExitError:
 }
 
 
-int
+bool
 Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
 {
 	unsigned int num;
@@ -1057,7 +1057,7 @@ PlotParameters(X11_PARAM X11_Param)
 }
 
 
-int
+bool
 Set_Pixmap2Window(void)
 {
 	XEvent noev;
@@ -1068,7 +1068,7 @@ Set_Pixmap2Window(void)
 }
 
 
-int
+bool
 reset_index(int *Img_index, int N)
 {
 	ERROR Error("reset_index");
@@ -1089,7 +1089,7 @@ ExitError:
 }
 
 
-int
+bool
 sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N)
 {
 	ERROR Error("sort_index");

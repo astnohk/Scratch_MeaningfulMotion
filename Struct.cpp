@@ -1,6 +1,5 @@
 // Definition of The Constructors and The Member functions of struct
 #include "Scratch_MeaningfulMotion.h"
-#include "Plot_X11.h"
 
 
 
@@ -466,56 +465,5 @@ OPTIONS::set_value(const char *name, const void *value)
 	} else {
 		fprintf(stderr, "*** OPTIONS::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}
-}
-
-
-
-X11_PARAM::X11_PARAM(void)
-{
-	Int_interval = 1;
-	Latitude = 0;
-	Longitude = 0;
-	Center_x = .0;
-	Center_y = .0;
-	Center_z = .0;
-	Scale = 1.0;
-	Plot_Z_Scale = DEFAULT_PLOT_Z_SCALE;
-	RotateSwitch = 0;
-	ModeSwitch = 0;
-	FillSwitch = 0;
-}
-
-SEGMENT_X11::SEGMENT_X11(void)
-{
-	start = (XPoint){0, 0};
-	end = (XPoint){0, 0};
-}
-
-COORDINATE_3D::COORDINATE_3D(void)
-{
-	x = .0;
-	y = .0;
-	z = .0;
-}
-
-COORDINATE_3D::COORDINATE_3D(double ix, double iy, double iz)
-{
-	x = ix;
-	y = iy;
-	z = iz;
-}
-
-void
-COORDINATE_3D::set(double sx, double sy, double sz)
-{
-	x = sx;
-	y = sy;
-	z = sz;
-}
-
-XPLOT::XPLOT(void)
-{
-	point = (XPoint){0, 0};
-	z = .0;
 }
 

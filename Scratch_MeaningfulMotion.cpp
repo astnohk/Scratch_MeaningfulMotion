@@ -1,7 +1,7 @@
 #include "Scratch_MeaningfulMotion.h"
-#include "Affine_MultipleMotion.h"
-#include "OpticalFlow_MultipleMotion.h"
-#include "HOG.h"
+#include "OpticalFlow/Affine_MultipleMotion.h"
+#include "OpticalFlow/OpticalFlow_MultipleMotion.h"
+#include "HOG/HOG.h"
 
 
 

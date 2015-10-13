@@ -1,8 +1,8 @@
-#include "Scratch_MeaningfulMotion.h"
+#include "../Scratch_MeaningfulMotion.h"
 
 
 
-int*
+int *
 PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate)
 {
 	ERROR Error("PlotSegment");
@@ -54,7 +54,7 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 }
 
 
-int
+bool
 Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate)
 {
 	ERROR Error("Superimposer");
