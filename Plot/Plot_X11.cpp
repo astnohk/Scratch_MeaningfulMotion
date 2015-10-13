@@ -15,6 +15,7 @@ const char *ProgramName = "Scratch_MeaningfulMotion";
 SIZE Window_size(WINDOW_X_DEFAULT, WINDOW_Y_DEFAULT);
 Display *disp = nullptr;
 Window win;
+Atom atom1, atom2;
 Pixmap pix;
 GC GCmono;
 GC GCcol[RGB_COLOR];
@@ -342,6 +343,11 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	XStoreName(disp, win, ProgramName);
 	XMapWindow(disp, win);
 
+	// Set behavior when the window close button is pressed
+	atom1 = XInternAtom(disp, "WM_PROTOCOLS", False);
+	atom2 = XInternAtom(disp, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(disp, win, &atom2, 1);
+
 	// Graphic Context
 	GCmono = XCreateGC(disp, win, 0, 0);
 	for (i = 0; i < RGB_COLOR; i++) {
@@ -424,6 +430,11 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 
 	while (XPending(disp) != 0) {
 		XNextEvent(disp, &event);
+		if (event.xclient.message_type == atom1
+		    && (unsigned long)event.xclient.data.l[0] == atom2) {
+			// The window close button is pressed
+			return X_ESCAPE;
+		}
 		switch (event.type) {
 			case ConfigureNotify: // Window State Changes (Resize, etc.)
 				Window_size.width = event.xconfigure.width;

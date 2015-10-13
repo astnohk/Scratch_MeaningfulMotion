@@ -68,7 +68,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 	int present_count;
 
 	try {
-		IndexMap = new int[size.height * size.width];
+		IndexMap = new int[size.width * size.height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -112,7 +112,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 			Pr_min = 1.0; // Reset
 			line_index = -1;
 			for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
-				d = fabs(Lines[n_seg].r - (x * Lines[n_seg].cos + y * Lines[n_seg].sin)); // Calc distance
+				d = fabs(Lines[n_seg].r - (x * Lines[n_seg].cos + y * Lines[n_seg].sin)); // Calculate distance
 				d_triangle =
 				    sqrt((double)POW2(x - MaximalSegments[n_seg].x) + (double)POW2(y - MaximalSegments[n_seg].y))
 				    + sqrt((double)POW2(x - MaximalSegments[n_seg].n) + (double)POW2(y - MaximalSegments[n_seg].m));
@@ -185,7 +185,7 @@ ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegm
 	progress_count = 0;
 	present_count = 0;
 	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
-#pragma omp parallel for schedule(dynamic) private(m, n, x, y, k, L, dx, dy, aligned_angle, t, x_t, y_t) reduction(+:Num_EPSegments)
+#pragma omp parallel for schedule(dynamic) private(m, n, x, y, t, k, L, dx, dy, x_t, y_t, aligned_angle) reduction(+:Num_EPSegments)
 	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
 		// Re-meaningful segments
 		n = MaximalSegments[n_seg].n;
