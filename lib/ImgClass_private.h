@@ -1,9 +1,5 @@
 #include <cstdio>
 #include <new>
-#include "ImgClass.h"
-
-// Define for old compiler implementation
-#define nullptr ((void *)0)
 
 
 
@@ -11,20 +7,20 @@
 template <typename T>
 ImgVector<T>::ImgVector(void)
 {
-	data = nullptr;
+	Data = nullptr;
 	width = 0;
 	height = 0;
 }
 
 
 template <typename T>
-ImgVector<T>::ImgVector(int W, int H, T *array)
+ImgVector<T>::ImgVector(int W, int H)
 {
-	if (data != nullptr) {
-		delete[] data;
+	if (Data != nullptr) {
+		delete[] Data;
 	}
 	try {
-		data = new T[W * H];
+		Data = new T[W * H];
 	}
 	catch (const std::bad_alloc &bad) {
 		fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
@@ -33,7 +29,28 @@ ImgVector<T>::ImgVector(int W, int H, T *array)
 	width = W;
 	height = H;
 	for (int i = 0; i < width * height; i++) {
-		data[i] = array[i];
+		Data[i] = 0.0;
+	}
+}
+
+
+template <typename T>
+ImgVector<T>::ImgVector(int W, int H, T *array)
+{
+	if (Data != nullptr) {
+		delete[] Data;
+	}
+	try {
+		Data = new T[W * H];
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
+		return;
+	}
+	width = W;
+	height = H;
+	for (int i = 0; i < width * height; i++) {
+		Data[i] = array[i];
 	}
 }
 
@@ -41,10 +58,10 @@ ImgVector<T>::ImgVector(int W, int H, T *array)
 template <typename T>
 ImgVector<T>::~ImgVector(void)
 {
-	if (data != nullptr) {
-		delete[] data;
+	if (Data != nullptr) {
+		delete[] Data;
 	}
-	data = nullptr;
+	Data = nullptr;
 	width = 0;
 	height = 0;
 }
@@ -52,13 +69,13 @@ ImgVector<T>::~ImgVector(void)
 
 template <typename T>
 void
-ImgVector<T>::reset(int W, int H, T *array)
+ImgVector<T>::reset(int W, int H)
 {
-	if (data != nullptr) {
-		delete[] data;
+	if (Data != nullptr) {
+		delete[] Data;
 	}
 	try {
-		data = new T[W * H];
+		Data = new T[W * H];
 	}
 	catch (const std::bad_alloc &bad) {
 		fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
@@ -67,7 +84,29 @@ ImgVector<T>::reset(int W, int H, T *array)
 	width = W;
 	height = H;
 	for (int i = 0; i < width * height; i++) {
-		data[i] = array[i];
+		Data[i] = 0.0;
+	}
+}
+
+
+template <typename T>
+void
+ImgVector<T>::reset(int W, int H, T *array)
+{
+	if (Data != nullptr) {
+		delete[] Data;
+	}
+	try {
+		Data = new T[W * H];
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
+		return;
+	}
+	width = W;
+	height = H;
+	for (int i = 0; i < width * height; i++) {
+		Data[i] = array[i];
 	}
 }
 
@@ -80,7 +119,15 @@ ImgVector<T>::set(int x, int y, T value)
 	    || y < 0 || height <= y) {
 		return;
 	}
-	data[width * y + x] = value;
+	Data[width * y + x] = value;
+}
+
+
+template <typename T>
+T *
+ImgVector<T>::data(void) const
+{
+	return Data;
 }
 
 
@@ -92,7 +139,7 @@ ImgVector<T>::get(int x, int y) const
 	    || y < 0 || height <= y) {
 		return 0;
 	}
-	return data[width * y + x];
+	return Data[width * y + x];
 }
 
 
@@ -103,6 +150,6 @@ ImgVector<T>::operator[](int n) const
 	if (n < 0 || width * height <= n) {
 		return 0;
 	}
-	return data[n];
+	return Data[n];
 }
 

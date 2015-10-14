@@ -42,6 +42,7 @@
 #include <iostream>
 #include <list>
 #include <string>
+#include "lib/ImgClass.h"
 #include "PNM/pnm.h"
 #if defined(_OPENMP)
 #include <omp.h>
@@ -449,8 +450,8 @@ SEGMENT* AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_m
 std::list<FRAGMENT>* AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length);
 bool MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length);
 SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
-int* ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
-SEGMENT* ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table);
+ImgVector<int>* ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
+SEGMENT* ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table);
 
 // Plotting
 int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);

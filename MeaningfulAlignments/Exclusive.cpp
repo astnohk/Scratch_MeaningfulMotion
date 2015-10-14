@@ -7,7 +7,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 {
 	ERROR Error("ExclusivePrinciple");
 
-	int *IndexMap = nullptr;
+	ImgVector<int> *IndexMap = nullptr;
 	SEGMENT *MaxEPSegments = nullptr;
 
 	PNM pnm;
@@ -22,7 +22,7 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	}
 	printf("\nComplete!\n");
 	// DEBUG : Output IndexMap
-	pnm.copy(PORTABLE_GRAYMAP_ASCII, size.width, size.height, (*Num_Segments) - 1, IndexMap);
+	pnm.copy(PORTABLE_GRAYMAP_ASCII, size.width, size.height, (*Num_Segments) - 1, IndexMap->data());
 	if (pnm.write("IndexMap.pgm") == PNM_FUNCTION_ERROR) {
 		fprintf(stderr, "*** ExclusivePrinciple error - CanNOT write out the IndexMap to \"IndexMap.pgm\" ***\n");
 	}
@@ -36,23 +36,23 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 		goto ExitError;
 	}
 	printf("\nComplete!\n");
-	delete[] IndexMap;
+	delete IndexMap;
 	IndexMap = nullptr;
 	return MaxEPSegments;
 // Error
 ExitError:
 	delete[] MaxEPSegments;
-	delete[] IndexMap;
+	delete IndexMap;
 	return nullptr;
 }
 
 
-int *
+ImgVector<int> *
 ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
 {
 	ERROR Error("ExclusiveIndexMap");
 
-	int *IndexMap = nullptr;
+	ImgVector<int> *IndexMap = nullptr;
 
 	LINEPOLE *Lines = nullptr;
 
@@ -68,7 +68,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 	int present_count;
 
 	try {
-		IndexMap = new int[size.width * size.height];
+		IndexMap = new ImgVector<int>(size.width, size.height);
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -127,7 +127,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 					Pr_min = MaximalSegments[n_seg].Pr;
 				}
 			}
-			IndexMap[size.width * y + x] = line_index;
+			IndexMap->set(x, y, line_index);
 		}
 #pragma omp critical
 		{
@@ -143,14 +143,14 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 	return IndexMap;
 // Error
 ExitError:
-	delete[] IndexMap;
+	delete IndexMap;
 	delete[] Lines;
 	return nullptr;
 }
 
 
 SEGMENT *
-ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table)
+ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table)
 {
 	ERROR Error("ExclusiveSegments");
 
@@ -210,7 +210,7 @@ ExclusiveSegments(int *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegm
 			if (x_t < 0 || size.width <= x_t || y_t < 0 || size.height <= y_t) {
 				break;
 			}
-			if (IndexMap[size.width * y_t + x_t] == n_seg) {
+			if (IndexMap->get(x_t, y_t) == n_seg) {
 				if (fabs(angles[size.width * y_t + x_t] - aligned_angle) <= DIR_PROBABILITY
 				    || fabs(angles[size.width * y_t + x_t] - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
 				    || fabs(angles[size.width * y_t + x_t] + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
