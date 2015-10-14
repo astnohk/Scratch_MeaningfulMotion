@@ -3,6 +3,7 @@
 //#define SHOW_GAUSSIAN_FILTER
 
 
+
 double
 HorizontalMedian(double *img, int img_width, int x, int y, int width)
 {
