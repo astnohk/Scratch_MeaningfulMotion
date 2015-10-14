@@ -14,11 +14,26 @@ ImgVector<T>::ImgVector(void)
 
 
 template <typename T>
+ImgVector<T>::ImgVector(ImgVector<T> &copy)
+{
+	try {
+		Data = new T[copy.width * copy.height];
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
+		return;
+	}
+	width = copy.width;
+	height = copy.height;
+	for (int i = 0; i < width * height; i++) {
+		Data[i] = 0.0;
+	}
+}
+
+
+template <typename T>
 ImgVector<T>::ImgVector(int W, int H)
 {
-	if (Data != nullptr) {
-		delete[] Data;
-	}
 	try {
 		Data = new T[W * H];
 	}
@@ -37,9 +52,6 @@ ImgVector<T>::ImgVector(int W, int H)
 template <typename T>
 ImgVector<T>::ImgVector(int W, int H, T *array)
 {
-	if (Data != nullptr) {
-		delete[] Data;
-	}
 	try {
 		Data = new T[W * H];
 	}
