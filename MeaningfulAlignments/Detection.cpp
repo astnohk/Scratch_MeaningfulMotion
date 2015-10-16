@@ -4,51 +4,65 @@
 
 
 
-double *
+ImgVector<double> *
 DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
 {
 	ERROR Error("DetectScratch");
 
-	double *img = nullptr;
-	double *scratches = nullptr;
-	double *Ig = nullptr;
+	ImgVector<double> *scratches = nullptr;
+	ImgVector<double> *img = nullptr;
+	ImgVector<double> *img_filtered = nullptr;
 	SIZE size;
 	int x, y, m, n;
 	double Im, Il, Ir;
+
 #if defined(DEBUG_FILTER)
 	PNM pnm_out;
 #endif
 
+	// Initialize
 	size.width = pnm.Width();
 	size.height = pnm.Height();
-	img = pnm.get_double();
-
+	try {
+		img = new ImgVector<double>(pnm.Width(), pnm.Height(), pnm.get_double());
+	}
+	catch (const std::bad_alloc &bad) {
+		Error.Value("img");
+		Error.Malloc();
+		goto ExitError;
+	}
 	switch (FilterParam.type) {
 		case FILTER_ID_EPSILON: // Epsilon Filter
 			printf("* Epsilon filtering on input\n");
-			if ((Ig = EpsilonFilter(img, size, FilterParam)) == nullptr) {
+			if ((img_filtered = EpsilonFilter(img, FilterParam)) == nullptr) {
 				Error.Function("EpsilonFilter");
-				Error.Value("*Ig");
+				Error.Value("*img_filtered");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			break;
 		case FILTER_ID_GAUSSIAN: // Gaussian Filter
 			printf("* Gaussian filtering on input\n");
-			if ((Ig = Gaussian(img, size, FilterParam)) == nullptr) {
+			if ((img_filtered = Gaussian(img, FilterParam)) == nullptr) {
 				Error.Function("Gaussian");
-				Error.Value("*Ig");
+				Error.Value("*img_filtered");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			break;
 		default:
 			printf("* Do NOT any filtering\n");
-			Ig = img;
-			img = nullptr;
+			try {
+				img_filtered = new ImgVector<double>(*img);
+			}
+			catch (const std::bad_alloc &bad) {
+				Error.Value("img_filtered");
+				Error.Malloc();
+				goto ExitError;
+			}
 	}
 #if defined(DEBUG_FILTER)
-	if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm.MaxInt(), Ig, 1.0) == PNM_FUNCTION_ERROR) {
+	if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm.MaxInt(), img_filtered->data(), 1.0) == PNM_FUNCTION_ERROR) {
 		Error.Function("pnm_out.copy");
 		Error.FunctionFail();
 		goto ExitError;
@@ -62,11 +76,11 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 #endif
 
 	if (Do_Detection == 0) {
-		scratches = Ig;
-		Ig = nullptr;
+		scratches = img_filtered;
+		img_filtered = nullptr;
 	} else {
 		try {
-			scratches = new double[size.height * size.width];
+			scratches = new ImgVector<double>(size.width, size.height);
 		}
 		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
@@ -77,41 +91,41 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 #pragma omp parallel for private(x, m, n, Im, Il, Ir)
 		for (y = 0; y < size.height; y++) {
 			for (x = 0; x < size.width; x++) {
-				Im = HorizontalMedian(Ig, size.width, x, y, MEAN_WIDTH);
-				if (fabs(Ig[size.width * y + x] - Im) >= s_med) {
+				Im = HorizontalMedian(img_filtered, x, y, MEAN_WIDTH);
+				if (fabs(img_filtered->get(x, y) - Im) >= s_med) {
 					Il = m = 0;
 					for (n = ((x - AVE_FAR) < 0) ? 0 : (x - AVE_FAR); (n < size.width) && (n < (x - SCRATCH_WIDTH / 2)); n++) {
-						Il += Ig[size.width * y + n];
+						Il += img_filtered->get(n, y);
 						m++;
 					}
 					Il /= (double)m;
 					Ir = m = 0;
 					for (n = x + SCRATCH_WIDTH / 2 + 1; n < size.width && n <= x + AVE_FAR; n++) {
-						Ir += Ig[size.width * y + n];
+						Ir += img_filtered->get(n, y);
 						m++;
 					}
 					Ir /= (double)m;
 					if (fabs(Il - Ir) <= s_avg) {
-						scratches[size.width * y + x] = PLOT_INTENSITY_MAX;
+						scratches->ref(x, y) = PLOT_INTENSITY_MAX;
 					}
 				}
 			}
 		}
 	}
-	delete[] Ig;
-	delete[] img;
+	delete img_filtered;
+	delete img;
 	return scratches;
 // Errors
 ExitError:
-	delete[] Ig;
-	delete[] scratches;
-	delete[] img;
+	delete img_filtered;
+	delete img;
+	delete scratches;
 	return nullptr;
 }
 
 
 SEGMENT *
-AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_Segments, int Max_Length, int Max_Output_Length)
+AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVector<double> *Pr_table, int *Num_Segments, int Max_Length, int Max_Output_Length)
 {
 	ERROR Error("AlignedSegment_vertical");
 	std::string ErrorDescription;
@@ -153,7 +167,8 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 
 	for (r = 0; r < DIV_ANGLE; r++) {
 		if (r == DIV_ANGLE / 2) {
-			tan_list[r] = 2.0 * (size.height > size.width ? size.height : size.width);
+			// Set the value out of range instead of infinity
+			tan_list[r] = 2.0 * (angles->height() > angles->width() ? angles->height() : angles->width());
 		} else {
 			tan_list[r] = tan((M_PI / (double)DIV_ANGLE_VERTICAL) * r / (double)DIV_ANGLE + rad_offset);
 		}
@@ -162,18 +177,18 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 	current_count = 0;
 	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) private(list_fragment, r, x, y, dx, dy)
-	for (n = 0; n < size.width; n++) {
+	for (n = 0; n < angles->width(); n++) {
 		for (r = 0; r < DIV_ANGLE; r++) {
 			// Upper side to Other 3 sides (n, 0) -> (x, y)
-			dx = n + round((size.height - 1) / tan_list[r]);
-			x = (dx >= 0.0) ? (dx < (double)size.width) ? (int)dx : size.width - 1 : 0;
+			dx = n + round((angles->height() - 1) / tan_list[r]);
+			x = (dx >= 0.0) ? (dx < (double)angles->width()) ? (int)dx : angles->width() - 1 : 0;
 			if (tan_list[r] >= 0.0) {
-				dy = round((size.width - 1 - n) * tan_list[r]);
+				dy = round((angles->width() - 1 - n) * tan_list[r]);
 			} else {
 				dy = round(-n * tan_list[r]);
 			}
-			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
-			list_fragment = AlignedCheck(angles, size, k_list, Pr_table, l_min, 0, n, x, y, Max_Length);
+			y = (dy >= 0.0) ? (dy < (double)angles->height()) ? (int)dy : angles->height() - 1 : 0;
+			list_fragment = AlignedCheck(angles, k_list, Pr_table, l_min, 0, n, x, y, Max_Length);
 			if (list_fragment == nullptr) {
 				printf("error\n");
 				ErrorDescription = "Occured at Upper side to Other 3 sides";
@@ -190,21 +205,21 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 				list_fragment = nullptr;
 			}
 			// Bottom side to Other 3 sides (n, size.height) -> (x, y)
-			dx = n + round(-(size.height - 1) / tan_list[r]);
-			x = (dx >= 0.0) ? (dx < (double)size.width) ? (int)dx : size.width - 1 : 0;
+			dx = n + round(-(angles->height() - 1) / tan_list[r]);
+			x = (dx >= 0.0) ? (dx < (double)angles->width()) ? (int)dx : angles->width() - 1 : 0;
 			if (tan_list[r] >= 0.0) {
-				dy = size.height - 1 + round(-n * tan_list[r]);
+				dy = angles->height() - 1 + round(-n * tan_list[r]);
 			} else {
-				dy = size.height - 1 + round((size.width - 1 - n) * tan_list[r]);
+				dy = angles->height() - 1 + round((angles->width() - 1 - n) * tan_list[r]);
 			}
-			y = (dy >= 0.0) ? (dy < (double)size.height) ? (int)dy : size.height - 1 : 0;
-			list_fragment = AlignedCheck(angles, size, k_list, Pr_table, l_min, size.height - 1, n, x, y, Max_Length);
+			y = (dy >= 0.0) ? (dy < (double)angles->height()) ? (int)dy : angles->height() - 1 : 0;
+			list_fragment = AlignedCheck(angles, k_list, Pr_table, l_min, angles->height() - 1, n, x, y, Max_Length);
 			if (list_fragment == nullptr) {
 				printf("error\n");
 				ErrorDescription = "Occured at Bottom side to Other 3 sides";
 				break;
 			}
-			if (MaximalMeaningfulness(&list_segment, list_fragment, size.height - 1, n, x, y, Max_Output_Length) != MEANINGFUL_SUCCESS) {
+			if (MaximalMeaningfulness(&list_segment, list_fragment, angles->height() - 1, n, x, y, Max_Output_Length) != MEANINGFUL_SUCCESS) {
 				printf("error\n");
 				ErrorDescription = "Occured at Bottom side to Other 3 sides";
 				break;
@@ -217,9 +232,9 @@ AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, doubl
 #pragma omp critical
 			{
 				current_count++;
-				if (round((double)current_count / (DIV_ANGLE * size.width) * 1000.0) > progress) {
-					progress = round((double)current_count / (DIV_ANGLE * size.width) * 1000.0); // Take account of Overflow
-					printf("\r %5.1f%% |%s#\x1b[1A\n", progress * 0.1, Progress[NUM_PROGRESS * current_count / (DIV_ANGLE * size.width + 1)].c_str());
+				if (round((double)current_count / (DIV_ANGLE * angles->width()) * 1000.0) > progress) {
+					progress = round((double)current_count / (DIV_ANGLE * angles->width()) * 1000.0); // Take account of Overflow
+					printf("\r %5.1f%% |%s#\x1b[1A\n", progress * 0.1, Progress[NUM_PROGRESS * current_count / (DIV_ANGLE * angles->width() + 1)].c_str());
 				}
 			}
 		}
@@ -262,10 +277,10 @@ ExitError:
 
 
 std::list<FRAGMENT> *
-AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length)
+AlignedCheck(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length)
 {
 	ERROR Error("AlignedCheck");
-	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
+	ATAN2_DIV_PI atan2_div_pi(angles->width(), angles->height());
 	std::list<FRAGMENT>* list_fragment = nullptr;
 	FRAGMENT fragment_data;
 	SEGMENT segment_data;
@@ -299,12 +314,12 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min
 	for (t_start = 0; t_start <= L - l_min; t_start++) {
 		int tmpx, tmpy;
 		tmpx = (int)round(dx * t_start + n);
-		tmpx = tmpx >= 0 ? (tmpx < size.width ? tmpx : size.width - 1) : 0;
+		tmpx = tmpx >= 0 ? (tmpx < angles->width() ? tmpx : angles->width() - 1) : 0;
 		tmpy = (int)round(dy * t_start + m);
-		tmpy = tmpy >= 0 ? (tmpy < size.height ? tmpy : size.height - 1) : 0;
-		if (fabs(angles[size.width * tmpy + tmpx] - aligned_angle) <= DIR_PROBABILITY
-		    || fabs(angles[size.width * tmpy + tmpx] - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
-		    || fabs(angles[size.width * tmpy + tmpx] + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
+		tmpy = tmpy >= 0 ? (tmpy < angles->height() ? tmpy : angles->height() - 1) : 0;
+		if (fabs(angles->get(tmpx, tmpy) - aligned_angle) <= DIR_PROBABILITY
+		    || fabs(angles->get(tmpx, tmpy) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
+		    || fabs(angles->get(tmpx, tmpy) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
 			Pr_max = 1;
 			t_end_max = 0;
 			for (t_end = (l_min > 1) ? t_start + l_min - 1 : t_start + 1; t_end < L; t_end++) {
@@ -318,27 +333,27 @@ AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min
 					}
 				}
 				tmpx = (int)round(dx * t_end + n);
-				tmpx = tmpx >= 0 ? (tmpx < size.width ? tmpx : size.width - 1) : 0;
+				tmpx = tmpx >= 0 ? (tmpx < angles->width() ? tmpx : angles->width() - 1) : 0;
 				tmpy = (int)round(dy * t_end + m);
-				tmpy = tmpy >= 0 ? (tmpy < size.height ? tmpy : size.height - 1) : 0;
-				if (fabs(angles[size.width * tmpy + tmpx] - aligned_angle) <= DIR_PROBABILITY
-				    || fabs(angles[size.width * tmpy + tmpx] - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
-				    || fabs(angles[size.width * tmpy + tmpx] + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
+				tmpy = tmpy >= 0 ? (tmpy < angles->height() ? tmpy : angles->height() - 1) : 0;
+				if (fabs(angles->get(tmpx, tmpy) - aligned_angle) <= DIR_PROBABILITY
+				    || fabs(angles->get(tmpx, tmpy) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
+				    || fabs(angles->get(tmpx, tmpy) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
 					k = 2;
 					// Check if the segment which has aligned point on both ends is epsilon-Meaningful
 					for (t = t_start + 1; t <= t_end - 1; t++) {
 						tmpx = (int)round(dx * t + n);
-						tmpx = tmpx >= 0 ? (tmpx < size.width ? tmpx : size.width - 1) : 0;
+						tmpx = tmpx >= 0 ? (tmpx < angles->width() ? tmpx : angles->width() - 1) : 0;
 						tmpy = (int)round(dy * t + m);
-						tmpy = tmpy >= 0 ? (tmpy < size.height ? tmpy : size.height - 1) : 0;
-						if (fabs(angles[size.width * tmpy + tmpx] - aligned_angle) <= DIR_PROBABILITY
-						    || fabs(angles[size.width * tmpy + tmpx] - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
-						    || fabs(angles[size.width * tmpy + tmpx] + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
+						tmpy = tmpy >= 0 ? (tmpy < angles->height() ? tmpy : angles->height() - 1) : 0;
+						if (fabs(angles->get(tmpx, tmpy) - aligned_angle) <= DIR_PROBABILITY
+						    || fabs(angles->get(tmpx, tmpy) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
+						    || fabs(angles->get(tmpx, tmpy) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
 							k++;
 						}
 					}
 					if (k >= k_list[t_end - t_start + 1]) {
-						Pr_new = Pr_table[(size.height > size.width ? size.height : size.width) * k + t_end - t_start + 1];
+						Pr_new = Pr_table->get(k, t_end - t_start + 1);
 						if (Pr_new <= Pr_max) {
 							Pr_max = Pr_new;
 							t_end_max = t_end;

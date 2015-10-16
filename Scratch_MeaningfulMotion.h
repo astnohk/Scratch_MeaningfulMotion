@@ -165,6 +165,7 @@ class ATAN2_DIV_PI
 
 
 
+
 struct SIZE
 {
 	int width;
@@ -427,13 +428,13 @@ int* Calc_k_l(SIZE &size, double p, double ep);
 double Pr(int k, int l, double p);
 
 // Image Libraries
-double* Gaussian(double *img, SIZE size, FILTER_PARAM Param);
-double* EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param);
-double HorizontalMedian(double *img, int N, int x, int y, int width);
-double* DerivativeAngler(double *img, SIZE size);
-VECTOR_2D* Derivator(double *Image, SIZE size, const char *Type);
-double* Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size);
-double* Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring);
+ImgVector<double>* Gaussian(ImgVector<double> *img, FILTER_PARAM Param);
+ImgVector<double>* EpsilonFilter(ImgVector<double> *img, FILTER_PARAM Param);
+double HorizontalMedian(ImgVector<double> *img, int x, int y, int width);
+ImgVector<double>* DerivativeAngler(ImgVector<double> *img);
+ImgVector<VECTOR_2D>* Derivator(ImgVector<double> *Image, const char *Type);
+ImgVector<double>* Derivation_abs(ImgVector<VECTOR_2D> *Derivative_2D);
+ImgVector<double>* Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring);
 int IndexOfMirroring(int x, int size);
 
 // Other Libraries
@@ -441,17 +442,17 @@ char* regexp(char *s);
 
 
 // Scratch Detection
-double* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection);
+ImgVector<double>* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection);
 #define DO_DETECTION 1
 #define DO_NOT_DETECTION 0
 
 // Meaningful Alignments
-SEGMENT* AlignedSegment_vertical(double *angles, SIZE size, int *k_list, int l_min, double *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
-std::list<FRAGMENT>* AlignedCheck(double *angles, SIZE size, int *k_list, double *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length);
+SEGMENT* AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVector<double> *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
+std::list<FRAGMENT>* AlignedCheck(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length);
 bool MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length);
-SEGMENT* ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
+SEGMENT* ExclusivePrinciple(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
 ImgVector<int>* ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
-SEGMENT* ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table);
+SEGMENT* ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, ImgVector<double> *Pr_table);
 
 // Plotting
 int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
@@ -459,16 +460,16 @@ bool Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Col
 
 
 // X11 Plotting
-bool ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
+bool ShowSegments_X11(ImgVector<int> *Img, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
 bool Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
 int XEventor(X11_PARAM *X11_Param, SIZE Img_size);
 void SwitchEventer(X11_PARAM *X11_Param);
 bool TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample);
-bool TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot);
-bool TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE Img_size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot);
-bool TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot);
-bool Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
-bool Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size);
+bool TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, XPLOT *Img_plot);
+bool TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot);
+bool TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot);
+bool Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index);
+bool Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index);
 bool Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
 void PlotParameters(X11_PARAM X11_Param);
 bool Set_Pixmap2Window(void);

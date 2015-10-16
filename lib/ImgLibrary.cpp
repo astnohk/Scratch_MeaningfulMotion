@@ -5,7 +5,7 @@
 
 
 double
-HorizontalMedian(double *img, int img_width, int x, int y, int width)
+HorizontalMedian(ImgVector<double> *img, int x, int y, int width)
 {
 	ERROR Error("HorizontalMedian");
 
@@ -18,9 +18,9 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 	if (x < (width - 1) / 2) {
 		m_s = 0;
 		m_e = width / 2;
-	} else if (x + width / 2 >= img_width) {
+	} else if (x + width / 2 >= img->width()) {
 		m_s = -(width - 1) / 2;
-		m_e = img_width - 1 - x;
+		m_e = img->width() - 1 - x;
 	} else {
 		m_s = -(width - 1) / 2;
 		m_e = width / 2;
@@ -34,7 +34,7 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 		return 0.0;
 	}
 	for (m = m_s; m < m_e; m++) {
-		array[m - m_s] = img[img_width * y + x + m];
+		array[m - m_s] = img->get(x + m, y);
 	}
 	L = m_e - m_s + 1;
 	for (m = L - 1; m > 0; m--) { // Sort
@@ -57,20 +57,18 @@ HorizontalMedian(double *img, int img_width, int x, int y, int width)
 }
 
 
-double*
-EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
+ImgVector<double> *
+EpsilonFilter(ImgVector<double> *img, FILTER_PARAM Param)
 {
 	ERROR Error("EpsilonFilter");
 
-	double *Epsilon = nullptr;
+	ImgVector<double> *Epsilon = nullptr;
 	int filter_width_2 = (int)floor(Param.size.width / 2.0);
 	int filter_height_2 = (int)floor(Param.size.height / 2.0);
 	double Div_coeff = 1.0 / (Param.size.width * Param.size.height);
 	int center;
 	int x, y;
 	int fx, fy;
-	int m, n;
-	int tmp;
 
 	if (Param.epsilon < .0) {
 		Error.Value("epsilon");
@@ -91,7 +89,7 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 	}
 
 	try {
-		Epsilon = new double[size.width * size.height];
+		Epsilon = new ImgVector<double>(img->width(), img->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -99,76 +97,41 @@ EpsilonFilter(double *img, SIZE size, FILTER_PARAM Param)
 		Error.Malloc();
 		goto ExitError;
 	}
-#pragma omp parallel for private(x, fx, fy, n, m, center, tmp)
-	for (y = 0; y < size.height; y++) {
-		for (x = 0; x < size.width; x++) {
-			center = img[size.width * y + x];
-			Epsilon[size.width * y + x] = .0;
+#pragma omp parallel for private(x, fx, fy, center)
+	for (y = 0; y < img->height(); y++) {
+		for (x = 0; x < img->width(); x++) {
+			center = img->get(x, y);
+			Epsilon->ref(x, y) = .0;
 			for (fy = -filter_height_2; fy <= filter_height_2; fy++) {
-				if (y + fy < 0) {
-					tmp = abs(y + fy) / size.height;
-					if ((tmp & 1) == 1) {
-						m = size.height - (abs(y + fy) - size.height * tmp);
-					} else {
-						m = abs(y + fy) - size.height * tmp;
-					}
-				} else if (y + fy > size.height - 1) {
-					tmp = (y + fy) / size.height;
-					if ((tmp & 1) == 1) {
-						m = size.height - 1 - (y + fy - size.height * tmp);
-					} else {
-						m = y + fy - size.height * tmp;
-					}
-				} else {
-					m = y + fy;
-				}
 				for (fx = -filter_width_2; fx <= filter_width_2; fx++) {
-					if (x + fx < 0) {
-						tmp = abs(x + fx) / size.width;
-						if ((tmp & 1) == 1) {
-							n = size.width - (abs(x + fx) - size.width * tmp);
-						} else {
-							n = abs(x + fx) - size.width * tmp;
-						}
-					} else if (x + fx > size.width - 1) {
-						tmp = abs(x + fx) / size.width;
-						if ((tmp & 1) == 1) {
-							n = size.width - 1 - (x + fx - size.width * tmp);
-						} else {
-							n = x + fx - size.width * tmp;
-						}
+					if (fabs(center - img->get(x + fx, y + fy)) <= Param.epsilon) {
+						Epsilon->ref(x, y) += img->get_mirror(x + fx, y + fy);
 					} else {
-						n = x + fx;
-					}
-					if (fabs(center - img[size.width * m + n]) <= Param.epsilon) {
-						Epsilon[size.width * y + x] += img[size.width * m + n];
-					} else {
-						Epsilon[size.width * y + x] += center;
+						Epsilon->ref(x, y) += center;
 					}
 				}
 			}
-			Epsilon[size.width * y + x] *= Div_coeff;
+			Epsilon->ref(x, y) *= Div_coeff;
 		}
 	}
 	return Epsilon;
 // Error
 ExitError:
-	delete[] Epsilon;
+	delete Epsilon;
 	return nullptr;
 }
 
 
-double*
-Gaussian(double *img, SIZE size, FILTER_PARAM Param)
+ImgVector<double> *
+Gaussian(ImgVector<double> *img, FILTER_PARAM Param)
 {
 	ERROR Error("Gaussian");
 
-	double *blurred = nullptr;
-	double *Gauss = nullptr;
+	ImgVector<double> *Gauss = nullptr;
+	ImgVector<double> *blurred = nullptr;
 	int filter_width_2 = 0;
 	int filter_height_2 = 0;
-	int m, n, y, x, i, j;
-	int tmp;
+	int m, n, y, x;
 	double sum = 0;
 	int norm = 0;
 	
@@ -183,7 +146,7 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	filter_width_2 = Param.size.width / 2;
 	filter_height_2 = Param.size.height / 2;
 	try {
-		Gauss = new double[Param.size.width * Param.size.height];
+		Gauss = new ImgVector<double>(Param.size.width, Param.size.height);
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -203,13 +166,15 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 #endif
 			for (n = 0; n < Param.size.width; n++) {
 				if (filter_width_2 * abs(m - filter_height_2) + filter_height_2 * abs(n - filter_width_2) <= filter_width_2 * filter_height_2) {
-					Gauss[Param.size.width * m + n] = exp(-(
-					    POW2(m - filter_height_2) + POW2(n - filter_width_2)
-					    ) / (2.0 * POW2(Param.std_deviation)));
-					sum += Gauss[Param.size.width * m + n];
+					Gauss->ref(n, m) =
+					    exp(
+					    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
+					    / (2.0 * POW2(Param.std_deviation))
+					    );
+					sum += Gauss->get(n, m);
 				}
 #if defined(SHOW_GAUSSIAN_FILTER)
-				printf(" %.5f", Gauss[Param.size.width * m + n]);
+				printf(" %.5f", Gauss->get(n, m));
 #endif
 			}
 #if defined(SHOW_GAUSSIAN_FILTER)
@@ -223,12 +188,14 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 			printf("    |");
 #endif
 			for (n = 0; n < Param.size.width; n++) {
-				Gauss[Param.size.width * m + n] = exp(-(
-				    POW2(m - filter_height_2) + POW2(n - filter_width_2)
-				    ) / (2.0 * POW2(Param.std_deviation)));
-				sum += Gauss[Param.size.width * m + n];
+				Gauss->ref(n, m) =
+				    exp(
+				    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
+				    / (2.0 * POW2(Param.std_deviation))
+				    );
+				sum += Gauss->get(n, m);
 #if defined(SHOW_GAUSSIAN_FILTER)
-				printf(" %.5f", Gauss[Param.size.width * m + n]);
+				printf(" %.5f", Gauss->get(n, m));
 #endif
 			}
 #if defined(SHOW_GAUSSIAN_FILTER)
@@ -240,10 +207,10 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 	printf("\n");
 #endif
 	for (m = 0; m < Param.size.width * Param.size.height; m++) {
-		Gauss[m] /= sum;
+		(*Gauss)[m] /= sum;
 	}
 	try {
-		blurred = new double[size.height * size.width];
+		blurred = new ImgVector<double>(img->width(), img->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -251,68 +218,34 @@ Gaussian(double *img, SIZE size, FILTER_PARAM Param)
 		Error.Malloc();
 		goto ExitError;
 	}
-#pragma omp parallel for private(n, x, y, i, j, tmp)
-	for (m = 0; m < size.height; m++) {
-		for (n = 0; n < size.width; n++) {
+#pragma omp parallel for private(n, x, y)
+	for (m = 0; m < blurred->height(); m++) {
+		for (n = 0; n < blurred->width(); n++) {
 			for (y = -filter_height_2; y <= filter_height_2; y++) {
-				if (m + y < 0) {
-					tmp = abs(m + y) / size.height;
-					if ((tmp & 1) == 1) {
-						i = size.height - (abs(m + y) - size.height * tmp);
-					} else {
-						i = abs(m + y) - size.height * tmp;
-					}
-				} else if (m + y > size.height - 1) {
-					tmp = (m + y) / size.height;
-					if ((tmp & 1) == 1) {
-						i = size.height - 1 - (m + y - size.height * tmp);
-					} else {
-						i = m + y - size.height * tmp;
-					}
-				} else {
-					i = m + y;
-				}
 				for (x = -filter_width_2; x <= filter_width_2; x++) {
-					if (n + x < 0) {
-						tmp = abs(n + x) / size.width;
-						if ((tmp & 1) == 1) {
-							j = size.width - (abs(n + x) - size.width * tmp);
-						} else {
-							j = abs(n + x) - size.width * tmp;
-						}
-					} else if (n + x > size.width - 1) {
-						tmp = abs(n + x) / size.width;
-						if ((tmp & 1) == 1) {
-							j = size.width - 1 - (n + x - size.width * tmp);
-						} else {
-							j = n + x - size.width * tmp;
-						}
-					} else {
-						j = n + x;
-					}
-					blurred[size.width * m + n] += img[size.width * i + j] * Gauss[Param.size.width * (y + filter_height_2) + x + filter_width_2];
+					blurred->ref(n, m) += img->get(n + x, m + y) * Gauss->get(x + filter_width_2, y + filter_height_2);
 				}
 			}
 		}
 	}
-	delete[] Gauss;
+	delete Gauss;
 	Gauss = nullptr;
 	return blurred;
 // Errors
 ExitError:
-	delete[] blurred;
-	delete[] Gauss;
+	delete blurred;
+	delete Gauss;
 	return nullptr;
 }
 
 
-double *
-DerivativeAngler(double *img, SIZE size)
+ImgVector<double> *
+DerivativeAngler(ImgVector<double> *img)
 {
 	ERROR Error("DerivativeAngler");
 
-	VECTOR_2D *Derivative = nullptr;
-	double *angles = nullptr;
+	ImgVector<VECTOR_2D> *Derivative = nullptr;
+	ImgVector<double> *angles = nullptr;
 	int n;
 	double dx, dy;
  
@@ -320,20 +253,20 @@ DerivativeAngler(double *img, SIZE size)
 		Error.Value("img");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (size.width < 0 || size.height < 0) {
+	} else if (img->width() < 0 || img->height() < 0) {
 		Error.Value("size");
 		Error.ValueIncorrect();
 		goto ExitError;
 	}
 
-	if ((Derivative = Derivator(img, size, "Sobel")) == nullptr) {
+	if ((Derivative = Derivator(img, "Sobel")) == nullptr) {
 		Error.Function("Derivator");
 		Error.Value("Derivative");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	try {
-		angles = new double[size.width * size.height];
+		angles = new ImgVector<double>(img->width(), img->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -341,52 +274,55 @@ DerivativeAngler(double *img, SIZE size)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (n = 0; n < size.width * size.height; n++) {
-		dx = Derivative[n].x;
-		dy = Derivative[n].y;
+	for (n = 0; n < img->width() * img->height(); n++) {
+		dx = (*Derivative)[n].x;
+		dy = (*Derivative)[n].y;
 		if (fabs(dx) <= DERIVATIVE_MINIMUM && fabs(dy) <= DERIVATIVE_MINIMUM) {
-			angles[n] = -2.0 * ANGLE_MAX;
+			(*angles)[n] = -2.0 * ANGLE_MAX;
 		} else {
-			angles[n] = atan2(dy, dx) / M_PI + 0.5; // Add 0.5 for pi/2 rotation
-			if (angles[n] > ANGLE_MAX) {
-				angles[n] -= ANGLE_MAX;
-			} else if (angles[n] < 0.0) {
-				angles[n] += ANGLE_MAX;
+			(*angles)[n] = atan2(dy, dx) / M_PI + 0.5; // Add 0.5 for pi/2 rotation
+			if ((*angles)[n] > ANGLE_MAX) {
+				(*angles)[n] -= ANGLE_MAX;
+			} else if ((*angles)[n] < 0.0) {
+				(*angles)[n] += ANGLE_MAX;
 			}
 		}
 	}
-	delete[] Derivative;
+	delete Derivative;
 	return angles;
 // Error
 ExitError:
-	delete[] angles;
+	delete angles;
 	return nullptr;
 }
 
 
-VECTOR_2D *
-Derivator(double *Image, SIZE size, const char *Type)
+ImgVector<VECTOR_2D> *
+Derivator(ImgVector<double> *Image, const char *Type)
 {
 	ERROR Error("Derivator");
 
+	ImgVector<VECTOR_2D> *Derivative = nullptr;
+	ImgVector<double> *Image_dx = nullptr;
+	ImgVector<double> *Image_dy = nullptr;
 	/* Note that convolution invert *Filter */
-	double DiffFilter_x[4] = {0.5, -0.5, 0.5, -0.5};
-	double DiffFilter_y[4] = {0.5, 0.5, -0.5, -0.5};
-	double SobelFilter_x[9] = {0.25, 0, -0.25, 0.5, 0, -0.5, 0.25, 0, -0.25};
-	double SobelFilter_y[9] = {0.25, 0.5, 0.25, 0, 0, 0, -0.25, -0.5, -0.25};
-	double *Dx = nullptr;
-	double *Dy = nullptr;
-	SIZE size_f;
-	double *Image_dx = nullptr;
-	double *Image_dy = nullptr;
-	VECTOR_2D *Derivative = nullptr;
+	double DiffFilter_array_x[4] = {0.5, -0.5, 0.5, -0.5};
+	double DiffFilter_array_y[4] = {0.5, 0.5, -0.5, -0.5};
+	double SobelFilter_array_x[9] = {0.25, 0, -0.25, 0.5, 0, -0.5, 0.25, 0, -0.25};
+	double SobelFilter_array_y[9] = {0.25, 0.5, 0.25, 0, 0, 0, -0.25, -0.5, -0.25};
+	ImgVector<double> DiffFilter_x(2, 2, DiffFilter_array_x);
+	ImgVector<double> DiffFilter_y(2, 2, DiffFilter_array_y);
+	ImgVector<double> SobelFilter_x(3, 3, SobelFilter_array_x);
+	ImgVector<double> SobelFilter_y(3, 3, SobelFilter_array_y);
+	ImgVector<double> *Dx = nullptr;
+	ImgVector<double> *Dy = nullptr;
 	int x;
  
 	if (Image == nullptr) {
 		Error.Value("Image");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (size.width < 0 || size.height < 0) {
+	} else if (Image->width() < 0 || Image->height() < 0) {
 		Error.Value("size");
 		Error.ValueIncorrect();
 		goto ExitError;
@@ -394,26 +330,22 @@ Derivator(double *Image, SIZE size, const char *Type)
 
 	if (Type == nullptr || strcmp(Type, "Normal") == 0) {
 		/* use four pixels differential filter */
-		size_f.width = 2;
-		size_f.height = 2;
-		Dx = DiffFilter_x;
-		Dy = DiffFilter_y;
+		Dx = &DiffFilter_x;
+		Dy = &DiffFilter_y;
 	} else if (strcmp(Type, "Sobel") == 0) {
 		/* use Sobel filter */
-		size_f.width = 3;
-		size_f.height = 3;
-		Dx = SobelFilter_x;
-		Dy = SobelFilter_y;
+		Dx = &SobelFilter_x;
+		Dy = &SobelFilter_y;
 	} else {
 		Error.Others("Filter options incorrect");
 		goto ExitError;
 	}
 
-	Image_dx = Filterer(Image, size, Dx, size_f, MEANINGFUL_FALSE);
-	Image_dy = Filterer(Image, size, Dy, size_f, MEANINGFUL_FALSE);
+	Image_dx = Filterer(Image, Dx, MEANINGFUL_FALSE);
+	Image_dy = Filterer(Image, Dy, MEANINGFUL_FALSE);
 
 	try {
-		Derivative = new VECTOR_2D[size.width * size.height];
+		Derivative = new ImgVector<VECTOR_2D>(Image->width(), Image->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -421,29 +353,29 @@ Derivator(double *Image, SIZE size, const char *Type)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (x = 0; x < size.width * size.height; x++) {
-		Derivative[x].x = Image_dx[x];
-		Derivative[x].y = Image_dy[x];
+	for (x = 0; x < Image->size(); x++) {
+		(*Derivative)[x].x = (*Image_dx)[x];
+		(*Derivative)[x].y = (*Image_dy)[x];
 	}
-	delete[] Image_dx;
-	delete[] Image_dy;
+	delete Image_dx;
+	delete Image_dy;
 	return Derivative;
 // Error
 ExitError:
-	delete[] Derivative;
-	delete[] Image_dy;
-	delete[] Image_dx;
+	delete Derivative;
+	delete Image_dy;
+	delete Image_dx;
 	return nullptr;
 }
 
 
-double *
-Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
+ImgVector<double> *
+Derivation_abs(ImgVector<VECTOR_2D> *Derivative_2D)
 {
 	ERROR Error("Derivation_abs");
 
-	double *Derivative = nullptr;
-	int x;
+	ImgVector<double> *Derivative = nullptr;
+	int n;
 
 	if (Derivative_2D == nullptr) {
 		Error.Value("Derivative_2D");
@@ -451,7 +383,7 @@ Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
 		goto ExitError;
 	}
 	try {
-		Derivative = new double[size.width * size.height];
+		Derivative = new ImgVector<double>(Derivative_2D->width(), Derivative_2D->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -459,8 +391,8 @@ Derivation_abs(VECTOR_2D *Derivative_2D, SIZE size)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (x = 0; x < size.width * size.height; x++) {
-		Derivative[x] = sqrt(POW2(Derivative_2D[x].x) + POW2(Derivative_2D[x].y));
+	for (n = 0; n < Derivative_2D->size(); n++) {
+		(*Derivative)[n] = sqrt(POW2((*Derivative_2D)[n].x) + POW2((*Derivative_2D)[n].y));
 	}
 	return Derivative;
 // Error
@@ -469,16 +401,15 @@ ExitError:
 }
 
 
-double *
-Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
+ImgVector<double> *
+Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring)
 {
 	ERROR Error("Filterer");
 
-	double *Filtered = nullptr;
+	ImgVector<double> *Filtered = nullptr;
 	SIZE center;
 	int x, y;
 	int m, n;
-	int xx, yy;
 	double sum;
 
 	if (Image == nullptr) {
@@ -489,18 +420,18 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 		Error.Value("Filter");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (size.width < 0 || size.height < 0) {
+	} else if (Image->width() < 0 || Image->height() < 0) {
 		Error.Value("size");
 		Error.ValueIncorrect();
 		goto ExitError;
-	} else if (size_f.width < 0 || size_f.height < 0) {
+	} else if (Filter->width() < 0 || Filter->height() < 0) {
 		Error.Value("size_f");
 		Error.ValueIncorrect();
 		goto ExitError;
 	}
 
 	try {
-		Filtered = new double[size.width * size.height];
+		Filtered = new ImgVector<double>(Image->width(), Image->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -508,36 +439,28 @@ Filterer(double *Image, SIZE size, double *Filter, SIZE size_f, int Mirroring)
 		Error.Malloc();
 		goto ExitError;
 	}
-	center.width = floor(size_f.width / 2.0);
-	center.height = floor(size_f.height / 2.0);
-#pragma omp parallel for private(x, m, n, xx, yy, sum)
-	for (y = 0; y < size.height; y++) {
-		for (x = 0; x < size.width; x++) {
+	center.width = floor(Filter->width() / 2.0);
+	center.height = floor(Filter->height() / 2.0);
+#pragma omp parallel for private(x, m, n, sum)
+	for (y = 0; y < Image->height(); y++) {
+		for (x = 0; x < Image->width(); x++) {
 			sum = .0;
-			for (m = 0; m < size_f.height; m++) {
-				if (Mirroring == MEANINGFUL_TRUE) {
-					yy = IndexOfMirroring(y + center.height - m, size.height);
-				} else {
-					yy = y + center.height - m;
-				}
-				for (n = 0; n < size_f.width; n++) {
-					if (Mirroring == MEANINGFUL_TRUE) {
-						xx = IndexOfMirroring(x + center.width - n, size.width);
+			for (m = 0; m < Filter->height(); m++) {
+				for (n = 0; n < Filter->width(); n++) {
+					if (Mirroring) {
+						sum += Image->get_mirror(x, y) * Filter->get(n, m);
 					} else {
-						xx = x + center.width - n;
-					}
-					if (0 <= xx && xx < size.width && 0 <= yy && yy < size.height) {
-						sum += Image[size.width * yy + xx] * Filter[size_f.width * m + n];
+						sum += Image->get(x, y) * Filter->get(n, m);
 					}
 				}
 			}
-			Filtered[size.width * y + x] = sum;
+			Filtered->ref(x, y) = sum;
 		}
 	}
 	return Filtered;
 // Error
 ExitError:
-	delete[] Filtered;
+	delete Filtered;
 	return nullptr;
 }
 

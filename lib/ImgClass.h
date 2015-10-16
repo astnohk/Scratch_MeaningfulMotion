@@ -2,9 +2,9 @@ template <typename T>
 class ImgVector
 {
 	private:
-		T *Data;
-		int width;
-		int height;
+		T *_data;
+		int _width;
+		int _height;
 	public:
 		ImgVector(void);
 		ImgVector(ImgVector<T> &copy);
@@ -13,10 +13,20 @@ class ImgVector
 		~ImgVector(void);
 		void reset(int W, int H);
 		void reset(int W, int H, T *array);
-		void set(int x, int y, T value);
+		void copy(ImgVector<T> &copy);
+		void set(int x, int y, T &value);
 		T* data(void) const;
+		T& operator[](int n);
+		T& ref(int x, int y);
+		T& ref_repeat(int x, int y);
+		T& ref_mirror(int x, int y);
+		T get(int n) const;
 		T get(int x, int y) const;
-		T operator[](int n) const;
+		T get_repeat(int x, int y) const;
+		T get_mirror(int x, int y) const;
+		int width(void) const;
+		int height(void) const;
+		int size(void) const;
 };
 
 

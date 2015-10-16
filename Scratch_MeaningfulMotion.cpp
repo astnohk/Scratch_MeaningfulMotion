@@ -34,15 +34,16 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	int Initialize = 0;
 
 	int *k_list = nullptr;
-	double *Pr_table = nullptr;
-	double *filtered = nullptr;
-	double *scratches = nullptr;
-	double *binary = nullptr;
-	double *angles = nullptr;
+	ImgVector<double> *Pr_table = nullptr;
+	ImgVector<double> *filtered = nullptr;
+	ImgVector<double> *scratches = nullptr;
+	ImgVector<double> *binary = nullptr;
+	ImgVector<double> *angles = nullptr;
 	SEGMENT *MaximalSegments = nullptr;
 	SEGMENT *EPSegments = nullptr;
 	int *segments = nullptr;
 	int Num_Segments = 0;
+	ImgVector<int> *Image = nullptr; // For X11 plotting
 	SIZE size;
 	SIZE size_prev;
 	SIZE size_orig;
@@ -229,13 +230,13 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				goto ExitError;
 			}
 			printf("* Output Filtered Image\n");
-			if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, pnm_in.Width(), pnm_in.Height(), pnm_in.MaxInt(), filtered, 1.0) != PNM_FUNCTION_SUCCESS) {
+			if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, pnm_in.Width(), pnm_in.Height(), pnm_in.MaxInt(), filtered->data(), 1.0) != PNM_FUNCTION_SUCCESS) {
 				Error.Function("pnm_out.copy");
 				Error.Value("pnm_out");
 				Error.FunctionFail();
 				goto ExitError;
 			}
-			delete[] filtered;
+			delete filtered;
 			filtered = nullptr;
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			// Computte and output Multiple Motion Affine Parameters by method of M.J.Black
@@ -275,7 +276,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				Error.FunctionFail();
 				goto ExitError;
 			}
-			pnm_in.copy(pnm_in.Desc(), pnm_in.Width(), pnm_in.Height(), pnm_in.MaxInt(), scratches, 1.0);
+			pnm_in.copy(pnm_in.Desc(), pnm_in.Width(), pnm_in.Height(), pnm_in.MaxInt(), scratches->data(), 1.0);
 			if ((Options.mode & MODE_OUTPUT_BINARY_IMAGE) != 0) {
 				// Output Scratch Map without Meaningful Alignments
 				if (pnm_out.copy(pnm_in) != PNM_FUNCTION_SUCCESS) {
@@ -289,7 +290,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				if (Initialize == 0) {
 					Initialize = 1;
 					try {
-						Pr_table = new double[(maxMN + 1) * (maxMN + 1)];
+						Pr_table = new ImgVector<double>(maxMN + 1, maxMN + 1);
 					}
 					catch (const std::bad_alloc &bad) {
 						Error.Function("new");
@@ -303,7 +304,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 #pragma omp parallel for schedule(dynamic) private(k)
 					for (L = 1; L <= maxMN; L++) {
 						for (k = 0; k <= L; k++) {
-							Pr_table[maxMN * k + L] = Pr(k, L, Options.p);
+							Pr_table->ref(k, L) = Pr(k, L, Options.p);
 						}
 #pragma omp critical
 						{
@@ -330,7 +331,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				}
 
 				printf("* Compute Direction Field\n");
-				angles = DerivativeAngler(scratches, size);
+				angles = DerivativeAngler(scratches);
 				if (angles == nullptr) {
 					Error.Function("Derivation");
 					Error.Value("angles");
@@ -341,7 +342,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				if (MaximalSegments == nullptr) {
 					delete[] MaximalSegments;
 				}
-				MaximalSegments = AlignedSegment_vertical(angles, size, k_list, l_min, Pr_table, &Num_Segments, Options.Max_Length, Options.Max_Output_Length);
+				MaximalSegments = AlignedSegment_vertical(angles, k_list, l_min, Pr_table, &Num_Segments, Options.Max_Length, Options.Max_Output_Length);
 				if (MaximalSegments == nullptr) {
 					Error.Function("AlignedSegment_vertical");
 					Error.Value("MaximalSegments");
@@ -351,7 +352,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("- Found (%d) Maximal Meaningful Segments\n", Num_Segments);
 				if (Options.ExclusivePrinciple != 0) {
 					printf("* Delete Redundant Segments by Exclusive Principle\n");
-					EPSegments = ExclusivePrinciple(angles, size, k_list, Pr_table, MaximalSegments, &Num_Segments, Options.Exclusive_Max_Radius);
+					EPSegments = ExclusivePrinciple(angles, k_list, Pr_table, MaximalSegments, &Num_Segments, Options.Exclusive_Max_Radius);
 					if (EPSegments == nullptr) {
 						Error.Function("ExclusivePrinciple");
 						Error.Value("EPSegments");
@@ -399,14 +400,24 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 
 				delete[] segments;
 				segments = nullptr;
-				delete[] angles;
+				delete angles;
 				angles = nullptr;
 			}
-			delete[] scratches;
+			delete scratches;
 			scratches = nullptr;
 		}
 		// X11 Plotting
-		ShowSegments_X11(pnm_orig.Data(), size_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
+		try {
+			Image = new ImgVector<pnm_img>(size_orig.width, size_orig.height, pnm_orig.Data());
+		}
+		catch (const std::bad_alloc &bad) {
+			Error.Value("Image");
+			Error.Malloc();
+			goto ExitError;
+		}
+		ShowSegments_X11(Image, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
+		delete Image;
+		Image = nullptr;
 		// /X11 Plotting
 		delete[] MaximalSegments;
 		MaximalSegments = nullptr;
@@ -503,7 +514,7 @@ Write:
 	pnm_res.free();
 	pnm_orig.free();
 	delete[] k_list;
-	delete[] Pr_table;
+	delete Pr_table;
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
@@ -512,16 +523,17 @@ ExitError:
 	hog_prv.free();
 	hog_raw.free();
 	hog.free();
-	delete[] MultipleMotion_u;
+	delete Image;
+	delete MultipleMotion_u;
 	delete[] segments;
 	delete[] EPSegments;
 	delete[] MaximalSegments;
-	delete[] angles;
-	delete[] binary;
-	delete[] scratches;
+	delete angles;
+	delete binary;
+	delete scratches;
 	delete[] k_list;
-	delete[] Pr_table;
-	delete[] filtered;
+	delete Pr_table;
+	delete filtered;
 	pnm_out.free();
 	pnm_in.free();
 	pnm_res.free();

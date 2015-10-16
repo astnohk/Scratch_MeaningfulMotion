@@ -49,17 +49,19 @@ const char *Plot_Mode[NUMBER_OF_MODE] = {
 
 
 bool
-ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SEGMENT *segments, unsigned int Num_Segments)
+ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SEGMENT *segments, unsigned int Num_Segments)
 {
 	ERROR Error("ShowBounds_X11");
 
 	X11_PARAM X11_Param;
-	COORDINATE_3D *Img_coord = nullptr;
-	COORDINATE_3D *Img_vel = nullptr;
-	XPLOT *Img_plot = nullptr;
+	ImgVector<COORDINATE_3D> *Img_coord = nullptr;
+	ImgVector<COORDINATE_3D> *Img_vel = nullptr;
+	ImgVector<XPLOT> *Img_plot = nullptr;
 	SEGMENT_X11 *segments_plot = nullptr;
 	int *Img_index = nullptr;
 	int *Img_index_tmp = nullptr;
+	SIZE Img_size;
+
 	COORDINATE_3D GaraxyCenter;
 	int loop = 0;
 	int event_state = 0;
@@ -75,6 +77,8 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		Error.ValueIncorrect();
 		goto ExitError;
 	}
+	Img_size.width = Img->width();
+	Img_size.height = Img->height();
 
 	// Initialize X11 Window
 	if (Init_X11(&X11_Param, Img_size) == MEANINGFUL_FAILURE) {
@@ -85,7 +89,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 
 	// Memory Allocation
 	try {
-		Img_plot = new XPLOT[Img_size.width * Img_size.height];
+		Img_plot = new ImgVector<XPLOT>(Img->width(), Img->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -103,7 +107,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		goto ExitError;
 	}
 	try {
-		Img_coord = new COORDINATE_3D[Img_size.width * Img_size.height];
+		Img_coord = new ImgVector<COORDINATE_3D>(Img->width(), Img->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -112,7 +116,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		goto ExitError;
 	}
 	try {
-		Img_vel = new COORDINATE_3D[Img_size.width * Img_size.height];
+		Img_vel = new ImgVector<COORDINATE_3D>(Img->width(), Img->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -121,7 +125,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		goto ExitError;
 	}
 	try {
-		Img_index = new int[Img_size.width * Img_size.height];
+		Img_index = new int[Img->size()];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -130,7 +134,7 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		goto ExitError;
 	}
 	try {
-		Img_index_tmp = new int[Img_size.width * Img_size.height];
+		Img_index_tmp = new int[Img->size()];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -155,14 +159,14 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 			switch (cur_mode) {
 				case X11_Plot_Garaxy:
 					GaraxyCenter = (COORDINATE_3D){X11_Param.Center_x, X11_Param.Center_y, X11_Param.Center_z};
-					for (m = 0; m < Img_size.height; m++) {
+					for (m = 0; m < Img->height(); m++) {
 						y = m - GaraxyCenter.y;
-						for (n = 0; n < Img_size.width; n++) {
+						for (n = 0; n < Img->width(); n++) {
 							x = n - GaraxyCenter.x;
-							z = (Img[Img_size.width * m + n] - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
-							Img_coord[Img_size.width * m + n].x = n;
-							Img_coord[Img_size.width * m + n].y = m;
-							Img_coord[Img_size.width * m + n].z = z;
+							z = (Img->get(n, m) - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
+							Img_coord->ref(n, m).x = n;
+							Img_coord->ref(n, m).y = m;
+							Img_coord->ref(n, m).z = z;
 							r = sqrt(POW2(x) + POW2(y) + POW2(z));
 							if (r <= 1.0E-3) {
 								r = 1.0E-3;
@@ -170,29 +174,29 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 							if (fabs(z) > 1.0E-6) {
 								X = -(y / z + z * y);
 								Y = z * x + x / z;
-								Img_vel[Img_size.width * m + n].x = X / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
-								Img_vel[Img_size.width * m + n].y = Y / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
+								Img_vel->ref(n, m).x = X / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
+								Img_vel->ref(n, m).y = Y / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
 							} else {
-								Img_vel[Img_size.width * m + n].x = -y / r / sqrt(r);
-								Img_vel[Img_size.width * m + n].y = -x / r / sqrt(r);
+								Img_vel->ref(n, m).x = -y / r / sqrt(r);
+								Img_vel->ref(n, m).y = -x / r / sqrt(r);
 							}
 							if (z < -1.0E-6) {
-								Img_vel[Img_size.width * m + n].x *= -1.0;
-								Img_vel[Img_size.width * m + n].y *= -1.0;
+								Img_vel->ref(n, m).x *= -1.0;
+								Img_vel->ref(n, m).y *= -1.0;
 							}
-							Img_vel[Img_size.width * m + n].z = 0.0;
+							Img_vel->ref(n, m).z = 0.0;
 						}
 					}
 					break;
 				case X11_Plot_GravityCorrupt:
 					for (m = 0; m < Img_size.height; m++) {
 						for (n = 0; n < Img_size.width; n++) {
-							Img_coord[Img_size.width * m + n].x = n;
-							Img_coord[Img_size.width * m + n].y = m;
-							Img_coord[Img_size.width * m + n].z = (Img[Img_size.width * m + n] - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
-							Img_vel[Img_size.width * m + n].x = 0.0;
-							Img_vel[Img_size.width * m + n].y = 0.0;
-							Img_vel[Img_size.width * m + n].z = 0.0;
+							Img_coord->ref(n, m).x = n;
+							Img_coord->ref(n, m).y = m;
+							Img_coord->ref(n, m).z = (Img->get(n, m) - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
+							Img_vel->ref(n, m).x = 0.0;
+							Img_vel->ref(n, m).y = 0.0;
+							Img_vel->ref(n, m).z = 0.0;
 						}
 					}
 			}
@@ -200,74 +204,74 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 		switch (X11_Param.ModeSwitch) {
 			case X11_Plot_Points: // Plot Image Intensity with Points
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
-				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
 					Error.Function("reset_index");
 					Error.Value("Img_index");
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
 				break;
 			case X11_Plot_Points_And_Segments: // Plot Image Intensity with Points
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
-				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
 					Error.Function("reset_index");
 					Error.Value("Img_index");
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img->size());
 				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
 				break;
 			case X11_Plot_Grid: // Plot Image Intensity on Grid
-				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
 					Error.Function("reset_index");
 					Error.Value("Img_index");
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index, Img_size);
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index);
 				break;
 			case X11_Plot_Grid_And_Segments: // Plot Image Intensity on Grid
 				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
-				TransRotate_3DPoint(X11_Param, Img, Img_size, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
 					Error.Function("reset_index");
 					Error.Value("Img_index");
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index, Img_size);
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index);
 				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
 				break;
 			case X11_Plot_Garaxy: // Plot Image Gravity Motion (Garaxy)
-				TransGaraxy_3DPoint(X11_Param, Img, Img_size, Img_coord, Img_vel, GaraxyCenter, Img_plot);
-				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+				TransGaraxy_3DPoint(X11_Param, Img, Img_coord, Img_vel, GaraxyCenter, Img_plot);
+				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
 					Error.Function("reset_index");
 					Error.Value("Img_index");
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
 				break;
 			case X11_Plot_GravityCorrupt: // Plot Image Gravity Motion
-				TransGravity_3DPoint(X11_Param, Img, Img_size, Img_coord, Img_vel, Img_plot);
-				if (reset_index(Img_index, Img_size.width * Img_size.height) == MEANINGFUL_FAILURE) {
+				TransGravity_3DPoint(X11_Param, Img, Img_coord, Img_vel, Img_plot);
+				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
 					Error.Function("reset_index");
 					Error.Value("Img_index");
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img_size.width * Img_size.height);
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img_size);
+				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
 		}
 		PlotParameters(X11_Param);
 		Set_Pixmap2Window();
@@ -286,10 +290,10 @@ ShowSegments_X11(int *Img, SIZE Img_size, SIZE Img_size_resample, int MaxInt, SE
 	XCloseDisplay(disp);
 	delete[] Img_index_tmp;
 	delete[] Img_index;
-	delete[] Img_vel;
-	delete[] Img_coord;
+	delete Img_vel;
+	delete Img_coord;
+	delete Img_plot;
 	delete[] segments_plot;
-	delete[] Img_plot;
 	return MEANINGFUL_SUCCESS;
 // Error
 ExitError:
@@ -306,10 +310,10 @@ ExitError:
 	}
 	delete[] Img_index_tmp;
 	delete[] Img_index;
-	delete[] Img_vel;
-	delete[] Img_coord;
+	delete Img_vel;
+	delete Img_coord;
+	delete Img_plot;
 	delete[] segments_plot;
-	delete[] Img_plot;
 	return MEANINGFUL_FAILURE;
 }
 
@@ -622,10 +626,10 @@ TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT 
 		y = (m - X11_Param.Center_y) * X11_Param.Scale;
 		for (n = 0; n < size.width; n++) {
 			x = (n - X11_Param.Center_x) * X11_Param.Scale;
-			z = ((-Img[size.width * m + n] + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
-			Img_plot[size.width * m + n].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-			Img_plot[size.width * m + n].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
-			Img_plot[size.width * m + n].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+			z = ((-Img->get(n, m) + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
+			Img_plot->get(n, m).point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
+			Img_plot->get(n, m).point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+			Img_plot->get(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 		}
 	}
 	return MEANINGFUL_SUCCESS;
@@ -636,7 +640,7 @@ ExitError:
 
 
 bool
-TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot)
+TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, COORDINATE_3D GaraxyCenter, ImgVector<XPLOT> *Img_plot)
 {
 	ERROR Error("TransGaraxy_3DPoint");
 	const double Radius_Minimum = 0.01;
@@ -664,29 +668,29 @@ TransGaraxy_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img
 	}
 	// Gravity Motion
 #pragma omp parallel for private(r)
-	for (i = 0; i < size.width * size.height; i++) {
-		r = sqrt(POW2(GaraxyCenter.x - Img_coord[i].x)
-		    + POW2(GaraxyCenter.y - Img_coord[i].y)
-		    + POW2(GaraxyCenter.z - Img_coord[i].z));
+	for (i = 0; i < Img->size(); i++) {
+		r = sqrt(POW2(GaraxyCenter.x - (*Img_coord)[i].x)
+		    + POW2(GaraxyCenter.y - (*Img_coord)[i].y)
+		    + POW2(GaraxyCenter.z - (*Img_coord)[i].z));
 		if (r < Radius_Minimum) {
 			r = Radius_Minimum;
 		}
-		Img_vel[i].x += dt * (GaraxyCenter.x - Img_coord[i].x) / pow_int(r, 3);
-		Img_vel[i].y += dt * (GaraxyCenter.y - Img_coord[i].y) / pow_int(r, 3);
-		Img_vel[i].z += dt * (GaraxyCenter.z - Img_coord[i].z) / pow_int(r, 3);
-		Img_coord[i].x += Img_vel[i].x * dt;
-		Img_coord[i].y += Img_vel[i].y * dt;
-		Img_coord[i].z += Img_vel[i].z * dt;
+		(*Img_vel)[i].x += dt * (GaraxyCenter.x - Img_coord->get(i).x) / pow_int(r, 3);
+		(*Img_vel)[i].y += dt * (GaraxyCenter.y - Img_coord->get(i).y) / pow_int(r, 3);
+		(*Img_vel)[i].z += dt * (GaraxyCenter.z - Img_coord->get(i).z) / pow_int(r, 3);
+		(*Img_coord)[i].x += Img_vel->get(i).x * dt;
+		(*Img_coord)[i].y += Img_vel->get(i).y * dt;
+		(*Img_coord)[i].z += Img_vel->get(i).z * dt;
 	}
 	// Pixel Coordinate
 #pragma omp parallel for private(x, y, z) num_threads(8)
 	for (i = 0; i < size.width * size.height; i++) {
-		x = (Img_coord[i].x - X11_Param.Center_x) * X11_Param.Scale;
-		y = (Img_coord[i].y - X11_Param.Center_y) * X11_Param.Scale;
-		z = (-Img_coord[i].z - X11_Param.Center_z) * X11_Param.Scale;
-		Img_plot[i].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-		Img_plot[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
-		Img_plot[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
+		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
+		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
+		(*Img_plot)[i].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
+		(*Img_plot)[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+		(*Img_plot)[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
 	return MEANINGFUL_SUCCESS;
 // Error
@@ -696,7 +700,7 @@ ExitError:
 
 
 bool
-TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot)
+TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, ImgVector<XPLOT> *Img_plot)
 {
 	ERROR Error("TransGravity_3DPoint");
 	const double Radius_Minimum = 0.01;
@@ -726,20 +730,20 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 		goto ExitError;
 	}
 	try {
-		core = new int[size.width * size.height];
+		core = new int[Img->size()];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("core");
 		Error.Malloc();
 	}
 	// List Cores
-	for (i = 0; i <size.width * size.height; i++) {
-		if (maxint < Img[i]) {
-			maxint = Img[i];
+	for (i = 0; i < Img->size(); i++) {
+		if (maxint < Img.get(i)) {
+			maxint = Img->get(i);
 		}
 	}
 	for (i = 0; i <size.width * size.height; i++) {
-		if (Img[i] > maxint * 0.95) {
+		if (Img->get(i) > maxint * 0.95) {
 			core[Num_Cores] = i;
 			Num_Cores++;
 		}
@@ -748,30 +752,30 @@ TransGravity_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, COORDINATE_3D *Im
 #pragma omp parallel for private(j, M, r)
 	for (i = 0; i < size.width * size.height; i++) {
 		for (j = 0; j < Num_Cores; j++) {
-			M = (double)Img[core[j]] / maxint;
-			r = sqrt(POW2(Img_coord[core[j]].x - Img_coord[i].x)
-			    + POW2(Img_coord[core[j]].y - Img_coord[i].y)
-			    + POW2(Img_coord[core[j]].z - Img_coord[i].z));
+			M = (double)Img->get(core[j]) / maxint;
+			r = sqrt(POW2(Img_coord->get(core[j]).x - Img_coord->get(i).x)
+			    + POW2(Img_coord->get(core[j]).y - Img_coord->get(i).y)
+			    + POW2(Img_coord->get(core[j]).z - Img_coord->get(i).z));
 			if (r < Radius_Minimum) {
 				r = Radius_Minimum;
 			}
-			Img_vel[i].x += dt * M * (Img_coord[core[j]].x - Img_coord[i].x) / pow_int(r, 3);
-			Img_vel[i].y += dt * M * (Img_coord[core[j]].y - Img_coord[i].y) / pow_int(r, 3);
-			Img_vel[i].z += dt * M * (Img_coord[core[j]].z - Img_coord[i].z) / pow_int(r, 3);
+			(*Img_vel)[i].x += dt * M * (Img_coord->get(core[j]).x - Img_coord->get(i).x) / pow_int(r, 3);
+			(*Img_vel)[i].y += dt * M * (Img_coord->get(core[j]).y - Img_coord->get(i).y) / pow_int(r, 3);
+			(*Img_vel)[i].z += dt * M * (Img_coord->get(core[j]).z - Img_coord->get(i).z) / pow_int(r, 3);
 		}
-		Img_coord[i].x += Img_vel[i].x * dt;
-		Img_coord[i].y += Img_vel[i].y * dt;
-		Img_coord[i].z += Img_vel[i].z * dt;
+		(*Img_coord)[i].x += Img_vel->get(i).x * dt;
+		(*Img_coord)[i].y += Img_vel->get(i).y * dt;
+		(*Img_coord)[i].z += Img_vel->get(i).z * dt;
 	}
 	// Pixel Coordinate
 #pragma omp parallel for private(x, y, z) num_threads(8)
-	for (i = 0; i < size.width * size.height; i++) {
-		x = (Img_coord[i].x - X11_Param.Center_x) * X11_Param.Scale;
-		y = (Img_coord[i].y - X11_Param.Center_y) * X11_Param.Scale;
-		z = (-Img_coord[i].z - X11_Param.Center_z) * X11_Param.Scale;
-		Img_plot[i].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-		Img_plot[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
-		Img_plot[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+	for (i = 0; i < Img->size(); i++) {
+		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
+		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
+		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
+		(*Img_plot)[i].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
+		(*Img_plot)[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+		(*Img_plot)[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
 	delete[] core;
 	return MEANINGFUL_SUCCESS;
@@ -783,7 +787,7 @@ ExitError:
 
 
 bool
-Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
+Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index)
 {
 	ERROR Error("Plot_3DPoint");
 	int Min_Intensity, Max_Intensity;
@@ -804,12 +808,12 @@ Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SI
 	rectsize.width = MAX(1, round(X11_Param.Scale * 0.25));
 	rectsize.height = MAX(1, floor(X11_Param.Scale * 0.25));
 	// Scan Intensity MIN and MAX
-	Min_Intensity = Max_Intensity = Img[0];
+	Min_Intensity = Max_Intensity = Img->get(0];
 	for (i = 1; i < size.width * size.height; i++) {
-		if (Img[i] < Min_Intensity) {
-			Min_Intensity = Img[i];
-		} else if (Img[i] > Max_Intensity) {
-			Max_Intensity = Img[i];
+		if (Img->get(i) < Min_Intensity) {
+			Min_Intensity = Img->get(i];
+		} else if (Img->get(i) > Max_Intensity) {
+			Max_Intensity = Img->get(i];
 		}
 	}
 	// Fill the window with Black
@@ -818,25 +822,25 @@ Plot_3DPoints(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SI
 	// Draw The Points
 	for (i = 0; i < size.width * size.height; i++) {
 		index = Img_index[i];
-		if (0 <= Img_plot[index].point.x && Img_plot[index].point.x < Window_size.width
-		    && 0 <= Img_plot[index].point.y && Img_plot[index].point.y < Window_size.height) {
-			if (Img[index] > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
+		if (0 <= Img_plot->get(index).point.x && Img_plot->get(index).point.x < Window_size.width
+		    && 0 <= Img_plot->get(index).point.y && Img_plot->get(index).point.y < Window_size.height) {
+			if (Img->get(index] > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
 				if (rectsize.width == 1) {
-					XDrawPoint(disp, pix, GCcol[0], Img_plot[index].point.x, Img_plot[index].point.y);
+					XDrawPoint(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
-					XFillRectangle(disp, pix, GCcol[0], Img_plot[index].point.x, Img_plot[index].point.y, rectsize.width, rectsize.height);
+					XFillRectangle(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
 				}
-			} else if (Img[index] > (Max_Intensity - Min_Intensity) * 0.25 + Min_Intensity) {
+			} else if (Img->get(index] > (Max_Intensity - Min_Intensity) * 0.25 + Min_Intensity) {
 				if (rectsize.width == 1) {
-					XDrawPoint(disp, pix, GCcol[1], Img_plot[index].point.x, Img_plot[index].point.y);
+					XDrawPoint(disp, pix, GCcol[1], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
-					XFillRectangle(disp, pix, GCcol[1], Img_plot[index].point.x, Img_plot[index].point.y, rectsize.width, rectsize.height);
+					XFillRectangle(disp, pix, GCcol[1], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
 				}
 			} else {                                                                         
 				if (rectsize.width == 1) {
-					XDrawPoint(disp, pix, GCcol[2], Img_plot[index].point.x, Img_plot[index].point.y);
+					XDrawPoint(disp, pix, GCcol[2], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
-					XFillRectangle(disp, pix, GCcol[2], Img_plot[index].point.x, Img_plot[index].point.y, rectsize.width, rectsize.height);
+					XFillRectangle(disp, pix, GCcol[2], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
 				}
 			}
 		}
@@ -849,7 +853,7 @@ ExitError:
 
 
 bool
-Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE size)
+Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, ImgVector<int> *Img_index)
 {
 	ERROR Error("Plot_3DGridANDSegment");
 	XPoint Triplet[8];
@@ -875,12 +879,12 @@ Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE
 	}
 
 	// Scan Intensity MIN and MAX
-	Min_Intensity = Max_Intensity = Img[0];
+	Min_Intensity = Max_Intensity = Img->get(0);
 	for (n = 1; n < size.width * size.height; n++) {
-		if (Img[n] < Min_Intensity) {
-			Min_Intensity = Img[n];
-		} else if (Img[n] > Max_Intensity) {
-			Max_Intensity = Img[n];
+		if (Img->get(n) < Min_Intensity) {
+			Min_Intensity = Img->get(n);
+		} else if (Img->get(n) > Max_Intensity) {
+			Max_Intensity = Img->get(n);
 		}
 	}
 	// Fill the window with Black
@@ -894,7 +898,7 @@ Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE
 			continue;
 		}
 		// Set Triplet
-		if (Img_plot[size.width * y + x].z > Img_plot[size.width * y + x + 1].z) {
+		if (Img_plot->get(size.width * y + x).z > Img_plot->get(size.width * y + x + 1).z) {
 			Triplet[0].x = x;
 			Triplet[0].y = y;
 			Triplet[1].x = x;
@@ -923,35 +927,35 @@ Plot_3DGrid(X11_PARAM X11_Param, int *Img, XPLOT *Img_plot, int *Img_index, SIZE
 		}
 		Triplet[3] = Triplet[0];
 		Triplet[7] = Triplet[4];
-		local_Min = local_Max = Img[size.width * Triplet[0].y + Triplet[0].x];
+		local_Min = local_Max = Img->get(size.width * Triplet[0].y + Triplet[0].x);
 		// Local Maximum
-		if (Img[size.width * Triplet[1].y + Triplet[1].x] > local_Max) {
-			local_Max = Img[size.width * Triplet[1].y + Triplet[1].x];
+		if (Img->get(size.width * Triplet[1].y + Triplet[1].x) > local_Max) {
+			local_Max = Img->get(size.width * Triplet[1].y + Triplet[1].x);
 		}
-		if (Img[size.width * Triplet[2].y + Triplet[2].x] > local_Max) {
-			local_Max = Img[size.width * Triplet[2].y + Triplet[2].x];
+		if (Img->get(size.width * Triplet[2].y + Triplet[2].x) > local_Max) {
+			local_Max = Img->get(size.width * Triplet[2].y + Triplet[2].x);
 		}
 		// Local Minimum
-		if (Img[size.width * Triplet[1].y + Triplet[1].x] < local_Min) {
-			local_Min = Img[size.width * Triplet[1].y + Triplet[1].x];
+		if (Img->get(size.width * Triplet[1].y + Triplet[1].x) < local_Min) {
+			local_Min = Img->get(size.width * Triplet[1].y + Triplet[1].x);
 		}
-		if (Img[size.width * Triplet[2].y + Triplet[2].x] < local_Min) {
-			local_Min = Img[size.width * Triplet[2].y + Triplet[2].x];
+		if (Img->get(size.width * Triplet[2].y + Triplet[2].x) < local_Min) {
+			local_Min = Img->get(size.width * Triplet[2].y + Triplet[2].x);
 		}
-		local_Min2 = local_Max2 = Img[size.width * Triplet[4].y + Triplet[4].x];
+		local_Min2 = local_Max2 = Img->get(size.width * Triplet[4].y + Triplet[4].x);
 		// Local Maximum
-		if (Img[size.width * Triplet[5].y + Triplet[5].x] > local_Max2) {
-			local_Max2 = Img[size.width * Triplet[5].y + Triplet[5].x];
+		if (Img->get(size.width * Triplet[5].y + Triplet[5].x) > local_Max2) {
+			local_Max2 = Img->get(size.width * Triplet[5].y + Triplet[5].x);
 		}
-		if (Img[size.width * Triplet[6].y + Triplet[6].x] > local_Max2) {
-			local_Max2 = Img[size.width * Triplet[6].y + Triplet[6].x];
+		if (Img->get(size.width * Triplet[6].y + Triplet[6].x) > local_Max2) {
+			local_Max2 = Img->get(size.width * Triplet[6].y + Triplet[6].x);
 		}
 		// Local Minimum
-		if (Img[size.width * Triplet[5].y + Triplet[5].x] < local_Min2) {
-			local_Min2 = Img[size.width * Triplet[5].y + Triplet[5].x];
+		if (Img->get(size.width * Triplet[5].y + Triplet[5].x) < local_Min2) {
+			local_Min2 = Img->get(size.width * Triplet[5].y + Triplet[5].x);
 		}
-		if (Img[size.width * Triplet[6].y + Triplet[6].x] < local_Min2) {
-			local_Min2 = Img[size.width * Triplet[6].y + Triplet[6].x];
+		if (Img->get(size.width * Triplet[6].y + Triplet[6].x) < local_Min2) {
+			local_Min2 = Img->get(size.width * Triplet[6].y + Triplet[6].x);
 		}
 		// Convert Triplet coordinate to Real point coordinate
 		count1 = count2 = 0;
@@ -1136,7 +1140,7 @@ sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N)
 			r = step / 2;
 			for (k = n; k < n + step && k < N; k++) {
 				if (l < step / 2 && n + l < N
-				    && ((r >= step || n + r >= N) || Img_plot[Index[n + l]].z > Img_plot[Index[n + r]].z)) {
+				    && ((r >= step || n + r >= N) || Img_plot->get(Index[n + l]).z > Img_plot->get(Index[n + r]).z)) {
 					Index_tmp[k] = Index[n + l];
 					l++;
 				} else if (n + r < N) {

@@ -3,16 +3,19 @@
 
 
 SEGMENT *
-ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
+ExclusivePrinciple(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
 {
 	ERROR Error("ExclusivePrinciple");
 
 	ImgVector<int> *IndexMap = nullptr;
 	SEGMENT *MaxEPSegments = nullptr;
+	SIZE size;
 
 	PNM pnm;
 
 	// Compute Exclusive Index Map
+	size.width = angles->width();
+	size.height = angles->height();
 	IndexMap = ExclusiveIndexMap(size, MaximalSegments, Num_Segments, Exclusive_max_radius);
 	if (IndexMap == nullptr) {
 		Error.Function("ExclusiveIndexMap");
@@ -22,13 +25,13 @@ ExclusivePrinciple(double *angles, SIZE size, int *k_list, double *Pr_table, SEG
 	}
 	printf("\nComplete!\n");
 	// DEBUG : Output IndexMap
-	pnm.copy(PORTABLE_GRAYMAP_ASCII, size.width, size.height, (*Num_Segments) - 1, IndexMap->data());
+	pnm.copy(PORTABLE_GRAYMAP_ASCII, angles->width(), angles->height(), (*Num_Segments) - 1, IndexMap->data());
 	if (pnm.write("IndexMap.pgm") == PNM_FUNCTION_ERROR) {
 		fprintf(stderr, "*** ExclusivePrinciple error - CanNOT write out the IndexMap to \"IndexMap.pgm\" ***\n");
 	}
 	pnm.free();
 	// Select the segments which satisfy The Maximal Exclusive Principle
-	MaxEPSegments = ExclusiveSegments(IndexMap, angles, size, MaximalSegments, Num_Segments, k_list, Pr_table);
+	MaxEPSegments = ExclusiveSegments(IndexMap, angles, MaximalSegments, Num_Segments, k_list, Pr_table);
 	if (MaxEPSegments == nullptr) {
 		Error.Function("ExclusiveSegments");
 		Error.Value("MaxEPSegments");
@@ -150,7 +153,7 @@ ExitError:
 
 
 SEGMENT *
-ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, double *Pr_table)
+ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, ImgVector<double> *Pr_table)
 {
 	ERROR Error("ExclusiveSegments");
 
@@ -159,8 +162,7 @@ ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *
 	double *EPSegments_Pr = nullptr;
 	int Num_EPSegments = 0;
 
-	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
-	int maxMN = (size.height > size.width ? size.height : size.width);
+	ATAN2_DIV_PI atan2_div_pi(angles->width(), angles->height());
 	double aligned_angle;
 
 	int n_seg;
@@ -207,13 +209,13 @@ ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *
 		for (t = 0; t < L; t++) {
 			x_t = (int)round(dx * t + n);
 			y_t = (int)round(dy * t + m);
-			if (x_t < 0 || size.width <= x_t || y_t < 0 || size.height <= y_t) {
+			if (x_t < 0 || angles->width() <= x_t || y_t < 0 || angles->height() <= y_t) {
 				break;
 			}
 			if (IndexMap->get(x_t, y_t) == n_seg) {
-				if (fabs(angles[size.width * y_t + x_t] - aligned_angle) <= DIR_PROBABILITY
-				    || fabs(angles[size.width * y_t + x_t] - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
-				    || fabs(angles[size.width * y_t + x_t] + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
+				if (fabs(angles->get(x_t, y_t) - aligned_angle) <= DIR_PROBABILITY
+				    || fabs(angles->get(x_t, y_t) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
+				    || fabs(angles->get(x_t, y_t) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
 					k++;
 				}
 			}
@@ -221,7 +223,7 @@ ExclusiveSegments(ImgVector<int> *IndexMap, double *angles, SIZE size, SEGMENT *
 #pragma omp critical
 		if (k >= k_list[L]) {
 			Num_EPSegments++;
-			EPSegments_Pr[n_seg] = Pr_table[maxMN * k + L];
+			EPSegments_Pr[n_seg] = Pr_table->get(k, L);
 		}
 #pragma omp critical
 		{
