@@ -181,7 +181,19 @@ template <typename T>
 T &
 ImgVector<T>::ref_repeat(int x, int y)
 {
-	return _data[_width * (y % height) + (x % width)];
+	int x_repeat, y_repeat;
+
+	if (x >= 0) {
+		x_repeat = x % _width;
+	} else {
+		x_repeat = _width - (std::abs(x + 1) % _width);
+	}
+	if (y >= 0) {
+		y_repeat = y % _height;
+	} else {
+		y_repeat = _height - (std::abs(y + 1) % _height);
+	}
+	return _data[_width * y_repeat + x_repeat];
 }
 
 
@@ -191,8 +203,14 @@ ImgVector<T>::ref_mirror(int x, int y)
 {
 	int x_mirror, y_mirror;
 
-	x_mirror = width - std::abs(x % (2 * width));
-	y_mirror = height - std::abs(y % (2 * height));
+	if (x < 0) {
+		x = -x - 1; // Mirroring over negative has offset
+	}
+	if (y < 0) {
+		y = -y - 1;
+	}
+	x_mirror = (int)round(_width - 0.5 - std::fabs(_width - 0.5 - (x % (2 * _width))));
+	y_mirror = (int)round(_height - 0.5 - std::fabs(_height - 0.5 - (y % (2 * _height))));
 	return _data[_width * y_mirror + x_mirror];
 }
 
@@ -201,10 +219,8 @@ template <typename T>
 T
 ImgVector<T>::get(int n) const
 {
-	if (n < 0 || _width * _height <= n) {
-		return 0;
-	}
-	return _data[_width * y + x];
+	assert(0 <= n && n < _width * _height);
+	return _data[n];
 }
 
 
@@ -212,10 +228,8 @@ template <typename T>
 T
 ImgVector<T>::get(int x, int y) const
 {
-	if (x < 0 || _width <= x
-	    || y < 0 || _height <= y) {
-		return 0;
-	}
+	assert(0 <= x && x < _width
+	    && 0 <= y && y < _height);
 	return _data[_width * y + x];
 }
 
@@ -224,11 +238,19 @@ template <typename T>
 T
 ImgVector<T>::get_repeat(int x, int y) const
 {
-	int x_mirror, y_mirror;
+	int x_repeat, y_repeat;
 
-	x_mirror = _width - std::abs(_width - (x % (2 * _width)));
-	y_mirror = _height - std::abs(_height - (y % (2 * _width)));
-	return _data[_width * y_mirror + x_mirror];
+	if (x >= 0) {
+		x_repeat = x % _width;
+	} else {
+		x_repeat = _width - (std::abs(x + 1) % _width);
+	}
+	if (y >= 0) {
+		y_repeat = y % _height;
+	} else {
+		y_repeat = _height - (std::abs(y + 1) % _height);
+	}
+	return _data[_width * y_repeat + x_repeat];
 }
 
 
@@ -238,8 +260,14 @@ ImgVector<T>::get_mirror(int x, int y) const
 {
 	int x_mirror, y_mirror;
 
-	x_mirror = _width - std::abs(_width - (x % (2 * _width)));
-	y_mirror = _height - std::abs(_height - (y % (2 * _width)));
+	if (x < 0) {
+		x = -x - 1; // Mirroring over negative has offset
+	}
+	if (y < 0) {
+		y = -y - 1;
+	}
+	x_mirror = (int)round(_width - 0.5 - std::fabs(_width - 0.5 - (x % (2 * _width))));
+	y_mirror = (int)round(_height - 0.5 - std::fabs(_height - 0.5 - (y % (2 * _height))));
 	return _data[_width * y_mirror + x_mirror];
 }
 

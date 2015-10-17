@@ -408,6 +408,8 @@ struct XPLOT
 	XPoint point;
 	double z;
 	XPLOT(void);
+	void set(XPoint _point, double _z);
+	void set(int point_x, int point_y, double _z);
 };
 // /X11 structures
 
@@ -465,15 +467,15 @@ bool Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
 int XEventor(X11_PARAM *X11_Param, SIZE Img_size);
 void SwitchEventer(X11_PARAM *X11_Param);
 bool TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample);
-bool TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, XPLOT *Img_plot);
-bool TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, COORDINATE_3D GaraxyCenter, XPLOT *Img_plot);
-bool TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, COORDINATE_3D *Img_coord, COORDINATE_3D *Img_vel, XPLOT *Img_plot);
+bool TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVector<XPLOT> *Img_plot);
+bool TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, COORDINATE_3D GaraxyCenter, ImgVector<XPLOT> *Img_plot);
+bool TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, ImgVector<XPLOT> *Img_plot);
 bool Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index);
 bool Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index);
 bool Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
 void PlotParameters(X11_PARAM X11_Param);
 bool Set_Pixmap2Window(void);
 bool reset_index(int *Img_index, int N);
-bool sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N);
+bool sort_index(ImgVector<XPLOT> *Img_plot, int *Index, int *Index_tmp, int N);
 // /X11 Plotting
 

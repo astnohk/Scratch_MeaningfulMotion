@@ -224,7 +224,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 					goto ExitError;
 				}
 				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index, Img->size());
+				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
 				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
 				break;
 			case X11_Plot_Grid: // Plot Image Intensity on Grid
@@ -605,7 +605,7 @@ ExitError:
 
 
 bool
-TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT *Img_plot)
+TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVector<XPLOT> *Img_plot)
 {
 	ERROR Error("TransRotate_3DPoint");
 	int m, n;
@@ -622,14 +622,14 @@ TransRotate_3DPoint(X11_PARAM X11_Param, int *Img, SIZE size, int MaxInt, XPLOT 
 	}
 	// Pixel Coordinate
 #pragma omp parallel for private(n, x, y, z) num_threads(8)
-	for (m = 0; m < size.height; m++) {
+	for (m = 0; m < Img->height(); m++) {
 		y = (m - X11_Param.Center_y) * X11_Param.Scale;
-		for (n = 0; n < size.width; n++) {
+		for (n = 0; n < Img->width(); n++) {
 			x = (n - X11_Param.Center_x) * X11_Param.Scale;
 			z = ((-Img->get(n, m) + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
-			Img_plot->get(n, m).point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-			Img_plot->get(n, m).point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
-			Img_plot->get(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+			Img_plot->ref(n, m).point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
+			Img_plot->ref(n, m).point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+			Img_plot->ref(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 		}
 	}
 	return MEANINGFUL_SUCCESS;
@@ -684,7 +684,7 @@ TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINA
 	}
 	// Pixel Coordinate
 #pragma omp parallel for private(x, y, z) num_threads(8)
-	for (i = 0; i < size.width * size.height; i++) {
+	for (i = 0; i < Img->size(); i++) {
 		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
 		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
@@ -738,11 +738,11 @@ TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDIN
 	}
 	// List Cores
 	for (i = 0; i < Img->size(); i++) {
-		if (maxint < Img.get(i)) {
+		if (maxint < Img->get(i)) {
 			maxint = Img->get(i);
 		}
 	}
-	for (i = 0; i <size.width * size.height; i++) {
+	for (i = 0; i < Img->size(); i++) {
 		if (Img->get(i) > maxint * 0.95) {
 			core[Num_Cores] = i;
 			Num_Cores++;
@@ -750,7 +750,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDIN
 	}
 	// Gravity Motion
 #pragma omp parallel for private(j, M, r)
-	for (i = 0; i < size.width * size.height; i++) {
+	for (i = 0; i < Img->size(); i++) {
 		for (j = 0; j < Num_Cores; j++) {
 			M = (double)Img->get(core[j]) / maxint;
 			r = sqrt(POW2(Img_coord->get(core[j]).x - Img_coord->get(i).x)
@@ -808,29 +808,29 @@ Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_pl
 	rectsize.width = MAX(1, round(X11_Param.Scale * 0.25));
 	rectsize.height = MAX(1, floor(X11_Param.Scale * 0.25));
 	// Scan Intensity MIN and MAX
-	Min_Intensity = Max_Intensity = Img->get(0];
-	for (i = 1; i < size.width * size.height; i++) {
+	Min_Intensity = Max_Intensity = Img->get(0);
+	for (i = 1; i < Img->size(); i++) {
 		if (Img->get(i) < Min_Intensity) {
-			Min_Intensity = Img->get(i];
+			Min_Intensity = Img->get(i);
 		} else if (Img->get(i) > Max_Intensity) {
-			Max_Intensity = Img->get(i];
+			Max_Intensity = Img->get(i);
 		}
 	}
 	// Fill the window with Black
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
 	// Draw The Points
-	for (i = 0; i < size.width * size.height; i++) {
+	for (i = 0; i < Img->size(); i++) {
 		index = Img_index[i];
 		if (0 <= Img_plot->get(index).point.x && Img_plot->get(index).point.x < Window_size.width
 		    && 0 <= Img_plot->get(index).point.y && Img_plot->get(index).point.y < Window_size.height) {
-			if (Img->get(index] > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
+			if (Img->get(index) > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
 				if (rectsize.width == 1) {
 					XDrawPoint(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
 					XFillRectangle(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
 				}
-			} else if (Img->get(index] > (Max_Intensity - Min_Intensity) * 0.25 + Min_Intensity) {
+			} else if (Img->get(index) > (Max_Intensity - Min_Intensity) * 0.25 + Min_Intensity) {
 				if (rectsize.width == 1) {
 					XDrawPoint(disp, pix, GCcol[1], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
@@ -853,7 +853,7 @@ ExitError:
 
 
 bool
-Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, ImgVector<int> *Img_index)
+Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index)
 {
 	ERROR Error("Plot_3DGridANDSegment");
 	XPoint Triplet[8];
@@ -880,7 +880,7 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 
 	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img->get(0);
-	for (n = 1; n < size.width * size.height; n++) {
+	for (n = 1; n < Img->size(); n++) {
 		if (Img->get(n) < Min_Intensity) {
 			Min_Intensity = Img->get(n);
 		} else if (Img->get(n) > Max_Intensity) {
@@ -891,14 +891,14 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
 	// Draw The Grid
-	for (n = 0; n < size.width * size.height; n++) {
-		x = Img_index[n] % size.width;
-		y = Img_index[n] / size.width;
-		if (x == size.width - 1 || y == size.height - 1) {
+	for (n = 0; n < Img->size(); n++) {
+		x = Img_index[n] % Img->width();
+		y = Img_index[n] / Img->width();
+		if (x == Img->width() - 1 || y == Img->height() - 1) {
 			continue;
 		}
 		// Set Triplet
-		if (Img_plot->get(size.width * y + x).z > Img_plot->get(size.width * y + x + 1).z) {
+		if (Img_plot->get(x, y).z > Img_plot->get(x + 1, y).z) {
 			Triplet[0].x = x;
 			Triplet[0].y = y;
 			Triplet[1].x = x;
@@ -927,45 +927,45 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 		}
 		Triplet[3] = Triplet[0];
 		Triplet[7] = Triplet[4];
-		local_Min = local_Max = Img->get(size.width * Triplet[0].y + Triplet[0].x);
+		local_Min = local_Max = Img->get(Triplet[0].x, Triplet[0].y);
 		// Local Maximum
-		if (Img->get(size.width * Triplet[1].y + Triplet[1].x) > local_Max) {
-			local_Max = Img->get(size.width * Triplet[1].y + Triplet[1].x);
+		if (Img->get(Triplet[1].x, Triplet[1].y) > local_Max) {
+			local_Max = Img->get(Triplet[1].x, Triplet[1].y);
 		}
-		if (Img->get(size.width * Triplet[2].y + Triplet[2].x) > local_Max) {
-			local_Max = Img->get(size.width * Triplet[2].y + Triplet[2].x);
+		if (Img->get(Triplet[2].x, Triplet[2].y) > local_Max) {
+			local_Max = Img->get(Triplet[2].x, Triplet[2].y);
 		}
 		// Local Minimum
-		if (Img->get(size.width * Triplet[1].y + Triplet[1].x) < local_Min) {
-			local_Min = Img->get(size.width * Triplet[1].y + Triplet[1].x);
+		if (Img->get(Triplet[1].x, Triplet[1].y) < local_Min) {
+			local_Min = Img->get(Triplet[1].x, Triplet[1].y);
 		}
-		if (Img->get(size.width * Triplet[2].y + Triplet[2].x) < local_Min) {
-			local_Min = Img->get(size.width * Triplet[2].y + Triplet[2].x);
+		if (Img->get(Triplet[2].x, Triplet[2].y) < local_Min) {
+			local_Min = Img->get(Triplet[2].x, Triplet[2].y);
 		}
-		local_Min2 = local_Max2 = Img->get(size.width * Triplet[4].y + Triplet[4].x);
+		local_Min2 = local_Max2 = Img->get(Triplet[4].x, Triplet[4].y);
 		// Local Maximum
-		if (Img->get(size.width * Triplet[5].y + Triplet[5].x) > local_Max2) {
-			local_Max2 = Img->get(size.width * Triplet[5].y + Triplet[5].x);
+		if (Img->get(Triplet[5].x, Triplet[5].y) > local_Max2) {
+			local_Max2 = Img->get(Triplet[5].x, Triplet[5].y);
 		}
-		if (Img->get(size.width * Triplet[6].y + Triplet[6].x) > local_Max2) {
-			local_Max2 = Img->get(size.width * Triplet[6].y + Triplet[6].x);
+		if (Img->get(Triplet[6].x, Triplet[6].y) > local_Max2) {
+			local_Max2 = Img->get(Triplet[6].x, Triplet[6].y);
 		}
 		// Local Minimum
-		if (Img->get(size.width * Triplet[5].y + Triplet[5].x) < local_Min2) {
-			local_Min2 = Img->get(size.width * Triplet[5].y + Triplet[5].x);
+		if (Img->get(Triplet[5].x, Triplet[5].y) < local_Min2) {
+			local_Min2 = Img->get(Triplet[5].x, Triplet[5].y);
 		}
-		if (Img->get(size.width * Triplet[6].y + Triplet[6].x) < local_Min2) {
-			local_Min2 = Img->get(size.width * Triplet[6].y + Triplet[6].x);
+		if (Img->get(Triplet[6].x, Triplet[6].y) < local_Min2) {
+			local_Min2 = Img->get(Triplet[6].x, Triplet[6].y);
 		}
 		// Convert Triplet coordinate to Real point coordinate
 		count1 = count2 = 0;
 		for (i = 0; i < 4; i++) {
-			Triplet[i] = Img_plot[size.width * Triplet[i].y + Triplet[i].x].point;
+			Triplet[i] = Img_plot->get(Triplet[i].x, Triplet[i].y).point;
 			if (Triplet[i].x < 0 || Window_size.width <= Triplet[i].x
 			    || Triplet[i].y < 0 || Window_size.height <= Triplet[i].y) {
 				count1--;
 			}
-			Triplet[4 + i] = Img_plot[size.width * Triplet[4 + i].y + Triplet[4 + i].x].point;
+			Triplet[4 + i] = Img_plot->get(Triplet[4 + i].x, Triplet[4 + i].y).point;
 			if (Triplet[4 + i].x < 0 || Window_size.width <= Triplet[4 + i].x
 			    || Triplet[4 + i].y < 0 || Window_size.height <= Triplet[4 + i].y) {
 				count2--;
@@ -1105,7 +1105,7 @@ ExitError:
 
 
 bool
-sort_index(XPLOT *Img_plot, int *Index, int *Index_tmp, int N)
+sort_index(ImgVector<XPLOT> *Img_plot, int *Index, int *Index_tmp, int N)
 {
 	ERROR Error("sort_index");
 	int div;

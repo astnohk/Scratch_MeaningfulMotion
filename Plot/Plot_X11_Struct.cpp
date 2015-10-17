@@ -24,6 +24,7 @@ SEGMENT_X11::SEGMENT_X11(void)
 	end = (XPoint){0, 0};
 }
 
+
 COORDINATE_3D::COORDINATE_3D(void)
 {
 	x = .0;
@@ -46,9 +47,25 @@ COORDINATE_3D::set(double sx, double sy, double sz)
 	z = sz;
 }
 
+
 XPLOT::XPLOT(void)
 {
 	point = (XPoint){0, 0};
 	z = .0;
+}
+
+void
+XPLOT::set(XPoint _point, double _z)
+{
+	point = _point;
+	z = _z;
+}
+
+void
+XPLOT::set(int point_x, int point_y, double _z)
+{
+	point.x = point_x;
+	point.x = point_y;
+	z = _z;
 }
 
