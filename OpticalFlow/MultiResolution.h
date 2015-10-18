@@ -1,5 +1,5 @@
-/* Multi Resolution functions */
-double** Pyramider(double *img, SIZE size, int Level);
-VECTOR_2D** grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level);
-double** dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level);
+// Multi Resolution functions
+ImgVector<double>* Pyramider(ImgVector<double> *img, int Level);
+ImgVector<VECTOR_2D>* grad_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level);
+ImgVector<double>* dt_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level);
 

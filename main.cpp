@@ -61,7 +61,7 @@ main(int argc, char *argv[])
 	    "\n"
 	    "    Line Scratch Detection option:\n"
 	    "      --filter_size (width)x(height) : set Filter size [width]x[height] (default value : 21x21)\n"
-	    "      --filter_type [name]           : set which Filter will used (Epsilon, Gaussian)\n"
+	    "      --filter_type [name]           : set which Filter will used (Epsilon, Gaussian or None)\n"
 	    "      --gauss_var   [value]          : set Gaussian filter's Standard Deviation (default value : 5.0)\n"
 	    "      --filter_ep   [value]          : set Epsilon Filter Threshold (default value : 20)\n"
 	    "      --s_med       [value]          : set s_med the threshold of difference on center from median (default value : 3)\n"

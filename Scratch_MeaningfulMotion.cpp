@@ -16,34 +16,41 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	std::string OutputNameNums;
 	char *char_tmp = nullptr;
 	int CurrentFileNum;
+
 	PNM pnm_in;
 	PNM pnm_out;
 	PNM pnm_orig;
 	PNM pnm_res;
 	PNM_DOUBLE pnmd_in;
 	PNM_DOUBLE pnmd_out;
-	PNM_DOUBLE pnmd_prev;
+	ImgVector<double> imgd_prev;
+	ImgVector<double> imgd_in;
+	ImgVector<int> img_orig; // For X11 plotting
+
+	// Optical Flow
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
-	VECTOR_2D *MultipleMotion_u = nullptr;
+	ImgVector<VECTOR_2D> *MultipleMotion_u = nullptr;
+	// HOG
 	HOG hog_raw;
 	HOG hog;
 	HOG hog_raw_prv;
 	HOG hog_prv;
 	VECTOR_2D_W_SCORE *hog_vector = nullptr;
 
-	int Initialize = 0;
-
 	int *k_list = nullptr;
 	ImgVector<double> *Pr_table = nullptr;
+
 	ImgVector<double> *filtered = nullptr;
 	ImgVector<double> *scratches = nullptr;
-	ImgVector<double> *binary = nullptr;
 	ImgVector<double> *angles = nullptr;
+
 	SEGMENT *MaximalSegments = nullptr;
 	SEGMENT *EPSegments = nullptr;
 	int *segments = nullptr;
 	int Num_Segments = 0;
-	ImgVector<int> *Image = nullptr; // For X11 plotting
+
+	int Initialize = 0;
+
 	SIZE size;
 	SIZE size_prev;
 	SIZE size_orig;
@@ -51,7 +58,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	SIZE size_out;
 	int maxMN = 0;
 	int l_min = 1;
-	int k, L;
+	int i, k, L;
 	double progress;
 	int count;
 
@@ -240,21 +247,27 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			filtered = nullptr;
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			// Computte and output Multiple Motion Affine Parameters by method of M.J.Black
-			pnmd_in.copy(pnm_in, 1.0);
-			if (pnmd_prev.isNULL() != false) {
+			imgd_in.reset(pnm_in.Width(), pnm_in.Height());
+			for (i = 0; i < imgd_in.size(); i++) {
+				imgd_in[i] = (double)pnm_in[i];
+			}
+			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Multiple Motions Affine Parameters by method of M.J.Black\n");
-				MultipleMotion_AffineCoeff = MultipleMotion_Affine(pnmd_prev.Data(), pnmd_in.Data(), pnmd_in.MaxInt(), size_orig, Options.MultipleMotion_Param);
+				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnmd_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			// Computte and output Multiple Motion Optical Flow by method of M.J.Black
-			pnmd_in.copy(pnm_in, 1.0);
-			if (pnmd_prev.isNULL() != false) {
+			imgd_in.reset(pnm_in.Width(), pnm_in.Height());
+			for (i = 0; i < imgd_in.size(); i++) {
+				imgd_in[i] = (double)pnm_in[i];
+			}
+			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Multiple Motions Optical Flow by method of M.J.Black\n");
-				MultipleMotion_u = MultipleMotion_OpticalFlow(pnmd_prev.Data(), pnmd_in.Data(), pnmd_in.MaxInt(), size_orig, Options.MultipleMotion_Param);
+				MultipleMotion_u = MultipleMotion_OpticalFlow(&imgd_prev, &imgd_in, pnmd_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
@@ -279,11 +292,15 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			pnm_in.copy(pnm_in.Desc(), pnm_in.Width(), pnm_in.Height(), pnm_in.MaxInt(), scratches->data(), 1.0);
 			if ((Options.mode & MODE_OUTPUT_BINARY_IMAGE) != 0) {
 				// Output Scratch Map without Meaningful Alignments
+				printf("* Output Scratch binary image\n");
 				if (pnm_out.copy(pnm_in) != PNM_FUNCTION_SUCCESS) {
 					Error.Function("pnm_out.copy");
 					Error.Value("(pnm_out <- pnm_in)");
 					Error.FunctionFail();
 					goto ExitError;
+				}
+				for (int i = 0; i < pnm_out.Width() * pnm_out.Height(); i++) {
+					pnm_out[i] = scratches->get(i);
 				}
 			} else {
 				// A Contrario Method : Meaningful Alignments
@@ -337,6 +354,11 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					Error.Value("angles");
 					Error.FunctionFail();
 					goto ExitError;
+				}
+				for (int m = 100; m < 150; m++) {
+					for (int n = 100; n < 150; n++) {
+						printf("%f ", angles->get(n, m));
+					}
 				}
 				printf("* Compute Segments and Maximal Meaningfulness\n");
 				if (MaximalSegments == nullptr) {
@@ -396,8 +418,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				} else {
 					pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size_out.width, size_out.height, pnm_orig.MaxInt(), segments);
 				}
-
-
 				delete[] segments;
 				segments = nullptr;
 				delete angles;
@@ -407,17 +427,17 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			scratches = nullptr;
 		}
 		// X11 Plotting
-		try {
-			Image = new ImgVector<pnm_img>(size_orig.width, size_orig.height, pnm_orig.Data());
+		img_orig.reset(pnm_orig.Width(), pnm_orig.Height());
+		for (i = 0; i < img_orig.size(); i++) {
+			img_orig[i] = (int)pnm_orig[i];
 		}
-		catch (const std::bad_alloc &bad) {
-			Error.Value("Image");
-			Error.Malloc();
-			goto ExitError;
-		}
-		ShowSegments_X11(Image, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
-		delete Image;
-		Image = nullptr;
+		printf("\ntest\n");
+		printf("%d\n", img_orig.get_mirror(img_orig.width() - 2, 10));
+		printf("%d\n", img_orig.get_mirror(img_orig.width() - 1, 10));
+		printf("%d\n", img_orig.get_mirror(img_orig.width(), 10));
+		printf("%d\n", img_orig.get_mirror(img_orig.width() + 1, 10));
+		printf("\n/test\n");
+		ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
 		// /X11 Plotting
 		delete[] MaximalSegments;
 		MaximalSegments = nullptr;
@@ -439,7 +459,7 @@ Write:
 			char_tmp = nullptr;
 		}
 		if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
-			if (pnmd_prev.isNULL() == false
+			if (imgd_prev.isNULL() == false
 			    && MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums.c_str()) == MEANINGFUL_FAILURE) {
 				Error.Function("MultipleMotion_Affine_write");
 				Error.Value("MultipleMotions_Affine");
@@ -447,8 +467,8 @@ Write:
 				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
-			if (pnmd_prev.isNULL() == false
-			    && MultipleMotion_write(MultipleMotion_u, size_orig, OutputNameNums.c_str()) == MEANINGFUL_FAILURE) {
+			if (imgd_prev.isNULL() == false
+			    && MultipleMotion_write(MultipleMotion_u, OutputNameNums.c_str()) == MEANINGFUL_FAILURE) {
 				Error.Function("MultipleMotion_write");
 				Error.Value("MultipleMotions_u");
 				Error.FunctionFail();
@@ -491,10 +511,10 @@ Write:
 				goto ExitError;
 			}
 		}
-		delete[] MultipleMotion_u;
+		delete MultipleMotion_u;
 		MultipleMotion_u = nullptr;
-		if (pnmd_in.isNULL() == false) {
-			pnmd_prev.copy(pnmd_in);
+		if (imgd_in.isNULL() == false) {
+			imgd_prev = imgd_in;
 		}
 		pnmd_in.free();
 		pnm_out.free();
@@ -503,43 +523,21 @@ Write:
 		pnm_orig.free();
 	}
 	delete[] hog_vector;
-	hog_raw_prv.free();
-	hog_prv.free();
-	hog_raw.free();
-	hog.free();
-	pnmd_prev.free();
-	pnmd_in.free();
-	pnm_out.free();
-	pnm_in.free();
-	pnm_res.free();
-	pnm_orig.free();
 	delete[] k_list;
 	delete Pr_table;
 	return MEANINGFUL_SUCCESS;
 // Exit Error
 ExitError:
 	delete[] hog_vector;
-	hog_raw_prv.free();
-	hog_prv.free();
-	hog_raw.free();
-	hog.free();
-	delete Image;
-	delete MultipleMotion_u;
 	delete[] segments;
 	delete[] EPSegments;
 	delete[] MaximalSegments;
-	delete angles;
-	delete binary;
-	delete scratches;
 	delete[] k_list;
-	delete Pr_table;
+	delete MultipleMotion_u;
+	delete angles;
+	delete scratches;
 	delete filtered;
-	pnm_out.free();
-	pnm_in.free();
-	pnm_res.free();
-	pnm_orig.free();
-	pnmd_in.free();
-	pnmd_out.free();
+	delete Pr_table;
 	return MEANINGFUL_FAILURE;
 }
 

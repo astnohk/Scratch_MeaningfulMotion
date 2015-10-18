@@ -10,13 +10,13 @@
 
 
 
-VECTOR_AFFINE MultipleMotion_Affine(double *It, double *Itp1, double MaxInt, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam);
-bool IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD, int IterMax, double ErrorMinThreshold);
+VECTOR_AFFINE MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam);
+bool IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold);
 
-VECTOR_AFFINE Error_a(VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD);
-VECTOR_AFFINE sup_Error_aa(VECTOR_2D *Img_g, SIZE size, double sigmaD);
+VECTOR_AFFINE Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD);
+VECTOR_AFFINE sup_Error_aa(ImgVector<VECTOR_2D> *Img_g, double sigmaD);
 
-double Error_Affine(const VECTOR_AFFINE *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double sigmaD);
+double Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD);
 
 bool MultipleMotion_Affine_write(VECTOR_AFFINE u, const char *filename);
 

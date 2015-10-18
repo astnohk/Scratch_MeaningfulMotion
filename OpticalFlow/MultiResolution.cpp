@@ -1,15 +1,17 @@
 #include "../Scratch_MeaningfulMotion.h"
 
+#define DEBUG_PYRAMID
 
 
 
-double **
-Pyramider(double *img, SIZE size, int Level)
+
+ImgVector<double> *
+Pyramider(ImgVector<double> *img, int Level)
 {
 #define WEIGHTED_FILTER_SIZE 5
 	ERROR Error("Pyramider");
 
-	double **Pyramid = nullptr;
+	ImgVector<double> *Pyramid = nullptr;
 	double w[WEIGHTED_FILTER_SIZE];
 	double a = 0.4; // Typically a = {z | 0.3 <= z <= 0.5}
 	SIZE size_l;
@@ -24,13 +26,24 @@ Pyramider(double *img, SIZE size, int Level)
 	char filename[128];
 
 	try {
-		Pyramid = new double*[Level];
+		Pyramid = new ImgVector<double>[Level];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("Pyramid");
 		Error.Malloc();
 		goto ExitError;
 	}
+	Pyramid[0].reset(img->width(), img->height(), img->data()); // Level 0 is equal to original image
+	for (l = 1; l < Level; l++) {
+		size_l.width = (int)ceil(img->width() * pow_int(0.5, l));
+		size_l.height = (int)ceil(img->height() * pow_int(0.5, l));
+		if (size_l.width <= 0 || size_l.height <= 0) {
+			Error.OthersWarning("The image reaches minimum size in Pyramid");
+			break;
+		}
+		Pyramid[l].reset(size_l.width, size_l.height);
+	}
+
 	// Lowpass Filter
 	w[0] = a / 2.0;
 	w[1] = 0.5;
@@ -46,46 +59,18 @@ Pyramider(double *img, SIZE size, int Level)
 		w[x] /= sum;
 	}
 
-	// Level 0 (Just same as original)
-	size_l = size;
-	try {
-		Pyramid[0] = new double[size.width * size.height];
-	}
-	catch (const std::bad_alloc &bad) {
-		Error.Value("Pyramid[0]");
-		Error.Malloc();
-		goto ExitError;
-	}
-	for (x = 0; x < size.width * size.height; x++) {
-		Pyramid[0][x] = img[x];
-	}
-
-	/* Test Output */
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, 255, Pyramid[0], 256.0);
-	sprintf(filename, "Pyramid_0000.pgm");
-	pnm.write(filename);
-	pnm.free();
-
-	/* Make image pyramid (l > 0) */
+	// Make image pyramid (l > 0)
 	for (l = 1; l < Level; l++) {
 		size_lm1 = size_l;
-		size_l.width = (int)ceil(size.width * pow_int(0.5, l));
-		size_l.height = (int)ceil(size.height * pow_int(0.5, l));
+		size_l.width = (int)ceil(img->width() * pow_int(0.5, l));
+		size_l.height = (int)ceil(img->height() * pow_int(0.5, l));
 		if (size_l.width <= 0 || size_l.height <= 0) {
 			Error.OthersWarning("The image reaches minimum size in Pyramid");
 			break;
 		}
-		try {
-			Pyramid[l] = new double[size_l.width * size_l.height];
-		}
-		catch (const std::bad_alloc &bad) {
-			Error.Value("Pyramid[l]");
-			Error.Malloc();
-			goto ExitError;
-		}
 		for (x = 0; x < size_l.width; x++) {
 			for (y = 0; y < size_l.height; y++) {
-				Pyramid[l][size_l.width * y + x] = .0;
+				Pyramid[l].ref(x, y) = .0;
 				for (m = 0; m < WEIGHTED_FILTER_SIZE; m++) {
 					ym = 2 * y + m - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
 					if (ym < 0) {
@@ -100,35 +85,36 @@ Pyramider(double *img, SIZE size, int Level)
 						} else if (xn >= size_lm1.width) {
 							xn = 2 * size_lm1.width - xn - 1;
 						}
-						Pyramid[l][size_l.width * y + x] += w[m] * w[n] * Pyramid[l - 1][size_lm1.width * ym + xn];
+						Pyramid[l].ref(x, y) += w[m] * w[n] * Pyramid[l - 1].get(xn, ym);
 					}
 				}
 			}
 		}
-		pnm.copy(PORTABLE_GRAYMAP_BINARY, size_l.width, size_l.height, 255, Pyramid[l], 256.0);
+	}
+#if defined(DEBUG_PYRAMID)
+	// Test Output
+	for (l = 0; l < Level; l++) {
+		pnm.copy(PORTABLE_GRAYMAP_BINARY, Pyramid[l].width(), Pyramid[l].height(), 255, Pyramid[l].data(), 256.0);
 		sprintf(filename, "Pyramid_%04d.pgm", l);
 		pnm.write(filename);
 		pnm.free();
 	}
+#endif
 	return Pyramid;
 // Error
 ExitError:
-	for (l = 0; Pyramid != nullptr && l < Level; l++) {
-		delete[] Pyramid[l];
-	}
-	delete[] Pyramid;
+	delete Pyramid;
 	return nullptr;
 }
 
 
-VECTOR_2D **
-grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
+ImgVector<VECTOR_2D> *
+grad_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
 {
 	ERROR Error("grad_Pyramid");
 
 	// Note that convolution invert *Filter
-	VECTOR_2D **grad_levels = nullptr;
-	SIZE size_l;
+	ImgVector<VECTOR_2D> *grad_levels = nullptr;
 	int x, y;
 	int m, n;
 	int l;
@@ -140,7 +126,7 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		goto ExitError;
 	}
 	try {
-		grad_levels = new VECTOR_2D*[Level];
+		grad_levels = new ImgVector<VECTOR_2D>[Level];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("grad_levels");
@@ -148,40 +134,31 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		goto ExitError;
 	}
 	for (l = 0; l < Level; l++) {
-		size_l.width = (int)ceil((double)size.width * pow_int(0.5, l));
-		size_l.height = (int)ceil((double)size.height * pow_int(0.5, l));
-		try {
-			grad_levels[l] = new VECTOR_2D[size_l.width * size_l.height];
-		}
-		catch (const std::bad_alloc &bad) {
-			Error.Value("grad_levels[l]");
-			Error.Malloc();
-			goto ExitError;
-		}
-		for (m = 0; m < size_l.height; m++) {
-			y = SATURATE(m, 0, size_l.height - 2);
-			for (n = 0; n < size_l.width; n++) {
-				x = SATURATE(n, 0, size_l.width - 2);
+		grad_levels[l].reset(img_t[l].width(), img_t[l].height());
+		for (m = 0; m < img_t[l].height(); m++) {
+			y = SATURATE(m, 0, img_t[l].height() - 2);
+			for (n = 0; n < img_t[l].width(); n++) {
+				x = SATURATE(n, 0, img_t[l].width() - 2);
 				// dx
-				grad_levels[l][size_l.width * m + n].x =
-				    (img_t[l][size_l.width * y + x + 1] - img_t[l][size_l.width * y + x]
-				    + img_t[l][size_l.width * (y + 1) + x + 1] - img_t[l][size_l.width * (y + 1) + x])
+				grad_levels[l].ref(n, m).x =
+				    (img_t[l].get(x + 1, y) - img_t[l].get(x, y)
+				    + img_t[l].get(x + 1, y + 1) - img_t[l].get(x, y + 1))
 				    / 2.0;
 				// dy
-				grad_levels[l][size_l.width * m + n].y =
-				    (img_t[l][size_l.width * (y + 1) + x] - img_t[l][size_l.width * y + x]
-				    + img_t[l][size_l.width * (y + 1) + x + 1] - img_t[l][size_l.width * y + x + 1])
+				grad_levels[l].ref(n, m).y =
+				    (img_t[l].get(x, y + 1) - img_t[l].get(x, y)
+				    + img_t[l].get(x + 1, y + 1) - img_t[l].get(x + 1, y))
 				    / 2.0;
 				if (img_tp1 != NULL) {
 					// dx
-					grad_levels[l][size_l.width * m + n].x +=
-					    (img_tp1[l][size_l.width * y + x + 1] - img_tp1[l][size_l.width * y + x]
-					    + img_tp1[l][size_l.width * (y + 1) + x + 1] - img_tp1[l][size_l.width * (y + 1) + x])
+					grad_levels[l].ref(n, m).x +=
+					    (img_tp1[l].get(x + 1, y) - img_tp1[l].get(x, y)
+					    + img_tp1[l].get(x + 1, y + 1) - img_tp1[l].get(x, y + 1))
 					    / 2.0;
 					// dy
-					grad_levels[l][size_l.width * m + n].y +=
-					    (img_tp1[l][size_l.width * (y + 1) + x] - img_tp1[l][size_l.width * y + x]
-					    + img_tp1[l][size_l.width * (y + 1) + x + 1] - img_tp1[l][size_l.width * y + x + 1])
+					grad_levels[l].ref(n, m).y +=
+					    (img_tp1[l].get(x, y + 1) - img_tp1[l].get(x, y)
+					    + img_tp1[l].get(x + 1, y + 1) - img_tp1[l].get(x + 1, y))
 					    / 2.0;
 				}
 			}
@@ -190,24 +167,18 @@ grad_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 	return grad_levels;
 // Error
 ExitError:
-	if (grad_levels != NULL) {
-		for (l = 0; l < Level; l++) {
-			delete[] grad_levels[l];
-		}
-	}
-	delete[] grad_levels;
+	delete grad_levels;
 	return nullptr;
 }
 
 
-double **
-dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
+ImgVector<double> *
+dt_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
 {
 	ERROR Error("grad_Pyramid");
 
 	// Note that convolution invert *Filter
-	double **dt_levels = nullptr;
-	SIZE size_l;
+	ImgVector<double> *dt_levels = nullptr;
 	int x, y;
 	int m, n;
 	int l;
@@ -222,7 +193,7 @@ dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		goto ExitError;
 	}
 	try {
-		dt_levels = new double*[Level];
+		dt_levels = new ImgVector<double>[Level];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("dt_levels");
@@ -230,26 +201,17 @@ dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 		goto ExitError;
 	}
 	for (l = 0; l < Level; l++) {
-		size_l.width = (int)ceil((double)size.width * pow_int(0.5, l));
-		size_l.height = (int)ceil((double)size.height * pow_int(0.5, l));
-		try {
-			dt_levels[l] = new double[size_l.width * size_l.height];
-		}
-		catch (const std::bad_alloc &bad) {
-			Error.Value("dt_levels[l]");
-			Error.Malloc();
-			goto ExitError;
-		}
-		for (m = 0; m < size_l.height; m++) {
-			y = SATURATE(m, 0, size_l.height - 2);
-			for (n = 0; n < size_l.width; n++) {
-				x = SATURATE(n, 0, size_l.width - 2);
+		dt_levels[l].reset(img_t[l].width(), img_t[l].height());
+		for (m = 0; m < img_t[l].height(); m++) {
+			y = SATURATE(m, 0, img_t[l].height() - 2);
+			for (n = 0; n < img_t[l].width(); n++) {
+				x = SATURATE(n, 0, img_t[l].width() - 2);
 				// dt
-				dt_levels[l][size_l.width * m + n] =
-				    (img_tp1[l][size_l.width * y + x] - img_t[l][size_l.width * y + x]
-				    + img_tp1[l][size_l.width * y + x + 1] - img_t[l][size_l.width * y + x + 1]
-				    + img_tp1[l][size_l.width * (y + 1) + x] - img_t[l][size_l.width * (y + 1) + x]
-				    + img_tp1[l][size_l.width * (y + 1) + x + 1] - img_t[l][size_l.width * (y + 1) + x + 1])
+				dt_levels[l].ref(n, m) =
+				    (img_tp1[l].get(x, y) - img_t[l].get(x, y)
+				    + img_tp1[l].get(x + 1, y) - img_t[l].get(x + 1, y)
+				    + img_tp1[l].get(x, y + 1) - img_t[l].get(x, y + 1)
+				    + img_tp1[l].get(x + 1, y + 1) - img_t[l].get(x + 1, y + 1))
 				    / 4.0;
 			}
 		}
@@ -257,12 +219,7 @@ dt_Pyramid(double **img_t, double **img_tp1, SIZE size, int Level)
 	return dt_levels;
 // Error
 ExitError:
-	if (dt_levels != nullptr) {
-		for (l = 0; l < Level; l++) {
-			delete[] dt_levels[l];
-		}
-	}
-	delete[] dt_levels;
+	delete dt_levels;
 	return nullptr;
 }
 

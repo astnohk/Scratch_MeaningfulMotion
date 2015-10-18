@@ -10,15 +10,15 @@
 
 
 
-VECTOR_2D* MultipleMotion_OpticalFlow(double *It, double *Itp1, double MaxInt, SIZE size_img, MULTIPLE_MOTION_PARAM MotionParam);
+ImgVector<VECTOR_2D>* MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam);
 
-bool IRLS_MultipleMotion_OpticalFlow(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, SIZE size_img, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level);
-void LevelDown(VECTOR_2D *u_l, SIZE size_l, VECTOR_2D *u_lp1, const SIZE &size_lp1);
+bool IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level);
+void LevelDown(ImgVector<VECTOR_2D> *u_levels, int level);
 
-VECTOR_2D Error_u(int site, VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, const SIZE &size_img, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
-VECTOR_2D sup_Error_uu(VECTOR_2D *Img_g, const SIZE &size, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
+VECTOR_2D Error_u(int site, ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
+VECTOR_2D sup_Error_uu(ImgVector<VECTOR_2D> *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
 
-double Error_MultipleMotion(VECTOR_2D *u, VECTOR_2D *Img_g, double *Img_t, const SIZE &size_img, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
+double Error_MultipleMotion(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
 
-bool MultipleMotion_write(VECTOR_2D *u, SIZE size, const char *filename);
+bool MultipleMotion_write(ImgVector<VECTOR_2D> *u, const char *filename);
 

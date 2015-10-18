@@ -444,9 +444,9 @@ char* regexp(char *s);
 
 
 // Scratch Detection
-ImgVector<double>* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection);
-#define DO_DETECTION 1
-#define DO_NOT_DETECTION 0
+ImgVector<double>* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, bool Do_Detection);
+#define DO_DETECTION true
+#define DO_NOT_DETECTION false
 
 // Meaningful Alignments
 SEGMENT* AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVector<double> *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);

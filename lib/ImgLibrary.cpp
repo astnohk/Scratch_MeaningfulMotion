@@ -341,8 +341,8 @@ Derivator(ImgVector<double> *Image, const char *Type)
 		goto ExitError;
 	}
 
-	Image_dx = Filterer(Image, Dx, MEANINGFUL_FALSE);
-	Image_dy = Filterer(Image, Dy, MEANINGFUL_FALSE);
+	Image_dx = Filterer(Image, Dx, false);
+	Image_dy = Filterer(Image, Dy, false);
 
 	try {
 		Derivative = new ImgVector<VECTOR_2D>(Image->width(), Image->height());

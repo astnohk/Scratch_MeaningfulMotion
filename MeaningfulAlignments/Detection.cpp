@@ -5,7 +5,7 @@
 
 
 ImgVector<double> *
-DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, int Do_Detection)
+DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, bool Do_Detection)
 {
 	ERROR Error("DetectScratch");
 
@@ -24,12 +24,15 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 	size.width = pnm.Width();
 	size.height = pnm.Height();
 	try {
-		img = new ImgVector<double>(pnm.Width(), pnm.Height(), pnm.get_double());
+		img = new ImgVector<double>(pnm.Width(), pnm.Height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("img");
 		Error.Malloc();
 		goto ExitError;
+	}
+	for (int i = 0; i < img->size(); i++) {
+		(*img)[i] = (double)pnm[i];
 	}
 	switch (FilterParam.type) {
 		case FILTER_ID_EPSILON: // Epsilon Filter
@@ -62,7 +65,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 			}
 	}
 #if defined(DEBUG_FILTER)
-	if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, size.width, size.height, pnm.MaxInt(), img_filtered->data(), 1.0) == PNM_FUNCTION_ERROR) {
+	if (pnm_out.copy(PORTABLE_GRAYMAP_BINARY, img_filtered->width(), img_filtered->height(), pnm.MaxInt(), img_filtered->data(), 1.0) == PNM_FUNCTION_ERROR) {
 		Error.Function("pnm_out.copy");
 		Error.FunctionFail();
 		goto ExitError;
@@ -75,12 +78,12 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 	pnm_out.free();
 #endif
 
-	if (Do_Detection == 0) {
+	if (Do_Detection == false) {
 		scratches = img_filtered;
 		img_filtered = nullptr;
 	} else {
 		try {
-			scratches = new ImgVector<double>(size.width, size.height);
+			scratches = new ImgVector<double>(size.width, size.height, 0.0);
 		}
 		catch (const std::bad_alloc &bad) {
 			Error.Function("new");
@@ -89,18 +92,18 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 			goto ExitError;
 		}
 #pragma omp parallel for private(x, m, n, Im, Il, Ir)
-		for (y = 0; y < size.height; y++) {
-			for (x = 0; x < size.width; x++) {
+		for (y = 0; y < img_filtered->height(); y++) {
+			for (x = 0; x < img_filtered->width(); x++) {
 				Im = HorizontalMedian(img_filtered, x, y, MEAN_WIDTH);
 				if (fabs(img_filtered->get(x, y) - Im) >= s_med) {
 					Il = m = 0;
-					for (n = ((x - AVE_FAR) < 0) ? 0 : (x - AVE_FAR); (n < size.width) && (n < (x - SCRATCH_WIDTH / 2)); n++) {
+					for (n = ((x - AVE_FAR) < 0) ? 0 : (x - AVE_FAR); (n < img_filtered->width()) && (n < (x - SCRATCH_WIDTH / 2)); n++) {
 						Il += img_filtered->get(n, y);
 						m++;
 					}
 					Il /= (double)m;
 					Ir = m = 0;
-					for (n = x + SCRATCH_WIDTH / 2 + 1; n < size.width && n <= x + AVE_FAR; n++) {
+					for (n = x + SCRATCH_WIDTH / 2 + 1; n < img_filtered->width() && n <= x + AVE_FAR; n++) {
 						Ir += img_filtered->get(n, y);
 						m++;
 					}
@@ -204,7 +207,7 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 				delete list_fragment;
 				list_fragment = nullptr;
 			}
-			// Bottom side to Other 3 sides (n, size.height) -> (x, y)
+			// Bottom side to Other 3 sides (n, angles->height()) -> (x, y)
 			dx = n + round(-(angles->height() - 1) / tan_list[r]);
 			x = (dx >= 0.0) ? (dx < (double)angles->width()) ? (int)dx : angles->width() - 1 : 0;
 			if (tan_list[r] >= 0.0) {

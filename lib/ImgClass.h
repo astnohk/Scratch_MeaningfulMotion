@@ -9,11 +9,15 @@ class ImgVector
 		ImgVector(void);
 		ImgVector(ImgVector<T> &copy);
 		ImgVector(int W, int H);
+		ImgVector(int W, int H, T value);
 		ImgVector(int W, int H, T *array);
 		~ImgVector(void);
 		void reset(int W, int H);
+		void reset(int W, int H, T value);
 		void reset(int W, int H, T *array);
 		void copy(ImgVector<T> &copy);
+		void copy(ImgVector<T> *copy);
+		ImgVector<T>& operator=(ImgVector<T> &copy);
 		void set(int x, int y, T &value);
 		T* data(void) const;
 		T& operator[](int n);
@@ -27,6 +31,7 @@ class ImgVector
 		int width(void) const;
 		int height(void) const;
 		int size(void) const;
+		bool isNULL(void) const;
 };
 
 
