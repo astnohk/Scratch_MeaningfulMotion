@@ -317,9 +317,7 @@ AlignedCheck(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table
 	for (t_start = 0; t_start <= L - l_min; t_start++) {
 		int tmpx, tmpy;
 		tmpx = (int)round(dx * t_start + n);
-		tmpx = tmpx >= 0 ? (tmpx < angles->width() ? tmpx : angles->width() - 1) : 0;
 		tmpy = (int)round(dy * t_start + m);
-		tmpy = tmpy >= 0 ? (tmpy < angles->height() ? tmpy : angles->height() - 1) : 0;
 		if (fabs(angles->get(tmpx, tmpy) - aligned_angle) <= DIR_PROBABILITY
 		    || fabs(angles->get(tmpx, tmpy) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
 		    || fabs(angles->get(tmpx, tmpy) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
@@ -336,9 +334,7 @@ AlignedCheck(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table
 					}
 				}
 				tmpx = (int)round(dx * t_end + n);
-				tmpx = tmpx >= 0 ? (tmpx < angles->width() ? tmpx : angles->width() - 1) : 0;
 				tmpy = (int)round(dy * t_end + m);
-				tmpy = tmpy >= 0 ? (tmpy < angles->height() ? tmpy : angles->height() - 1) : 0;
 				if (fabs(angles->get(tmpx, tmpy) - aligned_angle) <= DIR_PROBABILITY
 				    || fabs(angles->get(tmpx, tmpy) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
 				    || fabs(angles->get(tmpx, tmpy) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {
@@ -346,9 +342,7 @@ AlignedCheck(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table
 					// Check if the segment which has aligned point on both ends is epsilon-Meaningful
 					for (t = t_start + 1; t <= t_end - 1; t++) {
 						tmpx = (int)round(dx * t + n);
-						tmpx = tmpx >= 0 ? (tmpx < angles->width() ? tmpx : angles->width() - 1) : 0;
 						tmpy = (int)round(dy * t + m);
-						tmpy = tmpy >= 0 ? (tmpy < angles->height() ? tmpy : angles->height() - 1) : 0;
 						if (fabs(angles->get(tmpx, tmpy) - aligned_angle) <= DIR_PROBABILITY
 						    || fabs(angles->get(tmpx, tmpy) - ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY
 						    || fabs(angles->get(tmpx, tmpy) + ANGLE_MAX - aligned_angle) <= DIR_PROBABILITY) {

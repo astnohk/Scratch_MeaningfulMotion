@@ -381,6 +381,19 @@ ImgVector<T>::get(int x, int y) const
 
 template <typename T>
 T
+ImgVector<T>::get_zeropad(int x, int y) const
+{
+	if (x < 0 || _width <= x
+	    || y < 0 || _height <= y) {
+		return (T)0;
+	} else {
+		return _data[_width * y + x];
+	}
+}
+
+
+template <typename T>
+T
 ImgVector<T>::get_repeat(int x, int y) const
 {
 	int x_repeat, y_repeat;

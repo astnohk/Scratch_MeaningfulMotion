@@ -274,7 +274,7 @@ DerivativeAngler(ImgVector<double> *img)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (n = 0; n < img->width() * img->height(); n++) {
+	for (n = 0; n < img->size(); n++) {
 		dx = (*Derivative)[n].x;
 		dy = (*Derivative)[n].y;
 		if (fabs(dx) <= DERIVATIVE_MINIMUM && fabs(dy) <= DERIVATIVE_MINIMUM) {
@@ -306,10 +306,10 @@ Derivator(ImgVector<double> *Image, const char *Type)
 	ImgVector<double> *Image_dx = nullptr;
 	ImgVector<double> *Image_dy = nullptr;
 	/* Note that convolution invert *Filter */
-	double DiffFilter_array_x[4] = {0.5, -0.5, 0.5, -0.5};
-	double DiffFilter_array_y[4] = {0.5, 0.5, -0.5, -0.5};
-	double SobelFilter_array_x[9] = {0.25, 0, -0.25, 0.5, 0, -0.5, 0.25, 0, -0.25};
-	double SobelFilter_array_y[9] = {0.25, 0.5, 0.25, 0, 0, 0, -0.25, -0.5, -0.25};
+	double DiffFilter_array_x[4] = {-0.5, 0.5, -0.5, 0.5};
+	double DiffFilter_array_y[4] = {-0.5, -0.5, 0.5, 0.5};
+	double SobelFilter_array_x[9] = {-0.25, 0, 0.25, -0.5, 0, 0.5, -0.25, 0, 0.25};
+	double SobelFilter_array_y[9] = {-0.25, -0.5, -0.25, 0, 0, 0, 0.25, 0.5, 0.25};
 	ImgVector<double> DiffFilter_x(2, 2, DiffFilter_array_x);
 	ImgVector<double> DiffFilter_y(2, 2, DiffFilter_array_y);
 	ImgVector<double> SobelFilter_x(3, 3, SobelFilter_array_x);
@@ -353,9 +353,9 @@ Derivator(ImgVector<double> *Image, const char *Type)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (x = 0; x < Image->size(); x++) {
-		(*Derivative)[x].x = (*Image_dx)[x];
-		(*Derivative)[x].y = (*Image_dy)[x];
+	for (x = 0; x < Derivative->size(); x++) {
+		(*Derivative)[x].x = Image_dx->get(x);
+		(*Derivative)[x].y = Image_dy->get(x);
 	}
 	delete Image_dx;
 	delete Image_dy;
@@ -407,7 +407,7 @@ Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring)
 	ERROR Error("Filterer");
 
 	ImgVector<double> *Filtered = nullptr;
-	SIZE center;
+	int center_x, center_y;
 	int x, y;
 	int m, n;
 	double sum;
@@ -439,8 +439,8 @@ Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring)
 		Error.Malloc();
 		goto ExitError;
 	}
-	center.width = floor(Filter->width() / 2.0);
-	center.height = floor(Filter->height() / 2.0);
+	center_x = Filter->width() / 2;
+	center_y = Filter->height() / 2;
 #pragma omp parallel for private(x, m, n, sum)
 	for (y = 0; y < Image->height(); y++) {
 		for (x = 0; x < Image->width(); x++) {
@@ -448,9 +448,9 @@ Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring)
 			for (m = 0; m < Filter->height(); m++) {
 				for (n = 0; n < Filter->width(); n++) {
 					if (Mirroring) {
-						sum += Image->get_mirror(x, y) * Filter->get(n, m);
+						sum += Image->get_mirror(x + center_x - n, y + center_y - m) * Filter->get(n, m);
 					} else {
-						sum += Image->get(x, y) * Filter->get(n, m);
+						sum += Image->get_zeropad(x + center_x - n, y + center_y - m) * Filter->get(n, m);
 					}
 				}
 			}

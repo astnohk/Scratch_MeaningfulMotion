@@ -26,6 +26,7 @@ class ImgVector
 		T& ref_mirror(int x, int y);
 		T get(int n) const;
 		T get(int x, int y) const;
+		T get_zeropad(int x, int y) const;
 		T get_repeat(int x, int y) const;
 		T get_mirror(int x, int y) const;
 		int width(void) const;

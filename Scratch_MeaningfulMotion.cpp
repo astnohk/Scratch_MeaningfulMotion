@@ -355,11 +355,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				for (int m = 100; m < 150; m++) {
-					for (int n = 100; n < 150; n++) {
-						printf("%f ", angles->get(n, m));
-					}
-				}
 				printf("* Compute Segments and Maximal Meaningfulness\n");
 				if (MaximalSegments == nullptr) {
 					delete[] MaximalSegments;
@@ -431,12 +426,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		for (i = 0; i < img_orig.size(); i++) {
 			img_orig[i] = (int)pnm_orig[i];
 		}
-		printf("\ntest\n");
-		printf("%d\n", img_orig.get_mirror(img_orig.width() - 2, 10));
-		printf("%d\n", img_orig.get_mirror(img_orig.width() - 1, 10));
-		printf("%d\n", img_orig.get_mirror(img_orig.width(), 10));
-		printf("%d\n", img_orig.get_mirror(img_orig.width() + 1, 10));
-		printf("\n/test\n");
 		ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
 		// /X11 Plotting
 		delete[] MaximalSegments;
