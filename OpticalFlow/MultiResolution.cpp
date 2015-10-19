@@ -73,19 +73,9 @@ Pyramider(ImgVector<double> *img, int Level)
 				Pyramid[l].ref(x, y) = .0;
 				for (m = 0; m < WEIGHTED_FILTER_SIZE; m++) {
 					ym = 2 * y + m - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
-					if (ym < 0) {
-						ym = abs(ym) - 1;
-					} else if (ym >= size_lm1.height) {
-						ym = 2 * size_lm1.height - ym - 1;
-					}
 					for (n = 0; n < WEIGHTED_FILTER_SIZE; n++) {
 						xn = 2 * x + n - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
-						if (xn < 0) {
-							xn = abs(xn) - 1;
-						} else if (xn >= size_lm1.width) {
-							xn = 2 * size_lm1.width - xn - 1;
-						}
-						Pyramid[l].ref(x, y) += w[m] * w[n] * Pyramid[l - 1].get(xn, ym);
+						Pyramid[l].ref(x, y) += w[m] * w[n] * Pyramid[l - 1].get_mirror(xn, ym);
 					}
 				}
 			}
@@ -109,7 +99,7 @@ ExitError:
 
 
 ImgVector<VECTOR_2D> *
-grad_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
+grad_Pyramid(ImgVector<double> *img_t_levels, ImgVector<double> *img_tp1_levels, int Level)
 {
 	ERROR Error("grad_Pyramid");
 
@@ -119,9 +109,9 @@ grad_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
 	int m, n;
 	int l;
 
-	// img_tp1 is allowed to be NULL
-	if (img_t == nullptr) {
-		Error.Value("img_t");
+	// img_tp1_levels is allowed to be NULL
+	if (img_t_levels == nullptr) {
+		Error.Value("img_t_levels");
 		Error.PointerNull();
 		goto ExitError;
 	}
@@ -134,31 +124,31 @@ grad_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
 		goto ExitError;
 	}
 	for (l = 0; l < Level; l++) {
-		grad_levels[l].reset(img_t[l].width(), img_t[l].height());
-		for (m = 0; m < img_t[l].height(); m++) {
-			y = SATURATE(m, 0, img_t[l].height() - 2);
-			for (n = 0; n < img_t[l].width(); n++) {
-				x = SATURATE(n, 0, img_t[l].width() - 2);
+		grad_levels[l].reset(img_t_levels[l].width(), img_t_levels[l].height());
+		for (m = 0; m < img_t_levels[l].height(); m++) {
+			y = SATURATE(m, 0, img_t_levels[l].height() - 2);
+			for (n = 0; n < img_t_levels[l].width(); n++) {
+				x = SATURATE(n, 0, img_t_levels[l].width() - 2);
 				// dx
 				grad_levels[l].ref(n, m).x =
-				    (img_t[l].get(x + 1, y) - img_t[l].get(x, y)
-				    + img_t[l].get(x + 1, y + 1) - img_t[l].get(x, y + 1))
+				    (img_t_levels[l].get(x + 1, y) - img_t_levels[l].get(x, y)
+				    + img_t_levels[l].get(x + 1, y + 1) - img_t_levels[l].get(x, y + 1))
 				    / 2.0;
 				// dy
 				grad_levels[l].ref(n, m).y =
-				    (img_t[l].get(x, y + 1) - img_t[l].get(x, y)
-				    + img_t[l].get(x + 1, y + 1) - img_t[l].get(x + 1, y))
+				    (img_t_levels[l].get(x, y + 1) - img_t_levels[l].get(x, y)
+				    + img_t_levels[l].get(x + 1, y + 1) - img_t_levels[l].get(x + 1, y))
 				    / 2.0;
-				if (img_tp1 != NULL) {
+				if (img_tp1_levels != NULL) {
 					// dx
 					grad_levels[l].ref(n, m).x +=
-					    (img_tp1[l].get(x + 1, y) - img_tp1[l].get(x, y)
-					    + img_tp1[l].get(x + 1, y + 1) - img_tp1[l].get(x, y + 1))
+					    (img_tp1_levels[l].get(x + 1, y) - img_tp1_levels[l].get(x, y)
+					    + img_tp1_levels[l].get(x + 1, y + 1) - img_tp1_levels[l].get(x, y + 1))
 					    / 2.0;
 					// dy
 					grad_levels[l].ref(n, m).y +=
-					    (img_tp1[l].get(x, y + 1) - img_tp1[l].get(x, y)
-					    + img_tp1[l].get(x + 1, y + 1) - img_tp1[l].get(x + 1, y))
+					    (img_tp1_levels[l].get(x, y + 1) - img_tp1_levels[l].get(x, y)
+					    + img_tp1_levels[l].get(x + 1, y + 1) - img_tp1_levels[l].get(x + 1, y))
 					    / 2.0;
 				}
 			}
@@ -173,7 +163,7 @@ ExitError:
 
 
 ImgVector<double> *
-dt_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
+dt_Pyramid(ImgVector<double> *img_t_levels, ImgVector<double> *img_tp1_levels, int Level)
 {
 	ERROR Error("grad_Pyramid");
 
@@ -183,12 +173,12 @@ dt_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
 	int m, n;
 	int l;
 
-	if (img_t == nullptr) {
-		Error.Value("img_t");
+	if (img_t_levels == nullptr) {
+		Error.Value("img_t_levels");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (img_tp1 == nullptr) {
-		Error.Value("img_tp1");
+	} else if (img_tp1_levels == nullptr) {
+		Error.Value("img_tp1_levels");
 		Error.PointerNull();
 		goto ExitError;
 	}
@@ -201,17 +191,17 @@ dt_Pyramid(ImgVector<double> *img_t, ImgVector<double> *img_tp1, int Level)
 		goto ExitError;
 	}
 	for (l = 0; l < Level; l++) {
-		dt_levels[l].reset(img_t[l].width(), img_t[l].height());
-		for (m = 0; m < img_t[l].height(); m++) {
-			y = SATURATE(m, 0, img_t[l].height() - 2);
-			for (n = 0; n < img_t[l].width(); n++) {
-				x = SATURATE(n, 0, img_t[l].width() - 2);
+		dt_levels[l].reset(img_t_levels[l].width(), img_t_levels[l].height());
+		for (m = 0; m < img_t_levels[l].height(); m++) {
+			y = SATURATE(m, 0, img_t_levels[l].height() - 2);
+			for (n = 0; n < img_t_levels[l].width(); n++) {
+				x = SATURATE(n, 0, img_t_levels[l].width() - 2);
 				// dt
 				dt_levels[l].ref(n, m) =
-				    (img_tp1[l].get(x, y) - img_t[l].get(x, y)
-				    + img_tp1[l].get(x + 1, y) - img_t[l].get(x + 1, y)
-				    + img_tp1[l].get(x, y + 1) - img_t[l].get(x, y + 1)
-				    + img_tp1[l].get(x + 1, y + 1) - img_t[l].get(x + 1, y + 1))
+				    (img_tp1_levels[l].get(x, y) - img_t_levels[l].get(x, y)
+				    + img_tp1_levels[l].get(x + 1, y) - img_t_levels[l].get(x + 1, y)
+				    + img_tp1_levels[l].get(x, y + 1) - img_t_levels[l].get(x, y + 1)
+				    + img_tp1_levels[l].get(x + 1, y + 1) - img_t_levels[l].get(x + 1, y + 1))
 				    / 4.0;
 			}
 		}

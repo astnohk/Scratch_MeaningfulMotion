@@ -43,6 +43,7 @@ COORDINATE::COORDINATE(int ix, int iy)
 	y = iy;
 }
 
+
 FRAGMENT::FRAGMENT(void)
 {
 	start = 0;
