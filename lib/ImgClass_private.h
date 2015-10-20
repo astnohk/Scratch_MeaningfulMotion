@@ -467,3 +467,198 @@ ImgVector<T>::isNULL(void) const
 	}
 }
 
+
+template <typename T>
+bool
+ImgVector<T>::resize_zerohold(int W, int H, T (*adder)(T &x1, T & x2), T (*multiplier)(T &value, double &d))
+{
+	T *resized = nullptr;
+	T additive_identity = T();
+	double scale_x = .0;
+	double scale_y = .0;
+	int area_x;
+	int area_y;
+	int m, n;
+	int x, y;
+	T sum;
+
+	if (W <= 0 || H <= 0) {
+		return false;
+	}
+	scale_x = (double)W / _width;
+	scale_y = (double)H / _height;
+	try {
+		resized = new T[W * H]();
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "ImgVector<T>::resize_zerohold(int, int) error : Cannot allocate memory\n");
+		goto ExitError;
+	}
+	area_x = ceil((double)_width / W);
+	area_y = ceil((double)_height / H);
+	for (y = 0; y < H; y++) {
+		for (x = 0; x < W; x++) {
+			sum = additive_identity;
+			for (m = 0; m < area_y; m++) {
+				for (n = 0; n < area_x; n++) {
+					if (adder != nullptr) {
+						sum = adder(sum, this->get((int)floor(x / scale_x) + n, (int)floor(y / scale_y) + m));
+					} else {
+						sum += this->get((int)floor(x / scale_x) + n, (int)floor(y / scale_y) + m);
+					}
+				}
+			}
+			if (multiplier != nullptr) {
+				resized[W * y + x] = multiplier(sum, 1.0 / (area_x * area_y));
+			} else {
+				resized[W * y + x] = sum / (area_x * area_y);
+			}
+		}
+	}
+	delete[] _data;
+	_data = resized;
+	_width = W;
+	_height = H;
+	return true;
+// Error
+ExitError:
+	delete[] resized;
+	return false;
+}
+
+
+template <typename T>
+bool
+ImgVector<T>::resize_bicubic(int W, int H, double alpha, T (*adder)(T &x1, T &x2), T (*multiplier)(T &value, double &d))
+{
+	T *resized = nullptr;
+	ImgVector<T> Tmp = T();
+	double *conv = nullptr;
+	T additive_identity = T();
+	double scale_x, scale_y;
+	double scale_conv;
+	int L, L_center;
+	double dx, dy;
+	int x, y;
+	int m, n;
+	int index;
+
+	if (W <= 0 || H <= 0) {
+		return false;
+	}
+	scale_x = (double)W / _width;
+	scale_y = (double)H / _height;
+	Tmp.reset(W, _height);
+	// The length of cubic convolution coefficient
+	scale_conv = 1.0;
+	if (scale_x < 1.0 || scale_y < 1.0) {
+		scale_conv = ceil(1.0 / (scale_x < scale_y ? scale_x : scale_y));
+	}
+	try {
+		resized = new T[W * H]();
+		conv = new double[(int)scale_conv * 4]();
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "ImgVector<double>::resize_bicubic(int, int) error : Cannot allocate memory\n");
+		goto ExitError;
+	}
+	// Horizontal convolution
+	for (x = 0; x < W; x++) {
+		if (scale_x >= 1.0) {
+			scale_conv = 1.0;
+			dx = (x - (scale_x - 1.0) / 2.0) / scale_x;
+		} else {
+			scale_conv = 1.0 / scale_x;
+			dx = x / scale_x + (1.0 / scale_x - 1.0) / 2.0;
+		}
+		L = 4 * (int)ceil(scale_conv);
+		L_center = floor((L - 1.0) / 2);
+		for (n = 0; n < L; n++) {
+			conv[n] = ImgVector<T>::bicubic(((double)(n - L_center) - (dx - floor(dx))) / scale_conv, alpha);
+			conv[n] /= scale_conv;
+		}
+		for (y = 0; y < _height; y++) {
+			Tmp.ref(x, y) = additive_identity; // Initialize
+			for (n = 0; n < L; n++) {
+				index = (int)floor(dx) + n - L_center;
+				if (adder != nullptr && multiplier != nullptr) {
+					Tmp.ref(x, y) =
+					    adder(
+					    Tmp.get(x, y),
+					    multiplier(this->get_mirror(index, y), conv[n])
+					    );
+				} else {
+					Tmp.ref(x, y) += conv[n] * this->get_mirror(index, y);
+				}
+			}
+		}
+	}
+	// Vertical convolution
+	for (y = 0; y < H; y++) {
+		if (scale_y >= 1.0) {
+			scale_conv = 1.0;
+			dy = (y - (scale_y - 1.0) / 2.0) / scale_y;
+		} else {
+			scale_conv = 1.0 / scale_y;
+			dy = y / scale_y + (1.0 / scale_y - 1.0) / 2.0;
+		}
+		L = 4 * (int)ceil(scale_conv);
+		L_center = floor((L - 1.0) / 2);
+		for (m = 0; m < L; m++) {
+			conv[m] = ImgVector<T>::bicubic(((double)(m - L_center) - (dy - floor(dy))) / scale_conv, alpha);
+			conv[m] /= scale_conv;
+		}
+		for (x = 0; x < W; x++) {
+			resized[W * y + x] = additive_identity; // Initialize
+			for (m = 0; m < L; m++) {
+				index = (int)floor(dy) + m - L_center;
+				if (adder != nullptr && multiplier != nullptr) {
+					resized[W * y + x] +=
+					    adder(
+					    resized[W * y + x],
+					    multiplier(Tmp.get_mirror(x, index), conv[m])
+					    );
+				} else {
+					resized[W * y + x] += conv[m] * Tmp.get_mirror(x, index);
+				}
+			}
+		}
+	}
+	delete[] conv;
+	delete[] _data;
+	_data = resized;
+	_width = W;
+	_height = H;
+	return true;
+// Error
+ExitError:
+	delete[] resized;
+	delete[] conv;
+	return false;
+}
+
+template <typename T>
+double
+ImgVector<T>::bicubic(double x, double a)
+{
+	double x_abs = fabs(x);
+
+	if (x_abs <= 1.0) {
+		return ((a + 2.0) * x_abs - (a + 3.0)) * x_abs * x_abs + 1.0;
+	} else if (x_abs < 2.0) {
+		return ((a * x_abs - 5.0 * a) * x_abs + 8.0 * a) * x_abs - 4.0 * a;
+	} else {
+		return 0;
+	}
+}
+
+
+template <typename T>
+void
+ImgVector<T>::map(T (*map_def)(T &value))
+{
+	for (int i = 0 ; i < _width * _height; i++) {
+		_data[i] = map_def(_data[i]);
+	}
+}
+

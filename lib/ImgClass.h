@@ -19,7 +19,14 @@ class ImgVector
 		void copy(ImgVector<T> *copy);
 		ImgVector<T>& operator=(ImgVector<T> &copy);
 		void set(int x, int y, T &value);
+
+		// Data access
 		T* data(void) const;
+		int width(void) const;
+		int height(void) const;
+		int size(void) const;
+		bool isNULL(void) const;
+
 		T& operator[](int n);
 		T& ref(int x, int y);
 		T& ref_repeat(int x, int y);
@@ -29,10 +36,12 @@ class ImgVector
 		T get_zeropad(int x, int y) const;
 		T get_repeat(int x, int y) const;
 		T get_mirror(int x, int y) const;
-		int width(void) const;
-		int height(void) const;
-		int size(void) const;
-		bool isNULL(void) const;
+
+		// Resampling
+		bool resize_zerohold(int W, int H, T (*adder)(T &x1, T &x2) = nullptr, T (*multiplier)(T &value, double &d) = nullptr);
+		bool resize_bicubic(int W, int H, double alpha, T (*adder)(T &x1, T &x2) = nullptr, T (*multiplier)(T &value, double &d) = nullptr);
+		double bicubic(double x, double a);
+		void map(T (*map_def)(T &value));
 };
 
 
