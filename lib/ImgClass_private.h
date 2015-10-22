@@ -470,7 +470,7 @@ ImgVector<T>::isNULL(void) const
 
 template <typename T>
 bool
-ImgVector<T>::resize_zerohold(int W, int H, T (*adder)(T &x1, T & x2), T (*multiplier)(T &value, double &d))
+ImgVector<T>::resize_zerohold(int W, int H)
 {
 	T *resized = nullptr;
 	T additive_identity = T();
@@ -501,18 +501,10 @@ ImgVector<T>::resize_zerohold(int W, int H, T (*adder)(T &x1, T & x2), T (*multi
 			sum = additive_identity;
 			for (m = 0; m < area_y; m++) {
 				for (n = 0; n < area_x; n++) {
-					if (adder != nullptr) {
-						sum = adder(sum, this->get((int)floor(x / scale_x) + n, (int)floor(y / scale_y) + m));
-					} else {
-						sum += this->get((int)floor(x / scale_x) + n, (int)floor(y / scale_y) + m);
-					}
+					sum += this->get((int)floor(x / scale_x) + n, (int)floor(y / scale_y) + m);
 				}
 			}
-			if (multiplier != nullptr) {
-				resized[W * y + x] = multiplier(sum, 1.0 / (area_x * area_y));
-			} else {
-				resized[W * y + x] = sum / (area_x * area_y);
-			}
+			resized[W * y + x] = sum / (area_x * area_y);
 		}
 	}
 	delete[] _data;
@@ -527,21 +519,28 @@ ExitError:
 }
 
 
+/*
+    bool ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_Integer_Method)(double &d), double A)
+    int W, int H : width and height of resized image
+    double min : minimum value of saturated value
+    double max : maximum value of saturated value
+    T (*Nearest_Integer_Method)(double &d) : round method (e.g. floor(), round(), etc.)
+    A : cubic method's parameter (default A = -0.5 which correspond to Hermite)
+*/
 template <typename T>
 bool
-ImgVector<T>::resize_bicubic(int W, int H, double alpha, T (*adder)(T &x1, T &x2), T (*multiplier)(T &value, double &d))
+ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_Integer_Method)(double &d), double B, double C)
 {
 	T *resized = nullptr;
-	ImgVector<T> Tmp = T();
+	ImgVector<double> Tmp;
 	double *conv = nullptr;
-	T additive_identity = T();
 	double scale_x, scale_y;
 	double scale_conv;
 	int L, L_center;
 	double dx, dy;
 	int x, y;
 	int m, n;
-	int index;
+	double sum;
 
 	if (W <= 0 || H <= 0) {
 		return false;
@@ -563,64 +562,69 @@ ImgVector<T>::resize_bicubic(int W, int H, double alpha, T (*adder)(T &x1, T &x2
 		goto ExitError;
 	}
 	// Horizontal convolution
-	for (x = 0; x < W; x++) {
-		if (scale_x >= 1.0) {
-			scale_conv = 1.0;
-			dx = (x - (scale_x - 1.0) / 2.0) / scale_x;
-		} else {
-			scale_conv = 1.0 / scale_x;
-			dx = x / scale_x + (1.0 / scale_x - 1.0) / 2.0;
-		}
+	if (scale_x >= 1.0) {
+		scale_conv = 1.0;
+		L = 4;
+		L_center = floor((L - 1.0) / 2);
+	} else {
+		scale_conv = 1.0 / scale_x;
 		L = 4 * (int)ceil(scale_conv);
 		L_center = floor((L - 1.0) / 2);
-		for (n = 0; n < L; n++) {
-			conv[n] = ImgVector<T>::bicubic(((double)(n - L_center) - (dx - floor(dx))) / scale_conv, alpha);
-			conv[n] /= scale_conv;
+	}
+	for (x = 0; x < W; x++) {
+		if (scale_x >= 1.0) {
+			dx = (x - (scale_x - 1.0) / 2.0) / scale_x;
+			for (n = 0; n < L; n++) {
+				conv[n] = ImgVector<T>::cubic((double)(n - L_center) - (dx - floor(dx)), B, C);
+			}
+		} else {
+			dx = x / scale_x + (1.0 / scale_x - 1.0) / 2.0;
+			for (n = 0; n < L; n++) {
+				conv[n] = ImgVector<T>::cubic(((double)(n - L_center) - (dx - floor(dx))) * scale_x, B, C) / scale_conv;
+			}
 		}
 		for (y = 0; y < _height; y++) {
-			Tmp.ref(x, y) = additive_identity; // Initialize
+			sum = 0.0;
 			for (n = 0; n < L; n++) {
-				index = (int)floor(dx) + n - L_center;
-				if (adder != nullptr && multiplier != nullptr) {
-					Tmp.ref(x, y) =
-					    adder(
-					    Tmp.get(x, y),
-					    multiplier(this->get_mirror(index, y), conv[n])
-					    );
-				} else {
-					Tmp.ref(x, y) += conv[n] * this->get_mirror(index, y);
-				}
+				sum += conv[n] * this->get_mirror((int)floor(dx) + n - L_center, y);
 			}
+			Tmp.ref(x, y) = sum;
 		}
 	}
 	// Vertical convolution
-	for (y = 0; y < H; y++) {
-		if (scale_y >= 1.0) {
-			scale_conv = 1.0;
-			dy = (y - (scale_y - 1.0) / 2.0) / scale_y;
-		} else {
-			scale_conv = 1.0 / scale_y;
-			dy = y / scale_y + (1.0 / scale_y - 1.0) / 2.0;
-		}
+	if (scale_y >= 1.0) {
+		scale_conv = 1.0;
+		L = 4;
+		L_center = floor((L - 1.0) / 2);
+	} else {
+		scale_conv = 1.0 / scale_y;
 		L = 4 * (int)ceil(scale_conv);
 		L_center = floor((L - 1.0) / 2);
-		for (m = 0; m < L; m++) {
-			conv[m] = ImgVector<T>::bicubic(((double)(m - L_center) - (dy - floor(dy))) / scale_conv, alpha);
-			conv[m] /= scale_conv;
+	}
+	for (y = 0; y < H; y++) {
+		if (scale_y >= 1.0) {
+			dy = (y - (scale_y - 1.0) / 2.0) / scale_y;
+			for (m = 0; m < L; m++) {
+				conv[m] = ImgVector<T>::cubic((double)(m - L_center) - (dy - floor(dy)), B, C);
+			}
+		} else {
+			dy = y / scale_y + (1.0 / scale_y - 1.0) / 2.0;
+			for (m = 0; m < L; m++) {
+				conv[m] = ImgVector<T>::cubic(((double)(m - L_center) - (dy - floor(dy))) / scale_conv, B, C) / scale_conv;
+			}
 		}
 		for (x = 0; x < W; x++) {
-			resized[W * y + x] = additive_identity; // Initialize
+			sum = 0.0;
 			for (m = 0; m < L; m++) {
-				index = (int)floor(dy) + m - L_center;
-				if (adder != nullptr && multiplier != nullptr) {
-					resized[W * y + x] +=
-					    adder(
-					    resized[W * y + x],
-					    multiplier(Tmp.get_mirror(x, index), conv[m])
-					    );
-				} else {
-					resized[W * y + x] += conv[m] * Tmp.get_mirror(x, index);
-				}
+				sum += conv[m] * Tmp.get_mirror(x, (int)floor(dy) + m - L_center);
+			}
+			if (min != max) {
+				sum = sum >= min ? sum <= max ? sum : max : min;
+			}
+			if (Nearest_Integer_Method != nullptr) {
+				resized[W * y + x] = Nearest_Integer_Method(sum);
+			} else {
+				resized[W * y + x] = sum;
 			}
 		}
 	}
@@ -637,18 +641,19 @@ ExitError:
 	return false;
 }
 
+
 template <typename T>
 double
-ImgVector<T>::bicubic(double x, double a)
+ImgVector<T>::cubic(double x, double B, double C)
 {
 	double x_abs = fabs(x);
 
 	if (x_abs <= 1.0) {
-		return ((a + 2.0) * x_abs - (a + 3.0)) * x_abs * x_abs + 1.0;
+		return ((2.0 - 1.5 * B - C) * x_abs + (-3.0 + 2.0 * B + C)) * x_abs * x_abs + 1.0 - B / 3.0;
 	} else if (x_abs < 2.0) {
-		return ((a * x_abs - 5.0 * a) * x_abs + 8.0 * a) * x_abs - 4.0 * a;
+		return (((-B / 6.0 - C) * x_abs + B + 5.0 * C) * x_abs - 2.0 * B - 8.0 * C) * x_abs + 8.0 / 6.0 * B + 4.0 * C;
 	} else {
-		return 0;
+		return 0.0;
 	}
 }
 

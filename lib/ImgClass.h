@@ -38,9 +38,10 @@ class ImgVector
 		T get_mirror(int x, int y) const;
 
 		// Resampling
-		bool resize_zerohold(int W, int H, T (*adder)(T &x1, T &x2) = nullptr, T (*multiplier)(T &value, double &d) = nullptr);
-		bool resize_bicubic(int W, int H, double alpha, T (*adder)(T &x1, T &x2) = nullptr, T (*multiplier)(T &value, double &d) = nullptr);
-		double bicubic(double x, double a);
+		bool resize_zerohold(int W, int H);
+		//bool resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (1.0 / 3.0), double C = (1.0 / 3.0));
+		bool resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (0.0 / 3.0), double C = (1.0 / 2.0));
+		double cubic(double x, double B, double C);
 		void map(T (*map_def)(T &value));
 };
 
