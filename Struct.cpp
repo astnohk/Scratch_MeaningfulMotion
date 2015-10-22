@@ -199,9 +199,9 @@ bool
 FILTER_PARAM::ChangeFilter(const char *name)
 {
 	ERROR Error("FILTER_PARAM::ChangeFilter");
-	char *lower = nullptr;
 
 	if (strlen(name) > 1) {
+		char *lower = nullptr;
 		try {
 			lower = new char[strlen(name) + 1];
 		}

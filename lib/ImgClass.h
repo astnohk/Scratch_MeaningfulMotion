@@ -7,7 +7,7 @@ class ImgVector
 		int _height;
 	public:
 		ImgVector(void);
-		ImgVector(ImgVector<T> &copy);
+		explicit ImgVector(ImgVector<T> &copy);
 		ImgVector(int W, int H);
 		ImgVector(int W, int H, T value);
 		ImgVector(int W, int H, T *array);

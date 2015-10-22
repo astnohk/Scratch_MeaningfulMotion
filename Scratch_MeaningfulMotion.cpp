@@ -68,7 +68,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			InputNameNums = InputName;
 		} else {
 			try {
-				char_tmp = new char[InputNameLength];
+				char_tmp = new char[InputNameLength + 1];
 			}
 			catch (const std::bad_alloc &bad) {
 				Error.Value("char_tmp");
@@ -86,17 +86,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			Error.FileRead();
 			goto ExitError;
 		}
-
-
-
-		ImgVector<int> resizetest(pnm_orig.Width(), pnm_orig.Height(), pnm_orig.Data());
-		resizetest.resize_bicubic(1024, 1024, 0, 255);
-		pnm_out.copy(PORTABLE_GRAYMAP_BINARY, resizetest.width(), resizetest.height(), 255, resizetest.data());
-		pnm_out.write("resizetest.pgm");
-		pnm_out.free();
-
-
-
 		// END Read
 		if (size.height == 0 || size.width == 0) { // Initialize size.height (width) and size.width (height)
 			size.height = pnm_orig.Height();
@@ -446,7 +435,7 @@ Write:
 			OutputNameNums = OutputName;
 		} else {
 			try {
-				char_tmp = new char[OutputNameLength];
+				char_tmp = new char[OutputNameLength + 1];
 			}
 			catch (const std::bad_alloc &bad) {
 				Error.Value("char_tmp");

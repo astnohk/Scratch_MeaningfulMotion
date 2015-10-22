@@ -273,6 +273,9 @@ template <typename T>
 ImgVector<T> &
 ImgVector<T>::operator=(ImgVector<T> &copy)
 {
+	if (this == &copy) {
+		return *this;
+	}
 	delete[] _data;
 	_data = nullptr;
 	_width = 0;
