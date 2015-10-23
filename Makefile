@@ -5,7 +5,7 @@ OPTION = -fopenmp
 OPTION_STDCPP11 = -std=c++11
 
 
-LIBRARY_CFILES = lib/Library.cpp lib/ImgLibrary.cpp
+LIBRARY_CFILES = lib/Library.cpp lib/ImgLibrary.cpp CrossCorrelation.cpp
 MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Exclusive.cpp
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow_MultipleMotion.cpp
 HOG_CFILES = HOG/HOG.cpp HOG/HOG_class.cpp HOG/HOG_match.cpp
@@ -15,7 +15,7 @@ PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
 CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFILES) $(MEANINGFUL_CFILES) $(OPTICALFLOW_CFILES) $(HOG_CFILES) $(PLOT_CFILES) $(PNM_CFILES)
 
 
-LIBRARY_OFILES = Library.o ImgLibrary.o
+LIBRARY_OFILES = Library.o ImgLibrary.o CrossCorrelation.o
 MEANINGFUL_OFILES = Detection.o Exclusive.o
 OPTICALFLOW_OFILES = MultiResolution.o MEstimator.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o
 HOG_OFILES = HOG.o HOG_class.o HOG_match.o
@@ -43,6 +43,9 @@ Library.o: lib/Library.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 ImgLibrary.o: lib/ImgLibrary.cpp
+	$(CC) $(WARNING) $(OPTION) -c $^
+
+CrossCorrelation.o: lib/CrossCorrelation.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.cpp
