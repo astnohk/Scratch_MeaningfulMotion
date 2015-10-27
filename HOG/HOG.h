@@ -1,3 +1,7 @@
+#include "HOG_struct.h"
+
+
+
 // HOG
 bool HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_PARAM &HOG_Param);
 bool Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, bool sign);

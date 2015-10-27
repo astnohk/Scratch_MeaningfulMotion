@@ -10,6 +10,26 @@ ImgStatistics::ImgStatistics(void)
 	_data = nullptr;
 }
 
+ImgStatistics::ImgStatistics(const ImgStatistics &copy)
+{
+	_width = 0;
+	_height = 0;
+	_data = nullptr;
+	try {
+		_data = new double[copy._width * copy._height];
+	}
+	catch (const std::bad_alloc &bad) {
+		fprintf(stderr, "ImgStatistics::ImgStatistics(const ImgStatistics &) error : memory allocation\n");
+		_data = nullptr;
+		return;
+	}
+	_width = copy._width;
+	_height = copy._height;
+	for (int i = 0; i < _width * _height; i++) {
+		_data[i] = copy._data[i];
+	}
+}
+
 ImgStatistics::ImgStatistics(int W, int H, double *Img)
 {
 	_width = 0;
@@ -36,9 +56,6 @@ ImgStatistics::ImgStatistics(int W, int H, double *Img)
 ImgStatistics::~ImgStatistics(void)
 {
 	delete _data;
-	_data = nullptr;
-	_width = 0;
-	_height = 0;
 }
 
 void
@@ -46,6 +63,7 @@ ImgStatistics::set(int W, int H, double *Img)
 {
 	_width = 0;
 	_height = 0;
+	delete[] _data;
 	_data = nullptr;
 	if (W > 0 && H > 0) {
 		try {
@@ -63,6 +81,52 @@ ImgStatistics::set(int W, int H, double *Img)
 			}
 		}
 	}
+}
+
+ImgStatistics &
+ImgStatistics::copy(const ImgStatistics &copy)
+{
+	if (this != &copy) {
+		double *tmp_data = nullptr;
+		try {
+			tmp_data = new double[copy._width * copy._height];
+		}
+		catch (const std::bad_alloc &bad) {
+			fprintf(stderr, "ImgStatistics::ImgStatistics(const ImgStatistics &) error : memory allocation\n");
+			return *this;
+		}
+		_width = copy._width;
+		_height = copy._height;
+		delete[] _data;
+		_data = tmp_data;
+		for (int i = 0; i < _width * _height; i++) {
+			_data[i] = copy._data[i];
+		}
+	}
+	return *this;
+}
+
+ImgStatistics &
+ImgStatistics::operator=(const ImgStatistics &copy)
+{
+	if (this != &copy) {
+		double *tmp_data = nullptr;
+		try {
+			tmp_data = new double[copy._width * copy._height];
+		}
+		catch (const std::bad_alloc &bad) {
+			fprintf(stderr, "ImgStatistics::ImgStatistics(const ImgStatistics &) error : memory allocation\n");
+			return *this;
+		}
+		_width = copy._width;
+		_height = copy._height;
+		delete[] _data;
+		_data = tmp_data;
+		for (int i = 0; i < _width * _height; i++) {
+			_data[i] = copy._data[i];
+		}
+	}
+	return *this;
 }
 
 double &
@@ -199,16 +263,22 @@ CrossCorrelation::CrossCorrelation(void)
 {
 }
 
+CrossCorrelation::CrossCorrelation(const CrossCorrelation &copy) // copy constructor
+{
+	_width = copy._width;
+	_height = copy._height;
+	_img0.copy(copy._img0);
+	_img1.copy(copy._img1);
+}
+
 CrossCorrelation::CrossCorrelation(ImgStatistics &img0, ImgStatistics &img1)
 {
 	if (img0.width() != img1.width()
 	    || img0.height() != img1.height()) {
-		_width = 0;
-		_height = 0;
 		return;
 	} else {
-		_img0 = ImgStatistics(img0);
-		_img1 = ImgStatistics(img1);
+		_img0.copy(img0);
+		_img1.copy(img1);
 		_width = img0.width();
 		_height = img0.height();
 	}
@@ -216,8 +286,30 @@ CrossCorrelation::CrossCorrelation(ImgStatistics &img0, ImgStatistics &img1)
 
 CrossCorrelation::~CrossCorrelation(void)
 {
-	_width = 0;
-	_height = 0;
+}
+
+CrossCorrelation &
+CrossCorrelation::copy(const CrossCorrelation &copy)
+{
+	if (this != &copy) {
+		_img0.copy(copy._img0);
+		_img1.copy(copy._img1);
+		_width = copy._width;
+		_height = copy._height;
+	}
+	return *this;
+}
+
+CrossCorrelation &
+CrossCorrelation::operator=(const CrossCorrelation &copy)
+{
+	if (this != &copy) {
+		_img0.copy(copy._img0);
+		_img1.copy(copy._img1);
+		_width = copy._width;
+		_height = copy._height;
+	}
+	return *this;
 }
 
 int

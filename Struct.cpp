@@ -3,46 +3,6 @@
 
 
 
-SIZE::SIZE(void)
-{
-	width = 0;
-	height = 0;
-}
-
-SIZE::SIZE(int w, int h)
-{
-	width = w;
-	height = h;
-}
-
-void
-SIZE::reset(void)
-{
-	width = 0;
-	height = 0;
-}
-
-void
-SIZE::set_size(const SIZE *size)
-{
-	if (size != nullptr) {
-		width = size->width;
-		height = size->height;
-	}
-}
-
-COORDINATE::COORDINATE(void)
-{
-	x = 0;
-	y = 0;
-}
-
-COORDINATE::COORDINATE(int ix, int iy)
-{
-	x = ix;
-	y = iy;
-}
-
 
 FRAGMENT::FRAGMENT(void)
 {
@@ -90,47 +50,6 @@ LINEPOLE::LINEPOLE(double rad, double th, double icos, double isin)
 	theta = th;
 	cos = icos;
 	sin = isin;
-}
-
-VECTOR_2D::VECTOR_2D(void)
-{
-	x = .0;
-	y = .0;
-}
-
-VECTOR_2D::VECTOR_2D(double ix, double iy)
-{
-	x = ix;
-	y = iy;
-}
-
-void
-VECTOR_2D::reset(void)
-{
-	x = .0;
-	y = .0;
-}
-
-VECTOR_2D_W_SCORE::VECTOR_2D_W_SCORE(void)
-{
-	x = .0;
-	y = .0;
-	score = .0;
-}
-
-VECTOR_2D_W_SCORE::VECTOR_2D_W_SCORE(double ix, double iy, double iscore)
-{
-	x = ix;
-	y = iy;
-	score = iscore;
-}
-
-void
-VECTOR_2D_W_SCORE::reset(void)
-{
-	x = .0;
-	y = .0;
-	score = .0;
 }
 
 
@@ -375,6 +294,7 @@ OPTIONS::OPTIONS(void)
 	p = DIR_PROBABILITY;
 	ep = EPSILON;
 	Exclusive_Max_Radius = EXCLUSIVE_PRINCIPLE_MAX_RADIUS;
+	x11_plot = false;
 }
 
 bool
@@ -431,6 +351,8 @@ OPTIONS::set_default(const char *name)
 		ep = EPSILON;
 	} else if (strcmp(name, "Exclusive_Max_Radius") == 0) {
 		Exclusive_Max_Radius = EXCLUSIVE_PRINCIPLE_MAX_RADIUS;
+	} else if (strcmp(name, "x11_plot") == 0) {
+		x11_plot = false;
 	} else {
 		fprintf(stderr, "*** OPTIONS::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}
@@ -463,6 +385,8 @@ OPTIONS::set_value(const char *name, const void *value)
 		ep = *static_cast<const double*>(value);
 	} else if (strcmp(name, "Exclusive_Max_Radius") == 0) {
 		Exclusive_Max_Radius = *static_cast<const double*>(value);
+	} else if (strcmp(name, "x11_plot") == 0) {
+		x11_plot = *static_cast<const bool*>(value);
 	} else {
 		fprintf(stderr, "*** OPTIONS::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}

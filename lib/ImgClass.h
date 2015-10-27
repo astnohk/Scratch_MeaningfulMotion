@@ -1,3 +1,5 @@
+#ifndef LIB_ImgClass
+#define LIB_ImgClass
 template <typename T>
 class ImgVector
 {
@@ -7,7 +9,7 @@ class ImgVector
 		int _height;
 	public:
 		ImgVector(void);
-		explicit ImgVector(ImgVector<T> &copy);
+		explicit ImgVector(const ImgVector<T> &copy);
 		ImgVector(int W, int H);
 		ImgVector(int W, int H, T value);
 		ImgVector(int W, int H, T *array);
@@ -47,4 +49,5 @@ class ImgVector
 
 
 #include "ImgClass_private.h"
+#endif
 

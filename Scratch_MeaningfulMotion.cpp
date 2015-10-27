@@ -422,14 +422,16 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			scratches = nullptr;
 		}
 		// X11 Plotting
-		img_orig.reset(pnm_orig.Width(), pnm_orig.Height());
-		for (i = 0; i < img_orig.size(); i++) {
-			img_orig[i] = (int)pnm_orig[i];
+		if (Options.x11_plot) {
+			img_orig.reset(pnm_orig.Width(), pnm_orig.Height());
+			for (i = 0; i < img_orig.size(); i++) {
+				img_orig[i] = (int)pnm_orig[i];
+			}
+			ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
 		}
-		ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
-		// /X11 Plotting
 		delete[] MaximalSegments;
 		MaximalSegments = nullptr;
+
 Write:
 		if (strchr(OutputName, '%') == nullptr) {
 			OutputNameNums = OutputName;

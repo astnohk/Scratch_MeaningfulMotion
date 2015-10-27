@@ -58,6 +58,7 @@ main(int argc, char *argv[])
 	    "      --resample_method [method]     : set resampling method (z-hold, bicubic)\n"
 	    "      --plot_as_resample             : output size is same as resampled image\n"
 	    "      --plot_resampled_only          : output the resampled image without any other processing\n"
+	    "      --x11_plot                     : show image and detected lines in 3D world by X11 library\n"
 	    "\n"
 	    "    Line Scratch Detection option:\n"
 	    "      --filter_size (width)x(height) : set Filter size [width]x[height] (default value : 21x21)\n"
@@ -92,6 +93,7 @@ main(int argc, char *argv[])
 	int inf = 0, outf = 0;
 	char *strtmp = nullptr;
 	char *strdivp = nullptr;
+	bool bval;
 	int ival;
 	double dval;
 	SIZE tmpsize;
@@ -335,6 +337,9 @@ main(int argc, char *argv[])
 							errors |= OPTION_INCORRECT;
 						}
 					}
+				} else if (strcmp(argv[i], "--x11_plot") == 0) { // X11 plotting mode
+					bval = true;
+					Options.set_value("x11_plot", &bval);
 				} else {
 					fprintf(stderr, " *** Unknown option \"%s\" ***\n      - Please begin with \"--\" for long name options\n", argv[i]);
 					errors |= OPTION_UNKNOWN;

@@ -43,6 +43,8 @@
 #include <list>
 #include <string>
 #include "lib/ImgClass.h"
+#include "lib/ImgStruct.h"
+#include "lib/Vector.h"
 #include "PNM/pnm.h"
 #if defined(_OPENMP)
 #include <omp.h>
@@ -166,24 +168,6 @@ class ATAN2_DIV_PI
 
 
 
-struct SIZE
-{
-	int width;
-	int height;
-	SIZE(void);
-	SIZE(int w, int h);
-	void reset(void);
-	void set_size(const SIZE *size);
-};
-
-struct COORDINATE
-{
-	int x;
-	int y;
-	COORDINATE(void);
-	COORDINATE(int ix, int iy);
-};
-
 struct FRAGMENT
 {
 	int start;
@@ -214,82 +198,12 @@ struct LINEPOLE
 	LINEPOLE(double rad, double th, double icos, double isin);
 };
 
-struct VECTOR_2D
-{
-	double x;
-	double y;
-	VECTOR_2D(void);
-	VECTOR_2D(double ix, double iy);
-	void reset(void);
-};
-
-struct VECTOR_2D_W_SCORE
-{
-	double x;
-	double y;
-	double score;
-	VECTOR_2D_W_SCORE(void);
-	VECTOR_2D_W_SCORE(double ix, double iy, double iscore);
-	void reset(void);
-};
-
 #define NUM_AFFINE_PARAMETER 6
 struct VECTOR_AFFINE
 {
 	double a[NUM_AFFINE_PARAMETER];
 	VECTOR_AFFINE(void);
 	void reset(void);
-};
-
-
-class Histogram
-{
-	private:
-		int bins;
-		double *hist;
-	public:
-		Histogram(void);
-		Histogram(const Histogram &copy);
-		explicit Histogram(int init_bins);
-		bool copy(const Histogram &copy);
-		bool reset(int init_bins);
-		~Histogram(void);
-		void free(void);
-		// Read
-		int Bins(void) const;
-		double Hist(int bin) const;
-		const double *Data(void) const;
-		// Control
-		bool Add(int bin, double val);
-};
-
-class HOG // Histograms of Oriented Gradients
-{
-	private:
-		bool orient_signed;
-		int bins;
-		int width;
-		int height;
-		Histogram *hist;
-	public:
-		HOG(void);
-		HOG(const HOG &copy);
-		HOG(bool init_signed, int init_width, int init_height, int init_bins);
-		bool copy(const HOG &copy);
-		bool reset(bool init_signed, int init_width, int init_height, int init_bins);
-		~HOG(void);
-		void free(void);
-		void setSign(bool init_signed);
-		// Read
-		bool Signed(void) const;
-		int Bins(void) const;
-		int Width(void) const;
-		int Height(void) const;
-		double Hist(int x, int y, int bin) const;
-		const Histogram *Data(void) const;
-		const Histogram *Data(int x, int y) const;
-		// control Histogram
-		bool AddHist(int x, int y, int bin, double val);
 };
 
 
@@ -350,6 +264,8 @@ struct OPTIONS
 	double Exclusive_Max_Radius;
 	MULTIPLE_MOTION_PARAM MultipleMotion_Param;
 	HOG_PARAM HOG_Param;
+	bool x11_plot;
+
 	OPTIONS(void);
 	bool ChangeResampleMethod(const char *name);
 	void set_default(const char *name);
@@ -391,16 +307,6 @@ struct SEGMENT_X11
 	XPoint start;
 	XPoint end;
 	SEGMENT_X11(void);
-};
-
-struct COORDINATE_3D
-{
-	double x;
-	double y;
-	double z;
-	COORDINATE_3D(void);
-	COORDINATE_3D(double ix, double iy, double iz);
-	void set(double sx, double sy, double sz);
 };
 
 struct XPLOT

@@ -67,8 +67,8 @@ HOG_Distance(const Histogram *Hist1, const Histogram *Hist2)
 {
 	double sum = 0.0;
 
-	for (int i = 0; i < Hist1->Bins(); i++) {
-		sum += POW2(Hist1->Hist(i) - Hist2->Hist(i));
+	for (int i = 0; i < Hist1->bins(); i++) {
+		sum += POW2(Hist1->get(i) - Hist2->get(i));
 	}
 	return sqrt(sum);
 }

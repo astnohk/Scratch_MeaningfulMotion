@@ -18,33 +18,11 @@ X11_PARAM::X11_PARAM(void)
 	FillSwitch = 0;
 }
 
+
 SEGMENT_X11::SEGMENT_X11(void)
 {
 	start = (XPoint){0, 0};
 	end = (XPoint){0, 0};
-}
-
-
-COORDINATE_3D::COORDINATE_3D(void)
-{
-	x = .0;
-	y = .0;
-	z = .0;
-}
-
-COORDINATE_3D::COORDINATE_3D(double ix, double iy, double iz)
-{
-	x = ix;
-	y = iy;
-	z = iz;
-}
-
-void
-COORDINATE_3D::set(double sx, double sy, double sz)
-{
-	x = sx;
-	y = sy;
-	z = sz;
 }
 
 

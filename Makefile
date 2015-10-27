@@ -2,23 +2,23 @@ CC = g++
 WARNING = -Wall -Wextra
 LIBES = -lm -lX11
 OPTION = -fopenmp
-OPTION_STDCPP11 = -std=c++11
+#OPTION = -fopenmp -std=c++11
 
 
-LIBRARY_CFILES = lib/Library.cpp lib/ImgLibrary.cpp CrossCorrelation.cpp
+LIBRARY_CFILES = lib/CrossCorrelation.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Vector.cpp
 MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Exclusive.cpp
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow_MultipleMotion.cpp
-HOG_CFILES = HOG/HOG.cpp HOG/HOG_class.cpp HOG/HOG_match.cpp
+HOG_CFILES = HOG/HOG.cpp HOG/HOG_struct.cpp HOG/HOG_match.cpp
 PLOT_CFILES = Plot/Plotting.cpp Plot/Plot_X11.cpp Plot/Plot_X11_Struct.cpp
 PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
 
 CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFILES) $(MEANINGFUL_CFILES) $(OPTICALFLOW_CFILES) $(HOG_CFILES) $(PLOT_CFILES) $(PNM_CFILES)
 
 
-LIBRARY_OFILES = Library.o ImgLibrary.o CrossCorrelation.o
+LIBRARY_OFILES = CrossCorrelation.o ImgLibrary.o ImgStruct.o Library.o Vector.o
 MEANINGFUL_OFILES = Detection.o Exclusive.o
 OPTICALFLOW_OFILES = MultiResolution.o MEstimator.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o
-HOG_OFILES = HOG.o HOG_class.o HOG_match.o
+HOG_OFILES = HOG.o HOG_struct.o HOG_match.o
 PLOT_OFILES = Plotting.o Plot_X11.o Plot_X11_Struct.o
 PNM_OFILES = pnm.o pnm_double.o pnm_library.o
 
@@ -39,13 +39,19 @@ Class.o: Class.cpp
 Struct.o: Struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
-Library.o: lib/Library.cpp
+CrossCorrelation.o: lib/CrossCorrelation.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 ImgLibrary.o: lib/ImgLibrary.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
-CrossCorrelation.o: lib/CrossCorrelation.cpp
+ImgStruct.o: lib/ImgStruct.cpp
+	$(CC) $(WARNING) $(OPTION) -c $^
+
+Library.o: lib/Library.cpp
+	$(CC) $(WARNING) $(OPTION) -c $^
+
+Vector.o: lib/Vector.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.cpp
@@ -72,7 +78,7 @@ MEstimator.o: OpticalFlow/MEstimator.cpp
 HOG.o: HOG/HOG.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
-HOG_class.o: HOG/HOG_class.cpp
+HOG_struct.o: HOG/HOG_struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 HOG_match.o: HOG/HOG_match.cpp
