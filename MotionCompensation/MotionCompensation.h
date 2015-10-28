@@ -12,15 +12,20 @@ class MotionCompensation
 		bool motion_estimated;
 		ImgVector<double> _image_prev;
 		ImgVector<double> _image_next;
+		ImgVector<double> _image_compensated;
 		ImgVector<VECTOR_2D> _vector;
 	public:
 		MotionCompensation(void);
 		MotionCompensation(const MotionCompensation &copy); // copy constructor
-		MotionCompensation(int width, int height, const double *image_prev, const double *image_next);
-		MotionCompensation(const ImgVector<double> &image_prev, const ImgVector<double> &image_next);
+		MotionCompensation(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D *vector);
+		MotionCompensation(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D> &vector);
+		MotionCompensation(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D> *vector);
 		~MotionCompensation(void);
 
 		MotionCompensation& copy(const MotionCompensation &copy);
+		MotionCompensation& set(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D *vector);
+		MotionCompensation& set(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D> &vector);
+		MotionCompensation& set(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D> *vector);
 		ImgVector<double>& image_prev(int n);
 		ImgVector<double>& image_next(int n);
 		ImgVector<VECTOR_2D>& vector(int n);
@@ -29,6 +34,8 @@ class MotionCompensation
 		double get_image_prev(int x, int y) const;
 		double get_image_next(int n) const;
 		double get_image_next(int x, int y) const;
+		double get_image_compensated(int n) const;
+		double get_image_compensated(int x, int y) const;
 		VECTOR_2D get_vector(int n) const;
 		VECTOR_2D get_vector(int x, int y) const;
 
