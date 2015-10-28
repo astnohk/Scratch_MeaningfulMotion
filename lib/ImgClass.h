@@ -1,3 +1,9 @@
+#ifndef nullptr
+#define nullptr 0
+#endif
+
+
+
 #ifndef LIB_ImgClass
 #define LIB_ImgClass
 template <typename T>
@@ -11,16 +17,16 @@ class ImgVector
 		ImgVector(void);
 		explicit ImgVector(const ImgVector<T> &copy);
 		ImgVector(int W, int H);
-		ImgVector(int W, int H, T value);
-		ImgVector(int W, int H, T *array);
+		ImgVector(int W, int H, const T &value);
+		ImgVector(int W, int H, const T *array);
 		~ImgVector(void);
 		void reset(int W, int H);
-		void reset(int W, int H, T value);
-		void reset(int W, int H, T *array);
-		void copy(ImgVector<T> &copy);
-		void copy(ImgVector<T> *copy);
-		ImgVector<T>& operator=(ImgVector<T> &copy);
-		void set(int x, int y, T &value);
+		void reset(int W, int H, const T &value);
+		void reset(int W, int H, const T *array);
+		void copy(const ImgVector<T> &copy);
+		void copy(const ImgVector<T> *copy);
+		ImgVector<T>& operator=(const ImgVector<T> &copy);
+		void set(int x, int y, const T &value);
 
 		// Data access
 		T* data(void) const;

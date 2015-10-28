@@ -62,7 +62,7 @@ ImgVector<T>::ImgVector(int W, int H)
 
 
 template <typename T>
-ImgVector<T>::ImgVector(int W, int H, T value)
+ImgVector<T>::ImgVector(int W, int H, const T &value)
 {
 	_data = nullptr;
 	_width = 0;
@@ -86,7 +86,7 @@ ImgVector<T>::ImgVector(int W, int H, T value)
 
 
 template <typename T>
-ImgVector<T>::ImgVector(int W, int H, T *array)
+ImgVector<T>::ImgVector(int W, int H, const T *array)
 {
 	_data = nullptr;
 	_width = 0;
@@ -143,7 +143,7 @@ ImgVector<T>::reset(int W, int H)
 
 template <typename T>
 void
-ImgVector<T>::reset(int W, int H, T value)
+ImgVector<T>::reset(int W, int H, const T &value)
 {
 	delete[] _data;
 	_data = nullptr;
@@ -169,7 +169,7 @@ ImgVector<T>::reset(int W, int H, T value)
 
 template <typename T>
 void
-ImgVector<T>::reset(int W, int H, T *array)
+ImgVector<T>::reset(int W, int H, const T *array)
 {
 	delete[] _data;
 	_data = nullptr;
@@ -197,7 +197,7 @@ ImgVector<T>::reset(int W, int H, T *array)
 
 template <typename T>
 void
-ImgVector<T>::copy(ImgVector<T> &target)
+ImgVector<T>::copy(const ImgVector<T> &target)
 {
 	if (target._width > 0 && target._height > 0) {
 		T *tmp_data = nullptr;
@@ -221,7 +221,7 @@ ImgVector<T>::copy(ImgVector<T> &target)
 
 template <typename T>
 void
-ImgVector<T>::copy(ImgVector<T> *target)
+ImgVector<T>::copy(const ImgVector<T> *target)
 {
 	if (target != nullptr && this != target
 	    && target->_width > 0 && target->_height > 0) {
@@ -246,7 +246,7 @@ ImgVector<T>::copy(ImgVector<T> *target)
 
 template <typename T>
 void
-ImgVector<T>::set(int x, int y, T &value)
+ImgVector<T>::set(int x, int y, const T &value)
 {
 	if (x < 0 || _width <= x
 	    || y < 0 || _height <= y) {
@@ -258,7 +258,7 @@ ImgVector<T>::set(int x, int y, T &value)
 
 template <typename T>
 ImgVector<T> &
-ImgVector<T>::operator=(ImgVector<T> &copy)
+ImgVector<T>::operator=(const ImgVector<T> &copy)
 {
 	if (this == &copy) {
 		return *this;
@@ -321,12 +321,12 @@ ImgVector<T>::ref_repeat(int x, int y)
 	if (x >= 0) {
 		x_repeat = x % _width;
 	} else {
-		x_repeat = _width - (std::abs(x + 1) % _width);
+		x_repeat = _width - ((int)std::abs((double)x + 1.0) % _width);
 	}
 	if (y >= 0) {
 		y_repeat = y % _height;
 	} else {
-		y_repeat = _height - (std::abs(y + 1) % _height);
+		y_repeat = _height - ((int)std::abs((double)y + 1.0) % _height);
 	}
 	return _data[_width * y_repeat + x_repeat];
 }
@@ -393,12 +393,12 @@ ImgVector<T>::get_repeat(int x, int y) const
 	if (x >= 0) {
 		x_repeat = x % _width;
 	} else {
-		x_repeat = _width - (std::abs(x + 1) % _width);
+		x_repeat = _width - ((int)std::abs((double)x + 1.0) % _width);
 	}
 	if (y >= 0) {
 		y_repeat = y % _height;
 	} else {
-		y_repeat = _height - (std::abs(y + 1) % _height);
+		y_repeat = _height - ((int)std::abs((double)y + 1.0) % _height);
 	}
 	return _data[_width * y_repeat + x_repeat];
 }

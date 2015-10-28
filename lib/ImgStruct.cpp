@@ -79,27 +79,6 @@ COORDINATE_3D::set(double set_x, double set_y, double set_z)
 
 
 
-VECTOR_2D::VECTOR_2D(void)
-{
-	x = .0;
-	y = .0;
-}
-
-VECTOR_2D::VECTOR_2D(double init_x, double init_y)
-{
-	x = init_x;
-	y = init_y;
-}
-
-void
-VECTOR_2D::reset(void)
-{
-	x = .0;
-	y = .0;
-}
-
-
-
 Histogram::Histogram(void)
 {
 	_bins = 0;

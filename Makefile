@@ -8,6 +8,7 @@ OPTION = -fopenmp
 LIBRARY_CFILES = lib/CrossCorrelation.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Vector.cpp
 MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Exclusive.cpp
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow_MultipleMotion.cpp
+MOTIONCOMPENSATION_CFILES = MotionCompensation/MotionCompensation.cpp
 HOG_CFILES = HOG/HOG.cpp HOG/HOG_struct.cpp HOG/HOG_match.cpp
 PLOT_CFILES = Plot/Plotting.cpp Plot/Plot_X11.cpp Plot/Plot_X11_Struct.cpp
 PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
@@ -18,11 +19,12 @@ CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CF
 LIBRARY_OFILES = CrossCorrelation.o ImgLibrary.o ImgStruct.o Library.o Vector.o
 MEANINGFUL_OFILES = Detection.o Exclusive.o
 OPTICALFLOW_OFILES = MultiResolution.o MEstimator.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o
+MOTIONCOMPENSATION_OFILES = MotionCompensation.o
 HOG_OFILES = HOG.o HOG_struct.o HOG_match.o
 PLOT_OFILES = Plotting.o Plot_X11.o Plot_X11_Struct.o
 PNM_OFILES = pnm.o pnm_double.o pnm_library.o
 
-OFILES = main.o Class.o Struct.o Scratch_MeaningfulMotion.o $(LIBRARY_OFILES) $(MEANINGFUL_OFILES) $(OPTICALFLOW_OFILES) $(HOG_OFILES) $(PLOT_OFILES) $(PNM_OFILES)
+OFILES = main.o Class.o Struct.o Scratch_MeaningfulMotion.o $(LIBRARY_OFILES) $(MEANINGFUL_OFILES) $(OPTICALFLOW_OFILES) $(MOTIONCOMPENSATION_OFILES) $(HOG_OFILES) $(PLOT_OFILES) $(PNM_OFILES)
 
 OUTNAME = Scratch_MeaningfulMotion
 
@@ -73,6 +75,9 @@ MultiResolution.o: OpticalFlow/MultiResolution.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 MEstimator.o: OpticalFlow/MEstimator.cpp
+	$(CC) $(WARNING) $(OPTION) -c $^
+
+MotionCompensation.o: MotionCompensation/MotionCompensation.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 HOG.o: HOG/HOG.cpp

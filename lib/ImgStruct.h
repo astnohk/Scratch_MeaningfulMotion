@@ -36,15 +36,6 @@ struct COORDINATE_3D
 	void set(double sx, double sy, double sz);
 };
 
-struct VECTOR_2D
-{
-	double x;
-	double y;
-	VECTOR_2D(void);
-	VECTOR_2D(double ix, double iy);
-	void reset(void);
-};
-
 class Histogram
 {
 	private:
