@@ -45,6 +45,7 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 	ImgVector<double> *It_levels = nullptr;
 	ImgVector<double> *Itp1_levels = nullptr;
 	ImgVector<VECTOR_2D> *grad_It_levels = nullptr;
+	int IterMax_level = 0;
 	int level;
 	int i;
 
@@ -128,15 +129,20 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 			continue;
 		}
 #endif
-		if (IterMax <= 0) {
-			IterMax = 10 * MAX(u_levels[level].width(), u_levels[level].height());
+//		IterMax_level = MAX(10 * MAX(u_levels[level].width(), u_levels[level].height()), 1000);
+		IterMax_level = level * 10 * MAX(It->width(), It->height());
+		if (level >= MotionParam.Level - 1) {
+		if (IterMax > 0 && IterMax_level >= IterMax) {
+			IterMax_level = IterMax;
 		}
+		} else { IterMax_level = 1; }
+		printf("IterMax = %d\n", IterMax_level);
 		IRLS_MultipleMotion_OpticalFlow(
 		    (u_levels + level),
 		    (grad_It_levels + level),
 		    (I_dt_levels + level),
 		    lambdaD, lambdaS, sigmaD, sigmaS,
-		    IterMax,
+		    IterMax_level,
 		    MotionParam.Error_Min_Threshold,
 		    level);
 	}
@@ -168,7 +174,8 @@ LevelDown(ImgVector<VECTOR_2D> *u_levels, int level)
 
 	for (y = 0; y < u_levels[level].height(); y++) {
 		for (x = 0; x < u_levels[level].width(); x++) {
-			u_levels[level].ref(x, y) = u_levels[level + 1].get(x / 2, y / 2);
+			u_levels[level].ref(x, y).x = 2.0 * u_levels[level + 1].get(x / 2, y / 2).x;
+			u_levels[level].ref(x, y).y = 2.0 * u_levels[level + 1].get(x / 2, y / 2).y;
 		}
 	}
 }
@@ -216,6 +223,9 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 		for (site = 0; site < u->size(); site++) {
 			(*u)[site] = u_np1[site];
 		}
+		if ((n & 0x3F) == 0) {
+			printf("u[130, 130]: (%f, %f)\n", u_np1[u->width() * u->width() / 2 + u->width() / 2].x, u_np1[u->width() * u->width() / 2 + u->width() / 2].y);
+		}
 		if (level == 0) {
 			if ((n & 0x3F) == 0) {
 				E = Error_MultipleMotion(u, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
@@ -234,7 +244,7 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 			printf("E(%4d) = %e\n", n, E);
 		}
 #endif
-		if (E < ErrorMinThreshold || ErrorIncrementCount > 2) {
+		if (E < ErrorMinThreshold || ErrorIncrementCount > 3) {
 			break;
 		}
 	}

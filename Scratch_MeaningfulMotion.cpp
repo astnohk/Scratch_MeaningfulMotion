@@ -489,6 +489,7 @@ Write:
 					Error.FunctionFail();
 					goto ExitError;
 				}
+				HOG_vector_compensated_write(&imgd_prev, &imgd_in, hog_vector, hog.Width(), hog.Height(), OutputNameNums);
 				delete[] hog_vector;
 				hog_vector = nullptr;
 			} else {

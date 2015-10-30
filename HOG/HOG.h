@@ -17,4 +17,5 @@ VECTOR_2D_W_SCORE* HOG_Matching(const HOG *hog_prv, const HOG *hog_cur);
 double HOG_Distance(const Histogram *Hist1, const Histogram *Hist2);
 
 bool HOG_vector_write(const VECTOR_2D_W_SCORE *vector, int width, int height, const std::string &filename);
+void HOG_vector_compensated_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const VECTOR_2D_W_SCORE *vector, int width, int height, const std::string &filename);
 
