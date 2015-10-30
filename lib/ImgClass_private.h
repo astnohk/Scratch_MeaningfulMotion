@@ -650,11 +650,11 @@ ImgVector<T>::cubic(double x, double B, double C)
 
 template <typename T>
 void
-ImgVector<T>::map(T (*map_def)(T &value))
+ImgVector<T>::map(T (*func)(T &value))
 {
-	if (map_def != nullptr) {
+	if (func != nullptr) {
 		for (int i = 0 ; i < _width * _height; i++) {
-			_data[i] = map_def(_data[i]);
+			_data[i] = func(_data[i]);
 		}
 	}
 }

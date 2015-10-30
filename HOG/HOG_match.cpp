@@ -75,19 +75,19 @@ HOG_Distance(const Histogram *Hist1, const Histogram *Hist2)
 
 
 bool
-HOG_vector_write(const VECTOR_2D_W_SCORE *vector, int width, int height, const char *filename)
+HOG_vector_write(const VECTOR_2D_W_SCORE *vector, int width, int height, const std::string &filename)
 {
 	ERROR Error("HOG_vector_write");
 	FILE *fp = nullptr;
 
-	fp = fopen(filename, "wb");
+	fp = fopen(filename.c_str(), "wb");
 	if (fp == nullptr) {
 		Error.Function("fopen");
-		Error.File(filename);
+		Error.File(filename.c_str());
 		Error.FileWrite();
 		goto ExitError;
 	}
-	printf("* Output HOG matching vector to '%s'\n", filename);
+	printf("* Output HOG matching vector to '%s'\n", filename.c_str());
 	fprintf(fp, "%d %d\n", width, height);
 	for (int i = 0; i < width * height; i++) {
 		double tmp;

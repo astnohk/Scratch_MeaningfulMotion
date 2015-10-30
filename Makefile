@@ -13,7 +13,7 @@ HOG_CFILES = HOG/HOG.cpp HOG/HOG_struct.cpp HOG/HOG_match.cpp
 PLOT_CFILES = Plot/Plotting.cpp Plot/Plot_X11.cpp Plot/Plot_X11_Struct.cpp
 PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
 
-CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFILES) $(MEANINGFUL_CFILES) $(OPTICALFLOW_CFILES) $(HOG_CFILES) $(PLOT_CFILES) $(PNM_CFILES)
+CFILES = main.cpp Class.cpp Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFILES) $(MOTIONCOMPENSATION_CFILES) $(MEANINGFUL_CFILES) $(OPTICALFLOW_CFILES) $(HOG_CFILES) $(PLOT_CFILES) $(PNM_CFILES)
 
 
 LIBRARY_OFILES = CrossCorrelation.o ImgLibrary.o ImgStruct.o Library.o Vector.o
@@ -106,6 +106,9 @@ pnm_double.o: PNM/pnm_double.cpp
 
 pnm_library.o: PNM/pnm_library.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
+
+
+
 
 
 debug: $(CFILES)

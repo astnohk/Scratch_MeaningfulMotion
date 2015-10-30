@@ -6,6 +6,7 @@
 
 #ifndef LIB_ImgClass
 #define LIB_ImgClass
+
 template <typename T>
 class ImgVector
 {
@@ -50,10 +51,10 @@ class ImgVector
 		//bool resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (1.0 / 3.0), double C = (1.0 / 3.0));
 		bool resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (0.0 / 3.0), double C = (1.0 / 2.0));
 		double cubic(double x, double B, double C);
-		void map(T (*map_def)(T &value));
+		void map(T (*func)(T &value));
 };
 
-
 #include "ImgClass_private.h"
+
 #endif
 

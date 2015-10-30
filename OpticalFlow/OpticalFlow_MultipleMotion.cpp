@@ -119,6 +119,7 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 			sigmaD = sigmaD_l0;
 			sigmaS = sigmaS_l0;
 		}
+		u_levels[level].reset(I_dt_levels[level].width(), I_dt_levels[level].height());
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 		if (level < MotionParam.Level - 1) {
 			LevelDown(u_levels, level);
@@ -129,6 +130,7 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		}
 #endif
 		IterMax = 10 * MAX(u_levels[level].width(), u_levels[level].height());
+		IterMax = 1;
 		IRLS_MultipleMotion_OpticalFlow(
 		    (u_levels + level),
 		    (grad_It_levels + level),
@@ -166,7 +168,7 @@ LevelDown(ImgVector<VECTOR_2D> *u_levels, int level)
 
 	for (y = 0; y < u_levels[level].height(); y++) {
 		for (x = 0; x < u_levels[level].width(); x++) {
-			u_levels[level].ref(x, y) = u_levels[level].get(x / 2, y / 2);
+			u_levels[level].ref(x, y) = u_levels[level + 1].get(x / 2, y / 2);
 		}
 	}
 }
@@ -198,16 +200,15 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 		Error.PointerNull();
 		goto ExitError;
 	}
-	u_np1 = *u;
+	u_np1.copy(u); // Initialize u_np1
 	// Reset sup_Error_uu max Img_g
 	sup_Error_uu(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
 	sup = sup_Error_uu(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
 	for (n = 0; n < IterMax; n++) {
-#pragma omp parallel for private(dE, sup)
 		// Calc for all sites
+#pragma omp parallel for private(dE)
 		for (site = 0; site < u->size(); site++) {
 			dE = Error_u(site, u, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
-			sup = sup_Error_uu(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u->get(site).x - dE.x / sup.x;
 			u_np1[site].y = u->get(site).y - dE.y / sup.y;
 		}
@@ -354,39 +355,40 @@ Error_MultipleMotion(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVe
 
 
 bool
-MultipleMotion_write(ImgVector<VECTOR_2D> *u, const char *filename)
+MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const ImgVector<VECTOR_2D> *u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 	FILE *fp = nullptr;
+	VECTOR_2D v;
 	int x, y;
+	MotionCompensation compensated(img_prev, img_next, u);
+	PNM pnm;
+	std::string filename_compensated;
 
 	if (u == nullptr) {
 		Error.Value("u");
 		Error.PointerNull();
 		goto ExitError;
-	} else if (filename == nullptr) {
-		Error.Value("filename");
-		Error.PointerNull();
-		goto ExitError;
 	}
 
-	printf("* Output Optical Flow to '%s'(binary)\n", filename);
-	if ((fp = fopen(filename, "wb")) == nullptr) {
+	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
+	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
 		Error.Function("fopen");
-		Error.File(filename);
+		Error.File(filename.c_str());
 		Error.FileWrite();
 		goto ErrorFileOpenFail;
 	}
 	fprintf(fp, "%d %d\n", u->width(), u->height());
 	for (y = 0; y < u->height(); y++) {
 		for (x = 0; x < u->width(); x++) {
-			if (fwrite(&(u->ref(x, y).x), sizeof(double), 1, fp) < 1) {
+			v = u->get(x, y);
+			if (fwrite(&v.x, sizeof(double), 1, fp) < 1) {
 				Error.Function("fwrite");
 				Error.Value("u(x, y).x");
 				Error.FunctionFail();
 				goto ExitError;
 			}
-			if (fwrite(&(u->ref(x, y).y), sizeof(double), 1, fp) < 1) {
+			if (fwrite(&v.y, sizeof(double), 1, fp) < 1) {
 				Error.Function("fwrite");
 				Error.Value("u(x, y).y");
 				Error.FunctionFail();
@@ -395,6 +397,14 @@ MultipleMotion_write(ImgVector<VECTOR_2D> *u, const char *filename)
 		}
 	}
 	fclose(fp);
+
+	compensated.create_image_compensated(); // Make compensated image
+	filename_compensated = filename.substr(0, filename.length() - 4) + "compensated" + filename.substr(filename.length() - 4);
+	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
+	pnm.write(filename_compensated.c_str());
+	pnm.free();
+
 	return MEANINGFUL_SUCCESS;
 // Error
 ErrorFileOpenFail:

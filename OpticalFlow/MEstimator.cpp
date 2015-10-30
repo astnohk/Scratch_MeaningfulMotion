@@ -2,7 +2,7 @@
 
 
 
-
+#include <cstdio>
 double
 Geman_McClure_rho(const double &x, const double &sigma)
 {

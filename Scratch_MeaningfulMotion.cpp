@@ -255,7 +255,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Multiple Motions Affine Parameters by method of M.J.Black\n");
-				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnmd_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			// Computte and output Multiple Motion Optical Flow by method of M.J.Black
@@ -267,7 +267,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Skip Calculate Multiple Motions while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Multiple Motions Optical Flow by method of M.J.Black\n");
-				MultipleMotion_u = MultipleMotion_OpticalFlow(&imgd_prev, &imgd_in, pnmd_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_u = MultipleMotion_OpticalFlow(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
@@ -451,7 +451,7 @@ Write:
 		}
 		if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			if (imgd_prev.isNULL() == false
-			    && MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums.c_str()) == MEANINGFUL_FAILURE) {
+			    && MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums) == false) {
 				Error.Function("MultipleMotion_Affine_write");
 				Error.Value("MultipleMotions_Affine");
 				Error.FunctionFail();
@@ -459,21 +459,21 @@ Write:
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			if (imgd_prev.isNULL() == false
-			    && MultipleMotion_write(MultipleMotion_u, OutputNameNums.c_str()) == MEANINGFUL_FAILURE) {
+			    && MultipleMotion_write(&imgd_prev, &imgd_in, MultipleMotion_u, OutputNameNums) == false) {
 				Error.Function("MultipleMotion_write");
 				Error.Value("MultipleMotions_u");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
-			if (HOG_write(hog_raw, OutputNameNums.c_str()) == false) {
+			if (HOG_write(hog_raw, OutputNameNums) == false) {
 				Error.Function("HOG_write");
 				Error.Value("hog");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0) {
-			if (HOG_write(hog, OutputNameNums.c_str()) == false) {
+			if (HOG_write(hog, OutputNameNums) == false) {
 				Error.Function("HOG_write");
 				Error.Value("hog");
 				Error.FunctionFail();
@@ -483,7 +483,7 @@ Write:
 			if (hog_prv.Bins() == hog.Bins()) {
 				printf("* Compute matching each images HOG feature\n");
 				hog_vector = HOG_Matching(&hog_prv, &hog);
-				if (HOG_vector_write(hog_vector, hog.Width(), hog.Height(), OutputNameNums.c_str()) == false) {
+				if (HOG_vector_write(hog_vector, hog.Width(), hog.Height(), OutputNameNums) == false) {
 					Error.Function("HOG_vector_write");
 					Error.Value("hog_vector");
 					Error.FunctionFail();

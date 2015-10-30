@@ -290,19 +290,19 @@ ExitError:
 
 
 bool
-HOG_write(const HOG &hog, const char *filename)
+HOG_write(const HOG &hog, const std::string &filename)
 {
 	ERROR Error("HOG_write");
 	FILE *fp = nullptr;
 
-	fp = fopen(filename, "wb");
+	fp = fopen(filename.c_str(), "wb");
 	if (fp == nullptr) {
 		Error.Function("fopen");
-		Error.File(filename);
+		Error.File(filename.c_str());
 		Error.FileWrite();
 		goto ExitError;
 	}
-	printf("* Output HOG to '%s'\n", filename);
+	printf("* Output HOG to '%s'\n", filename.c_str());
 	fprintf(fp, "%d\n", (int)hog.Signed());
 	fprintf(fp, "%d %d\n", hog.Width(), hog.Height());
 	fprintf(fp, "%d\n", hog.Bins());
