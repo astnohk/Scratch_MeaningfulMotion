@@ -27,10 +27,10 @@ class ImgVector
 		void reset(int W, int H);
 		void reset(int W, int H, const T &value);
 		void reset(int W, int H, const T *array);
-		void copy(const ImgVector<T> &copy);
-		void copy(const ImgVector<T> *copy);
-		void set(int x, int y, const T &value);
+		ImgVector<T>& copy(const ImgVector<T> &copy);
+		ImgVector<T>& copy(const ImgVector<T> *copy);
 		ImgVector<T>& operator=(const ImgVector<T> &copy);
+		void set(int x, int y, const T &value);
 
 		// Data access
 		T* data(void) const;

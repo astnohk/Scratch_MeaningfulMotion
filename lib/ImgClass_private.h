@@ -30,7 +30,6 @@ ImgVector<T>::ImgVector(const ImgVector<T> &target)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = target._width;
 		_height = target._height;
@@ -55,7 +54,6 @@ ImgVector<T>::ImgVector(int W, int H)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = W;
 		_height = H;
@@ -77,7 +75,6 @@ ImgVector<T>::ImgVector(int W, int H, const T &value)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = W;
 		_height = H;
@@ -102,7 +99,6 @@ ImgVector<T>::ImgVector(int W, int H, const T *array)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = W;
 		_height = H;
@@ -138,7 +134,6 @@ ImgVector<T>::reset(int W, int H)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = W;
 		_height = H;
@@ -162,7 +157,6 @@ ImgVector<T>::reset(int W, int H, const T &value)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = W;
 		_height = H;
@@ -189,7 +183,6 @@ ImgVector<T>::reset(int W, int H, const T *array)
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
 			throw;
-			return;
 		}
 		_width = W;
 		_height = H;
@@ -203,7 +196,7 @@ ImgVector<T>::reset(int W, int H, const T *array)
 
 
 template <typename T>
-void
+ImgVector<T> &
 ImgVector<T>::copy(const ImgVector<T> &target)
 {
 	if (target._width > 0 && target._height > 0) {
@@ -214,7 +207,7 @@ ImgVector<T>::copy(const ImgVector<T> &target)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory\n");
 			throw;
-			return;
+			return *this;
 		}
 		_width = target._width;
 		_height = target._height;
@@ -224,11 +217,12 @@ ImgVector<T>::copy(const ImgVector<T> &target)
 			_data[i] = target._data[i];
 		}
 	}
+	return *this;
 }
 
 
 template <typename T>
-void
+ImgVector<T> &
 ImgVector<T>::copy(const ImgVector<T> *target)
 {
 	if (target != nullptr && this != target
@@ -240,7 +234,7 @@ ImgVector<T>::copy(const ImgVector<T> *target)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory\n");
 			throw;
-			return;
+			return *this;
 		}
 		_width = target->_width;
 		_height = target->_height;
@@ -250,6 +244,7 @@ ImgVector<T>::copy(const ImgVector<T> *target)
 			_data[i] = target->_data[i];
 		}
 	}
+	return *this;
 }
 
 
@@ -259,10 +254,8 @@ ImgVector<T>::set(int x, int y, const T &value)
 {
 	if (x < 0 || _width <= x) {
 		throw std::out_of_range("int x");
-		return;
 	} else if (y < 0 || _height <= y) {
 		throw std::out_of_range("int y");
-		return;
 	}
 	_data[_width * y + x] = value;
 }
@@ -487,7 +480,6 @@ ImgVector<T>::resize_zerohold(int W, int H)
 
 	if (W <= 0 || H <= 0) {
 		throw std::out_of_range("int W, int H");
-		return;
 	}
 	scale_x = (double)W / _width;
 	scale_y = (double)H / _height;
@@ -497,7 +489,6 @@ ImgVector<T>::resize_zerohold(int W, int H)
 	catch (const std::bad_alloc &bad) {
 		fprintf(stderr, "ImgVector<T>::resize_zerohold(int, int) error : Cannot allocate memory\n");
 		throw;
-		return;
 	}
 	area_x = ceil((double)_width / W);
 	area_y = ceil((double)_height / H);
@@ -544,7 +535,6 @@ ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_I
 
 	if (W <= 0 || H <= 0) {
 		throw std::out_of_range("int W, int H");
-		return;
 	}
 	scale_x = (double)W / _width;
 	scale_y = (double)H / _height;
@@ -563,7 +553,6 @@ ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_I
 		delete[] resized;
 		delete[] conv;
 		throw;
-		return;
 	}
 	// Horizontal convolution
 	if (scale_x >= 1.0) {
