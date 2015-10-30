@@ -29,6 +29,7 @@ ImgVector<T>::ImgVector(const ImgVector<T> &target)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = target._width;
@@ -53,6 +54,7 @@ ImgVector<T>::ImgVector(int W, int H)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = W;
@@ -74,6 +76,7 @@ ImgVector<T>::ImgVector(int W, int H, const T &value)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = W;
@@ -98,6 +101,7 @@ ImgVector<T>::ImgVector(int W, int H, const T *array)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = W;
@@ -133,6 +137,7 @@ ImgVector<T>::reset(int W, int H)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = W;
@@ -156,6 +161,7 @@ ImgVector<T>::reset(int W, int H, const T &value)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = W;
@@ -182,6 +188,7 @@ ImgVector<T>::reset(int W, int H, const T *array)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory");
 			_data = nullptr;
+			throw;
 			return;
 		}
 		_width = W;
@@ -206,6 +213,7 @@ ImgVector<T>::copy(const ImgVector<T> &target)
 		}
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory\n");
+			throw;
 			return;
 		}
 		_width = target._width;
@@ -231,6 +239,7 @@ ImgVector<T>::copy(const ImgVector<T> *target)
 		}
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::ImgVector(T *, int, int) : Cannot Allocate Memory\n");
+			throw;
 			return;
 		}
 		_width = target->_width;
@@ -248,8 +257,11 @@ template <typename T>
 void
 ImgVector<T>::set(int x, int y, const T &value)
 {
-	if (x < 0 || _width <= x
-	    || y < 0 || _height <= y) {
+	if (x < 0 || _width <= x) {
+		throw std::out_of_range("int x");
+		return;
+	} else if (y < 0 || _height <= y) {
+		throw std::out_of_range("int y");
 		return;
 	}
 	_data[_width * y + x] = value;
@@ -274,6 +286,7 @@ ImgVector<T>::operator=(const ImgVector<T> &copy)
 		catch (const std::bad_alloc &bad) {
 			fprintf(stderr, "ImgVector::operator=(ImgVector<T> &) : Cannot Allocate Memory\n");
 			_data = nullptr;
+			throw;
 			return *this;
 		}
 		_width = copy._width;
@@ -459,7 +472,7 @@ ImgVector<T>::isNULL(void) const
 
 
 template <typename T>
-bool
+void
 ImgVector<T>::resize_zerohold(int W, int H)
 {
 	T *resized = nullptr;
@@ -473,7 +486,8 @@ ImgVector<T>::resize_zerohold(int W, int H)
 	T sum;
 
 	if (W <= 0 || H <= 0) {
-		return false;
+		throw std::out_of_range("int W, int H");
+		return;
 	}
 	scale_x = (double)W / _width;
 	scale_y = (double)H / _height;
@@ -482,7 +496,8 @@ ImgVector<T>::resize_zerohold(int W, int H)
 	}
 	catch (const std::bad_alloc &bad) {
 		fprintf(stderr, "ImgVector<T>::resize_zerohold(int, int) error : Cannot allocate memory\n");
-		goto ExitError;
+		throw;
+		return;
 	}
 	area_x = ceil((double)_width / W);
 	area_y = ceil((double)_height / H);
@@ -501,11 +516,6 @@ ImgVector<T>::resize_zerohold(int W, int H)
 	_data = resized;
 	_width = W;
 	_height = H;
-	return true;
-// Error
-ExitError:
-	delete[] resized;
-	return false;
 }
 
 
@@ -518,12 +528,12 @@ ExitError:
     A : cubic method's parameter (default A = -0.5 which correspond to Hermite)
 */
 template <typename T>
-bool
+void
 ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_Integer_Method)(double &d), double B, double C)
 {
 	T *resized = nullptr;
-	ImgVector<double> Tmp;
 	double *conv = nullptr;
+	ImgVector<double> Tmp;
 	double scale_x, scale_y;
 	double scale_conv;
 	int L, L_center;
@@ -533,7 +543,8 @@ ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_I
 	double sum;
 
 	if (W <= 0 || H <= 0) {
-		return false;
+		throw std::out_of_range("int W, int H");
+		return;
 	}
 	scale_x = (double)W / _width;
 	scale_y = (double)H / _height;
@@ -549,7 +560,10 @@ ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_I
 	}
 	catch (const std::bad_alloc &bad) {
 		fprintf(stderr, "ImgVector<double>::resize_bicubic(int, int) error : Cannot allocate memory\n");
-		goto ExitError;
+		delete[] resized;
+		delete[] conv;
+		throw;
+		return;
 	}
 	// Horizontal convolution
 	if (scale_x >= 1.0) {
@@ -624,11 +638,6 @@ ImgVector<T>::resize_bicubic(int W, int H, double min, double max, T (*Nearest_I
 	_width = W;
 	_height = H;
 	return true;
-// Error
-ExitError:
-	delete[] resized;
-	delete[] conv;
-	return false;
 }
 
 

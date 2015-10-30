@@ -1,3 +1,6 @@
+#include <stdexcept>
+
+
 #ifndef nullptr
 #define nullptr 0
 #endif
@@ -26,8 +29,8 @@ class ImgVector
 		void reset(int W, int H, const T *array);
 		void copy(const ImgVector<T> &copy);
 		void copy(const ImgVector<T> *copy);
-		ImgVector<T>& operator=(const ImgVector<T> &copy);
 		void set(int x, int y, const T &value);
+		ImgVector<T>& operator=(const ImgVector<T> &copy);
 
 		// Data access
 		T* data(void) const;
@@ -47,9 +50,9 @@ class ImgVector
 		T get_mirror(int x, int y) const;
 
 		// Resampling
-		bool resize_zerohold(int W, int H);
+		void resize_zerohold(int W, int H);
 		//bool resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (1.0 / 3.0), double C = (1.0 / 3.0));
-		bool resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (0.0 / 3.0), double C = (1.0 / 2.0));
+		void resize_bicubic(int W, int H, double min = 0.0, double max = 0.0, T (*Nearest_Integer_Method)(double &d) = nullptr, double B = (0.0 / 3.0), double C = (1.0 / 2.0));
 		double cubic(double x, double B, double C);
 		void map(T (*func)(T &value));
 };
