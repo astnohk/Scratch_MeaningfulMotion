@@ -23,7 +23,7 @@
 
 
 ImgVector<VECTOR_2D> *
-MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam)
+MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
 {
 	ERROR Error("MultipleMotion_OpticalFlow");
 
@@ -46,7 +46,6 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 	ImgVector<double> *Itp1_levels = nullptr;
 	ImgVector<VECTOR_2D> *grad_It_levels = nullptr;
 	int level;
-	int IterMax;
 	int i;
 
 	if (It == nullptr) {
@@ -129,8 +128,9 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 			continue;
 		}
 #endif
-		IterMax = 10 * MAX(u_levels[level].width(), u_levels[level].height());
-		IterMax = 1;
+		if (IterMax <= 0) {
+			IterMax = 10 * MAX(u_levels[level].width(), u_levels[level].height());
+		}
 		IRLS_MultipleMotion_OpticalFlow(
 		    (u_levels + level),
 		    (grad_It_levels + level),
