@@ -2,6 +2,9 @@
 
 
 
+#ifndef LIB_HOG_struct
+#define LIB_HOG_struct
+
 class HOG // Histograms of Oriented Gradients
 {
 	private:
@@ -30,4 +33,16 @@ class HOG // Histograms of Oriented Gradients
 		// control Histogram
 		bool AddHist(int x, int y, int bin, double val);
 };
+
+struct HOG_PARAM
+{
+	int Bins;
+	bool Dense;
+	bool SignedOrient;
+	HOG_PARAM(void);
+	void set_default(const char *name);
+	void set_value(const char *name, const void *value);
+};
+
+#endif
 

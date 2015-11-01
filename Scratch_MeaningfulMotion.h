@@ -7,7 +7,9 @@
 */
 
 // Options for Old Compiler which is not available to use -std=c++11
+#ifndef nullptr
 #define nullptr NULL
+#endif
 
 
 // DEBUG Options
@@ -42,16 +44,20 @@
 #include <iostream>
 #include <list>
 #include <string>
-#include "lib/ImgClass.h"
-#include "lib/ImgStruct.h"
-#include "lib/Vector.h"
-#include "PNM/pnm.h"
 #if defined(_OPENMP)
 #include <omp.h>
 #endif
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <unistd.h>
+
+#include "lib/Class.h"
+#include "lib/ImgClass.h"
+#include "lib/ImgStruct.h"
+#include "lib/Struct.h"
+#include "lib/Vector.h"
+#include "HOG/HOG_struct.h"
+#include "PNM/pnm.h"
 
 
 #define REGEXP_MAX_DIGITS 10
@@ -120,92 +126,6 @@
 
 
 
-class ERROR
-{
-	private:
-		std::string FunctionName;
-		std::string ErrorFunctionName;
-		std::string ValueName;
-		std::string FileName;
-	public:
-		// Error data set
-		ERROR(void);
-		explicit ERROR(const char *name);
-		const char* OutputFunctionName(void);
-		void Function(const char *name);
-		void Value(const char *name);
-		void File(const char *name);
-		// Error output
-		void Others(const char *error);
-		void OthersWarning(const char *error);
-		void Malloc(void);
-		void FunctionFail(void);
-		void PointerNull(void);
-		void ValueIncorrect(void);
-		void ImageSize(void);
-		void FileRead(void);
-		void FileWrite(void);
-};
-
-class ATAN2_DIV_PI
-{
-	private:
-		int width;
-		int height;
-		double *table;
-	public:
-		ATAN2_DIV_PI(void);
-		ATAN2_DIV_PI(const ATAN2_DIV_PI &copy);
-		ATAN2_DIV_PI(int W, int H);
-		~ATAN2_DIV_PI(void);
-		int Width(void) const;
-		int Height(void) const;
-		const double* Data(void) const;
-		bool reset(int W, int H);
-		double val(int y, int x) const;
-};
-
-
-
-
-struct FRAGMENT
-{
-	int start;
-	int end;
-	double Pr;
-	FRAGMENT(void);
-	FRAGMENT(int s, int e, double prob);
-};
-
-struct SEGMENT
-{
-	int n; // Start point x
-	int m; // Start point y
-	int x; // End point x
-	int y; // End point y
-	double Pr; // Probability
-	SEGMENT(void);
-	SEGMENT(int stx, int sty, int endx, int endy, double prob);
-};
-
-struct LINEPOLE
-{
-	double r;
-	double theta;
-	double cos;
-	double sin;
-	LINEPOLE(void);
-	LINEPOLE(double rad, double th, double icos, double isin);
-};
-
-#define NUM_AFFINE_PARAMETER 6
-struct VECTOR_AFFINE
-{
-	double a[NUM_AFFINE_PARAMETER];
-	VECTOR_AFFINE(void);
-	void reset(void);
-};
-
 
 #define NUM_FILTER_TYPE 3
 #define FILTER_ID_UNDEFINED 0
@@ -237,15 +157,41 @@ struct MULTIPLE_MOTION_PARAM
 	void set_value(const char *name, void *value);
 };
 
-struct HOG_PARAM
+// X11 structures
+// * X11 Plotting Parameters
+struct X11_PARAM
 {
-	int Bins;
-	bool Dense;
-	bool SignedOrient;
-	HOG_PARAM(void);
-	void set_default(const char *name);
-	void set_value(const char *name, const void *value);
+	int Int_interval;
+	int Latitude;
+	int Longitude;
+	double Center_x;
+	double Center_y;
+	double Center_z;
+	double Scale;
+	double Plot_Z_Scale;
+	short RotateSwitch;
+	short ModeSwitch;
+	short FillSwitch;
+	X11_PARAM(void);
 };
+
+struct SEGMENT_X11
+{
+	XPoint start;
+	XPoint end;
+	SEGMENT_X11(void);
+};
+
+struct XPLOT
+{
+	XPoint point;
+	double z;
+	XPLOT(void);
+	void set(XPoint _point, double _z);
+	void set(int point_x, int point_y, double _z);
+};
+// /X11 structures
+
 
 struct OPTIONS
 {
@@ -284,40 +230,8 @@ struct OPTIONS
 #define PLOT_AS_RESAMPLE 0x02
 #define PLOT_RESAMPLED_IMG_ONLY 0x04
 
-// X11 structures
-// * X11 Plotting Parameters
-struct X11_PARAM
-{
-	int Int_interval;
-	int Latitude;
-	int Longitude;
-	double Center_x;
-	double Center_y;
-	double Center_z;
-	double Scale;
-	double Plot_Z_Scale;
-	short RotateSwitch;
-	short ModeSwitch;
-	short FillSwitch;
-	X11_PARAM(void);
-};
 
-struct SEGMENT_X11
-{
-	XPoint start;
-	XPoint end;
-	SEGMENT_X11(void);
-};
 
-struct XPLOT
-{
-	XPoint point;
-	double z;
-	XPLOT(void);
-	void set(XPoint _point, double _z);
-	void set(int point_x, int point_y, double _z);
-};
-// /X11 structures
 
 
 extern const std::string Progress[NUM_PROGRESS];

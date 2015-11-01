@@ -5,9 +5,10 @@
  */
 
 #include <string>
+#include "../lib/Struct.h"
+#include "../MotionCompensation/MotionCompensation.h"
 #include "MultiResolution.h"
 #include "MEstimator.h"
-#include "../MotionCompensation/MotionCompensation.h"
 
 
 

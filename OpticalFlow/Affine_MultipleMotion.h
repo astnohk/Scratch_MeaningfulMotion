@@ -7,6 +7,7 @@
 #include <string>
 #include "MultiResolution.h"
 #include "MEstimator.h"
+#include "../lib/Struct.h"
 
 
 

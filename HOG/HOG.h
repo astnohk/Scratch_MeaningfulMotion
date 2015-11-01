@@ -1,4 +1,6 @@
 #include <string>
+#include "../PNM/pnm.h"
+#include "../lib/Vector.h"
 #include "HOG_struct.h"
 
 

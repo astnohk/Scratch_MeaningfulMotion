@@ -26,8 +26,10 @@ MotionCompensation::MotionCompensation(int width, int height, const double *imag
 	motion_compensated = false;
 	_width = 0;
 	_height = 0;
-	if (width > 0 && height > 0
-	    && image_prev != nullptr && image_next != nullptr && vector != nullptr) {
+	if (width > 0 && height > 0) {
+		if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
+			throw std::invalid_argument("pointer is NULL");
+		}
 		_width = width;
 		_height = height;
 		_image_prev.reset(width, height, image_prev);
@@ -42,8 +44,10 @@ MotionCompensation::MotionCompensation(int width, int height, const double *imag
 	motion_compensated = false;
 	_width = 0;
 	_height = 0;
-	if (width > 0 && height > 0
-	    && image_prev != nullptr && image_next != nullptr && vector != nullptr) {
+	if (width > 0 && height > 0) {
+		if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
+			throw std::invalid_argument("pointer is NULL");
+		}
 		_width = width;
 		_height = height;
 		_image_prev.reset(width, height, image_prev);
@@ -66,26 +70,27 @@ MotionCompensation::MotionCompensation(const ImgVector<double> &image_prev, cons
 	motion_compensated = false;
 	_width = 0;
 	_height = 0;
-	if (image_prev.isNULL() == false && image_next.isNULL() == false && vector.isNULL() == false) {
-		_width = image_prev.width();
-		_height = image_prev.height();
-		_image_prev.copy(image_prev);
-		_image_next.copy(image_next);
-		if (vector.width() == _width && vector.height() == _height) {
-			_vector.copy(vector);
-		} else {
-			// Projection of small vector field to the scaled plane which has same range of images
-			_vector.reset(_width, _height);
-			for (int y = 0; y < _height; y++) {
-				int Y = (int)floor(y * vector.height() / _height);
-				for (int x = 0; x < _width; x++) {
-					int X = (int)floor(x * vector.width() / _width);
-					_vector.ref(x, y) = vector.get(X, Y);
-				}
+	if (image_prev.isNULL() || image_next.isNULL() || vector.isNULL()) {
+		throw std::invalid_argument("variable is empty");
+	}
+	_width = image_prev.width();
+	_height = image_prev.height();
+	_image_prev.copy(image_prev);
+	_image_next.copy(image_next);
+	if (vector.width() == _width && vector.height() == _height) {
+		_vector.copy(vector);
+	} else {
+		// Projection of small vector field to the scaled plane which has same range of images
+		_vector.reset(_width, _height);
+		for (int y = 0; y < _height; y++) {
+			int Y = (int)floor(y * vector.height() / _height);
+			for (int x = 0; x < _width; x++) {
+				int X = (int)floor(x * vector.width() / _width);
+				_vector.ref(x, y) = vector.get(X, Y);
 			}
 		}
-		_image_compensated.reset(image_prev.width(), image_prev.height());
 	}
+	_image_compensated.reset(image_prev.width(), image_prev.height());
 }
 
 MotionCompensation::MotionCompensation(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D> *vector)
@@ -93,27 +98,29 @@ MotionCompensation::MotionCompensation(const ImgVector<double> *image_prev, cons
 	motion_compensated = false;
 	_width = 0;
 	_height = 0;
-	if (image_prev != nullptr && image_next != nullptr && vector != nullptr
-	    && image_prev->isNULL() == false && image_next->isNULL() == false && vector->isNULL() == false) {
-		_width = image_prev->width();
-		_height = image_prev->height();
-		_image_prev.copy(image_prev);
-		_image_next.copy(image_next);
-		if (vector->width() == _width && vector->height() == _height) {
-			_vector.copy(vector);
-		} else {
-			// Projection of small vector field to the scaled plane which has same range of images
-			_vector.reset(_width, _height);
-			for (int y = 0; y < _height; y++) {
-				int Y = (int)floor(y * vector->height() / _height);
-				for (int x = 0; x < _width; x++) {
-					int X = (int)floor(x * vector->width() / _width);
-					_vector.ref(x, y) = vector->get(X, Y);
-				}
+	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
+		throw std::invalid_argument("pointer is NULL");
+	} else if (image_prev->isNULL() || image_next->isNULL() || vector->isNULL()) {
+		throw std::invalid_argument("variable is empty");
+	}
+	_width = image_prev->width();
+	_height = image_prev->height();
+	_image_prev.copy(image_prev);
+	_image_next.copy(image_next);
+	if (vector->width() == _width && vector->height() == _height) {
+		_vector.copy(vector);
+	} else {
+		// Projection of small vector field to the scaled plane which has same range of images
+		_vector.reset(_width, _height);
+		for (int y = 0; y < _height; y++) {
+			int Y = (int)floor(y * vector->height() / _height);
+			for (int x = 0; x < _width; x++) {
+				int X = (int)floor(x * vector->width() / _width);
+				_vector.ref(x, y) = vector->get(X, Y);
 			}
 		}
-		_image_compensated.reset(image_prev->width(), image_prev->height());
 	}
+	_image_compensated.reset(image_prev->width(), image_prev->height());
 }
 
 MotionCompensation::~MotionCompensation(void) // Destructor
@@ -137,95 +144,121 @@ MotionCompensation::copy(const MotionCompensation &copy)
 MotionCompensation &
 MotionCompensation::set(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D *vector)
 {
-	if (width > 0 && height > 0
-	    && image_prev != nullptr && image_next != nullptr && vector != nullptr) {
-		motion_compensated = false;
-		_width = width;
-		_height = height;
-		_image_prev.reset(_width, _height, image_prev);
-		_image_next.reset(_width, _height, image_next);
-		_vector.reset(_width, _height, vector);
-		_image_compensated.reset(_width, _height);
+	if (width <= 0 || height <= 0) {
+		_width = 0;
+		_height = 0;
+		_image_prev.reset(0, 0);
+		_image_next.reset(0, 0);
+		_vector.reset(0, 0);
+		_image_compensated.reset(0, 0);
+		return *this;
 	}
+	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
+		throw std::invalid_argument("pointer is NULL");
+	}
+
+	motion_compensated = false;
+	_width = width;
+	_height = height;
+	_image_prev.reset(_width, _height, image_prev);
+	_image_next.reset(_width, _height, image_next);
+	_vector.reset(_width, _height, vector);
+	_image_compensated.reset(_width, _height);
 	return *this;
 }
 
 MotionCompensation &
 MotionCompensation::set(int width, int height, const double *image_prev, const double *image_next, int v_width, int v_height, const VECTOR_2D *vector)
 {
-	if (width > 0 && height > 0
-	    && image_prev != nullptr && image_next != nullptr && vector != nullptr) {
-		motion_compensated = false;
-		_width = width;
-		_height = height;
-		_image_prev.reset(_width, _height, image_prev);
-		_image_next.reset(_width, _height, image_next);
-		_vector.reset(_width, _height);
-		// Projection of vectors to the scaled plane which has same range of images
-		for (int y = 0; y < height; y++) {
-			int Y = (int)floor(y * v_height / height);
-			for (int x = 0; x < width; x++) {
-				int X = (int)floor(x * v_width / width);
-				_vector.ref(x, y) = vector[v_width * Y + X];
-			}
-		}
-		_image_compensated.reset(_width, _height);
+	if (width <= 0 || height <= 0
+	    || v_width <= 0 || v_height <= 0) {
+		_width = 0;
+		_height = 0;
+		_image_prev.reset(0, 0);
+		_image_next.reset(0, 0);
+		_vector.reset(0, 0);
+		_image_compensated.reset(0, 0);
+		return *this;
 	}
+	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
+		throw std::invalid_argument("pointer is NULL");
+	}
+
+	motion_compensated = false;
+	_width = width;
+	_height = height;
+	_image_prev.reset(_width, _height, image_prev);
+	_image_next.reset(_width, _height, image_next);
+	_vector.reset(_width, _height);
+	// Projection of vectors to the scaled plane which has same range of images
+	for (int y = 0; y < height; y++) {
+		int Y = (int)floor(y * v_height / height);
+		for (int x = 0; x < width; x++) {
+			int X = (int)floor(x * v_width / width);
+			_vector.ref(x, y) = vector[v_width * Y + X];
+		}
+	}
+	_image_compensated.reset(_width, _height);
 	return *this;
 }
 
 MotionCompensation &
 MotionCompensation::set(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D> &vector)
 {
-	if (image_prev.isNULL() == false && image_next.isNULL() == false && vector.isNULL() == false) {
-		motion_compensated = false;
-		_width = image_prev.width();
-		_height = image_prev.height();
-		_image_prev.copy(image_prev);
-		_image_next.copy(image_next);
-		if (vector.width() == _width && vector.height() == _height) {
-			_vector.copy(vector);
-		} else {
-			// Projection of small vector field to the scaled plane which has same range of images
-			_vector.reset(_width, _height);
-			for (int y = 0; y < _height; y++) {
-				int Y = (int)floor(y * vector.height() / _height);
-				for (int x = 0; x < _width; x++) {
-					int X = (int)floor(x * vector.width() / _width);
-					_vector.ref(x, y) = vector.get(X, Y);
-				}
+	if (image_prev.isNULL() || image_next.isNULL() || vector.isNULL()) {
+		throw std::invalid_argument("variable is empty");
+	}
+
+	motion_compensated = false;
+	_width = image_prev.width();
+	_height = image_prev.height();
+	_image_prev.copy(image_prev);
+	_image_next.copy(image_next);
+	if (vector.width() == _width && vector.height() == _height) {
+		_vector.copy(vector);
+	} else {
+		// Projection of small vector field to the scaled plane which has same range of images
+		_vector.reset(_width, _height);
+		for (int y = 0; y < _height; y++) {
+			int Y = (int)floor(y * vector.height() / _height);
+			for (int x = 0; x < _width; x++) {
+				int X = (int)floor(x * vector.width() / _width);
+				_vector.ref(x, y) = vector.get(X, Y);
 			}
 		}
-		_image_compensated.reset(_width, _height);
 	}
+	_image_compensated.reset(_width, _height);
 	return *this;
 }
 
 MotionCompensation &
 MotionCompensation::set(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D> *vector)
 {
-	if (image_prev != nullptr && image_next != nullptr && vector != nullptr
-	    && image_prev->isNULL() == false && image_next->isNULL() == false && vector->isNULL() == false) {
-		motion_compensated = false;
-		_width = image_prev->width();
-		_height = image_prev->height();
-		_image_prev.copy(image_prev);
-		_image_next.copy(image_next);
-		if (vector->width() == _width && vector->height() == _height) {
-			_vector.copy(vector);
-		} else {
-			// Projection of small vector field to the scaled plane which has same range of images
-			_vector.reset(_width, _height);
-			for (int y = 0; y < _height; y++) {
-				int Y = (int)floor(y * vector->height() / _height);
-				for (int x = 0; x < _width; x++) {
-					int X = (int)floor(x * vector->width() / _width);
-					_vector.ref(x, y) = vector->get(X, Y);
-				}
+	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
+		throw std::invalid_argument("pointer is NULL");
+	} else if (image_prev->isNULL() || image_next->isNULL() || vector->isNULL()) {
+		throw std::invalid_argument("variable is empty");
+	}
+
+	motion_compensated = false;
+	_width = image_prev->width();
+	_height = image_prev->height();
+	_image_prev.copy(image_prev);
+	_image_next.copy(image_next);
+	if (vector->width() == _width && vector->height() == _height) {
+		_vector.copy(vector);
+	} else {
+		// Projection of small vector field to the scaled plane which has same range of images
+		_vector.reset(_width, _height);
+		for (int y = 0; y < _height; y++) {
+			int Y = (int)floor(y * vector->height() / _height);
+			for (int x = 0; x < _width; x++) {
+				int X = (int)floor(x * vector->width() / _width);
+				_vector.ref(x, y) = vector->get(X, Y);
 			}
 		}
-		_image_compensated.reset(_width, _height);
 	}
+	_image_compensated.reset(_width, _height);
 	return *this;
 }
 
@@ -351,6 +384,7 @@ MotionCompensation::operator[](int n) // Get reference to the compensated image[
 void
 MotionCompensation::create_image_compensated(void)
 {
+	printf("width : %d, %d\n", _width, _height);
 	_image_compensated.reset(_width, _height);
 	for (int y = 0; y < _height; y++) {
 		for (int x = 0; x < _width; x++) {

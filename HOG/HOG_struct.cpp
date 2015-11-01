@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <new>
 #include "HOG_struct.h"
+#include "../Scratch_MeaningfulMotion.h"
 
 #define nullptr 0
 
@@ -201,5 +202,48 @@ HOG::AddHist(int x, int y, int bin, double val)
 		return false;
 	}
 	return true;
+}
+
+
+
+#define HOG_PARAM_Bins 16
+#define HOG_PARAM_Dense true
+#define HOG_PARAM_SignedOrient true
+HOG_PARAM::HOG_PARAM(void)
+{
+	Bins = HOG_PARAM_Bins;
+	Dense = HOG_PARAM_Dense;
+	SignedOrient= HOG_PARAM_SignedOrient;
+}
+
+void
+HOG_PARAM::set_default(const char *name)
+{
+	if (strcmp(name, "Bins") == 0) {
+		Bins = HOG_PARAM_Bins;
+	} else if (strcmp(name, "Dense") == 0) {
+		Dense = HOG_PARAM_Dense;
+	} else if (strcmp(name, "SignedOrient") == 0) {
+		SignedOrient = HOG_PARAM_SignedOrient;
+	} else {
+		fprintf(stderr, "*** HOG_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", name);
+	}
+}
+
+void
+HOG_PARAM::set_value(const char *name, const void *value)
+{
+	if (strcmp(name, "Bins") == 0) {
+		Bins = *static_cast<const int*>(value);
+		if (Bins < 1) {
+			Bins = 1;
+		}
+	} else if (strcmp(name, "Dense") == 0) {
+		Dense = *static_cast<const bool*>(value);
+	} else if (strcmp(name, "SignedOrient") == 0) {
+		SignedOrient = *static_cast<const bool*>(value);
+	} else {
+		fprintf(stderr, "*** HOG_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", name);
+	}
 }
 

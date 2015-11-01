@@ -1,3 +1,4 @@
+#include "MultiResolution.h"
 #include "../Scratch_MeaningfulMotion.h"
 
 #define DEBUG_PYRAMID

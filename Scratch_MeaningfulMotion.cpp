@@ -5,6 +5,7 @@
 
 
 
+
 int
 Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam)
 {
@@ -185,6 +186,10 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			pnmd_out.free();
 			printf("Finished\n\n");
 		}
+		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
+		for (i = 0; i < imgd_in.size(); i++) {
+			imgd_in[i] = (double)pnm_in[i];
+		}
 
 		// Show Parameters
 		printf("\n      --- Parameters ---\n  %s\n", Bars);
@@ -247,10 +252,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			filtered = nullptr;
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			// Computte and output Multiple Motion Affine Parameters by method of M.J.Black
-			imgd_in.reset(pnm_in.Width(), pnm_in.Height());
-			for (i = 0; i < imgd_in.size(); i++) {
-				imgd_in[i] = (double)pnm_in[i];
-			}
 			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
@@ -259,10 +260,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
 			// Computte and output Multiple Motion Optical Flow by method of M.J.Black
-			imgd_in.reset(pnm_in.Width(), pnm_in.Height());
-			for (i = 0; i < imgd_in.size(); i++) {
-				imgd_in[i] = (double)pnm_in[i];
-			}
 			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions while there is NOT any previous frame\n");
 			} else {
@@ -480,7 +477,8 @@ Write:
 				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR) != 0) {
-			if (hog_prv.Bins() == hog.Bins()) {
+			if (imgd_prev.isNULL() == false
+			    && hog_prv.Bins() == hog.Bins()) {
 				printf("* Compute matching each images HOG feature\n");
 				hog_vector = HOG_Matching(&hog_prv, &hog);
 				if (HOG_vector_write(hog_vector, hog.Width(), hog.Height(), OutputNameNums) == false) {
@@ -493,7 +491,7 @@ Write:
 				delete[] hog_vector;
 				hog_vector = nullptr;
 			} else {
-				printf("There are NO previous HOG data\n");
+				printf("There are NO previous image or HOG data\n");
 			}
 		} else {
 			if (pnm_out.write(OutputNameNums.c_str()) == PNM_FUNCTION_ERROR) {

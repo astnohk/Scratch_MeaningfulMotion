@@ -126,7 +126,6 @@ void
 HOG_vector_compensated_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const VECTOR_2D_W_SCORE *vector, int width, int height, const std::string &filename)
 {
 	ERROR Error("HOG_vector_write");
-	FILE *fp = nullptr;
 	ImgVector<VECTOR_2D> vector2d(width, height);
 	std::string filename_compensated;
 	MotionCompensation compensated;
@@ -139,10 +138,10 @@ HOG_vector_compensated_write(const ImgVector<double> *img_prev, const ImgVector<
 	compensated.set(img_prev, img_next, &vector2d); // initialize
 
 	printf("* Output The compensated image by HOG matching vector to '%s'\n", filename.c_str());
-	fprintf(fp, "%d %d\n", width, height);
-	compensated.create_image_compensated(); // Make compensated image
 	filename_compensated = filename.substr(0, filename.length() - 4) + "compensated" + filename.substr(filename.length() - 4);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
+	compensated.create_image_compensated(); // Make compensated image
+	printf("%f\n", compensated.get_image_compensated(3, 3));
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
