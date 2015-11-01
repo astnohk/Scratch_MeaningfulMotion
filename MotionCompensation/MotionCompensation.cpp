@@ -384,7 +384,6 @@ MotionCompensation::operator[](int n) // Get reference to the compensated image[
 void
 MotionCompensation::create_image_compensated(void)
 {
-	printf("width : %d, %d\n", _width, _height);
 	_image_compensated.reset(_width, _height);
 	for (int y = 0; y < _height; y++) {
 		for (int x = 0; x < _width; x++) {
