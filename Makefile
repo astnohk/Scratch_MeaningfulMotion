@@ -34,7 +34,7 @@ OUTNAME = Scratch_MeaningfulMotion
 Scratch_MeaningfulMotion: $(OFILES)
 	$(CC) $(WARNING) $(LIBES) $(OPTION) -O2 -o $(OUTNAME) $^
 
-Scratch_MeaningfulMotion.h: lib/ImgClass.h lib/ImgStatistics.h lib/ImgStruct.h lib/Vector.h Plot/Plot_X11_Struct.h PNM/pnm.h Scratch_Struct.h
+Scratch_MeaningfulMotion.h: ImgClass/ImgClass.h ImgClass/ImgStatistics.h lib/ImgStruct.h lib/Vector.h Plot/Plot_X11_Struct.h PNM/pnm.h Scratch_Struct.h
 
 main.o: main.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^

@@ -52,11 +52,11 @@
 #include <unistd.h>
 
 #include "lib/Class.h"
-#include "lib/ImgClass.h"
-#include "lib/ImgStatistics.h"
 #include "lib/ImgStruct.h"
 #include "lib/Struct.h"
 #include "lib/Vector.h"
+#include "ImgClass/ImgClass.h"
+#include "ImgClass/ImgStatistics.h"
 #include "Plot/Plot_X11_Struct.h"
 #include "HOG/HOG_struct.h"
 #include "Scratch_Struct.h"

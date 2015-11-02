@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <new>
-#include "../lib/ImgClass.h"
+#include "../ImgClass/ImgClass.h"
 #include "../lib/Vector.h"
 
 
