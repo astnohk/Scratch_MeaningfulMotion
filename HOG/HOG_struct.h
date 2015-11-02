@@ -1,3 +1,4 @@
+#include "../ImgClass/ImgStatistics.h"
 #include "../lib/ImgStruct.h"
 
 

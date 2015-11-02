@@ -53,6 +53,7 @@
 
 #include "lib/Class.h"
 #include "lib/ImgClass.h"
+#include "lib/ImgStatistics.h"
 #include "lib/ImgStruct.h"
 #include "lib/Struct.h"
 #include "lib/Vector.h"
