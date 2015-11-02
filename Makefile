@@ -156,4 +156,5 @@ debugmp: $(CFILES)
 
 clean:
 	rm -f $(OFILES)
+	find -name "*.gch" -exec rm {} +
 
