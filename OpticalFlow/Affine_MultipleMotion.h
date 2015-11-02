@@ -8,6 +8,7 @@
 #include "MultiResolution.h"
 #include "MEstimator.h"
 #include "../lib/Struct.h"
+#include "../Scratch_MeaningfulMotion.h"
 
 
 

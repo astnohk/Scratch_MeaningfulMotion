@@ -1,3 +1,11 @@
+#include <X11/Xlib.h>
+#include "../lib/ImgStruct.h"
+
+
+
+#ifndef LIB_PLOT_X11
+#define LIB_PLOT_X11
+
 #define WAIT_TIME (1E6 / 20.0)
 #define WINDOW_X_DEFAULT 800
 #define WINDOW_Y_DEFAULT 800
@@ -26,7 +34,5 @@ extern Colormap cmap;
 extern double cos_a[ROTATE_ANGLE_MAX];
 extern double sin_a[ROTATE_ANGLE_MAX];
 
-/* Other Parameters for Plot_X11 */
-#define DEFAULT_INTENSITY_INTERVAL 8
-#define DEFAULT_PLOT_Z_SCALE 0.1
+#endif
 

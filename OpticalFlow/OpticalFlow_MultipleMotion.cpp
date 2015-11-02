@@ -4,7 +4,6 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-#include "../Scratch_MeaningfulMotion.h"
 #include "OpticalFlow_MultipleMotion.h"
 
 

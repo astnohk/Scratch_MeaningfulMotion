@@ -34,125 +34,116 @@ OUTNAME = Scratch_MeaningfulMotion
 Scratch_MeaningfulMotion: $(OFILES)
 	$(CC) $(WARNING) $(LIBES) $(OPTION) -O2 -o $(OUTNAME) $^
 
-Scratch_MeaningfulMotion.h: lib/ImgClass.h lib/ImgStatistics.h lib/ImgStruct.h lib/Vector.h PNM/pnm.h
+Scratch_MeaningfulMotion.h: lib/ImgClass.h lib/ImgStatistics.h lib/ImgStruct.h lib/Vector.h Plot/Plot_X11_Struct.h PNM/pnm.h Scratch_Struct.h
 
 main.o: main.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-main.cpp: Scratch_MeaningfulMotion.h
+main.o: Scratch_MeaningfulMotion.h
 
 Class.o: lib/Class.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Class.cpp: lib/Class.h
+Class.o: lib/Class.h
 
 Struct.o: lib/Struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Struct.cpp: lib/Struct.h lib/Class.h
+Struct.o: lib/Struct.h lib/Class.h
 
 CrossCorrelation.o: ImgClass/CrossCorrelation.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-CrossCorrelation.cpp: ImgClass/CrossCorrelation.h
+CrossCorrelation.o: ImgClass/CrossCorrelation.h
 
 ImgLibrary.o: lib/ImgLibrary.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-ImgLibrary.cpp: Scratch_MeaningfulMotion.h
+ImgLibrary.o: Scratch_MeaningfulMotion.h
 
 ImgStatistics.o: ImgClass/ImgStatistics.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-ImgStatistics.cpp: ImgClass/ImgStatistics.h
+ImgStatistics.o: ImgClass/ImgStatistics.h
 
 ImgStruct.o: lib/ImgStruct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-ImgStruct.cpp: lib/ImgStruct.h
+ImgStruct.o: lib/ImgStruct.h
 
 Library.o: lib/Library.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Library.cpp: Scratch_MeaningfulMotion.h
+Library.o: Scratch_MeaningfulMotion.h
 
 Vector.o: lib/Vector.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Vector.cpp: lib/Vector.h
+Vector.o: lib/Vector.h
 
 Scratch_Struct.o: Scratch_Struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Scratch_Struct.cpp: Scratch_MeaningfulMotion.h
+Scratch_Struct.o: Scratch_MeaningfulMotion.h HOG/HOG_struct.h
 
 Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Scratch_MeaningfulMotion.cpp: Scratch_MeaningfulMotion.h OpticalFlow/Affine_MultipleMotion.h OpticalFlow/OpticalFlow_MultipleMotion.h HOG/HOG.h
+Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.h OpticalFlow/Affine_MultipleMotion.h OpticalFlow/OpticalFlow_MultipleMotion.h HOG/HOG.h
 
 Detection.o: MeaningfulAlignments/Detection.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Detection.cpp: Scratch_MeaningfulMotion.h
+Detection.o: Scratch_MeaningfulMotion.h
 
 Exclusive.o: MeaningfulAlignments/Exclusive.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Exclusive.cpp: Scratch_MeaningfulMotion.h
+Exclusive.o: Scratch_MeaningfulMotion.h
 
-OpticalFlow/MultiResolution.h: ImgClass/ImgClass.h
 
 MultiResolution.o: OpticalFlow/MultiResolution.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-MultiResolution.cpp: OpticalFlow/MultiResolution.h Scratch_MeaningfulMotion.h
-
-MultiResolution.h: lib/Vector.h
+MultiResolution.o: OpticalFlow/MultiResolution.h lib/Vector.h ImgClass/ImgClass.h Scratch_MeaningfulMotion.h
 
 MEstimator.o: OpticalFlow/MEstimator.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-MEstimator.cpp: MEstimator.h
+MEstimator.o: OpticalFlow/MEstimator.h
 
 MotionCompensation.o: MotionCompensation/MotionCompensation.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-MotionCompensation.cpp: MotionCompensation/MotionCompensation.h
+MotionCompensation.o: MotionCompensation/MotionCompensation.h
 
 Affine_MultipleMotion.o: OpticalFlow/Affine_MultipleMotion.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Affine_MultipleMotion.cpp: Scratch_MeaningfulMotion.h OpticalFlow/Affine_MultipleMotion.h
-
-OpticalFlow/Affine_MultipleMotion.h: OpticalFlow/MEstimator.h OpticalFlow/MultiResolution.h lib/Struct.h
+Affine_MultipleMotion.o: OpticalFlow/Affine_MultipleMotion.h OpticalFlow/MEstimator.h OpticalFlow/MultiResolution.h lib/Struct.h Scratch_MeaningfulMotion.h
 
 OpticalFlow_MultipleMotion.o: OpticalFlow/OpticalFlow_MultipleMotion.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-OpticalFlow_MultipleMotion.cpp: Scratch_MeaningfulMotion.h OpticalFlow/OpticalFlow_MultipleMotion.h
+OpticalFlow_MultipleMotion.o: Scratch_MeaningfulMotion.h OpticalFlow/OpticalFlow_MultipleMotion.h
 
 HOG.o: HOG/HOG.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-HOG.cpp: HOG/HOG.h Scratch_MeaningfulMotion.h
-
-HOG.h: HOG/HOG_struct.h lib/Vector.h PNM/pnm.h
+HOG.o: HOG/HOG.h HOG/HOG_struct.h ImgClass/ImgClass.h lib/Vector.h PNM/pnm.h Scratch_MeaningfulMotion.h
 
 HOG_match.o: HOG/HOG_match.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-HOG_match.cpp: HOG/HOG.h MotionCompensation/MotionCompensation.h Scratch_MeaningfulMotion.h
-
-HOG_struct.h: ImgClass/ImgStatistics.h lib/ImgStruct.h
+HOG_match.o: HOG/HOG.h MotionCompensation/MotionCompensation.h Scratch_MeaningfulMotion.h
 
 HOG_struct.o: HOG/HOG_struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-HOG_struct.cpp: HOG/HOG_struct.h
+HOG_struct.o: HOG/HOG_struct.h ImgClass/ImgStatistics.h lib/ImgStruct.h
 
 Plotting.o: Plot/Plotting.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Plotting.cpp: Scratch_MeaningfulMotion.h
+Plotting.o: Scratch_MeaningfulMotion.h
 
 Plot_X11.o: Plot/Plot_X11.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Plot_X11.cpp: Plot/Plot_X11.h Scratch_MeaningfulMotion.h
+Plot_X11.o: Plot/Plot_X11.h Scratch_MeaningfulMotion.h
 
 Plot_X11_Struct.o: Plot/Plot_X11_Struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Plot_X11_Struct.cpp: Plot/Plot_X11.h Scratch_MeaningfulMotion.h
+Plot_X11_Struct.o: Plot/Plot_X11.h Scratch_Struct.h
 
 pnm.o: PNM/pnm.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-pnm.cpp: PNM/pnm.h
+pnm.o: PNM/pnm.h
 
 pnm_double.o: PNM/pnm_double.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-pnm_double.cpp: PNM/pnm.h
+pnm_double.o: PNM/pnm.h
 
 pnm_library.o: PNM/pnm_library.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-pnm_library.cpp: PNM/pnm.h
+pnm_library.o: PNM/pnm.h
 
 
 

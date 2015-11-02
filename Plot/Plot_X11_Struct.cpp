@@ -1,22 +1,5 @@
-#include "../Scratch_MeaningfulMotion.h"
-#include "Plot_X11.h"
+#include "Plot_X11_Struct.h"
 
-
-
-X11_PARAM::X11_PARAM(void)
-{
-	Int_interval = 1;
-	Latitude = 0;
-	Longitude = 0;
-	Center_x = .0;
-	Center_y = .0;
-	Center_z = .0;
-	Scale = 1.0;
-	Plot_Z_Scale = DEFAULT_PLOT_Z_SCALE;
-	RotateSwitch = 0;
-	ModeSwitch = 0;
-	FillSwitch = 0;
-}
 
 
 SEGMENT_X11::SEGMENT_X11(void)
