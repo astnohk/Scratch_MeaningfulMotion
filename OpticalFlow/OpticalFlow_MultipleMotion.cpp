@@ -103,7 +103,8 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		goto ExitError;
 	}
 	// Derivative about space
-	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, MotionParam.Level)) == nullptr) {
+	//if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, MotionParam.Level)) == nullptr) {
+	if ((grad_It_levels = grad_Pyramid(It_levels, nullptr, MotionParam.Level)) == nullptr) {
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
 		Error.FunctionFail();
@@ -221,9 +222,6 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 		// Calc for all sites
 		for (site = 0; site < u->size(); site++) {
 			(*u)[site] = u_np1[site];
-		}
-		if ((n & 0x3F) == 0) {
-			printf("u[130, 130]: (%f, %f)\n", u_np1[u->width() * u->width() / 2 + u->width() / 2].x, u_np1[u->width() * u->width() / 2 + u->width() / 2].y);
 		}
 		if (level == 0) {
 			if ((n & 0x3F) == 0) {
@@ -363,10 +361,11 @@ Error_MultipleMotion(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVe
 }
 
 
-bool
+void
 MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const ImgVector<VECTOR_2D> *u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
+
 	FILE *fp = nullptr;
 	VECTOR_2D v;
 	int x, y;
@@ -375,17 +374,14 @@ MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> 
 	std::string filename_compensated;
 
 	if (u == nullptr) {
-		Error.Value("u");
-		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("u");
 	}
-
 	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
 	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
 		Error.Function("fopen");
 		Error.File(filename.c_str());
 		Error.FileWrite();
-		goto ErrorFileOpenFail;
+		throw std::logic_error("fopen");
 	}
 	fprintf(fp, "%d %d\n", u->width(), u->height());
 	for (y = 0; y < u->height(); y++) {
@@ -395,13 +391,13 @@ MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> 
 				Error.Function("fwrite");
 				Error.Value("u(x, y).x");
 				Error.FunctionFail();
-				goto ExitError;
+				throw std::logic_error("fwrite");
 			}
 			if (fwrite(&v.y, sizeof(double), 1, fp) < 1) {
 				Error.Function("fwrite");
 				Error.Value("u(x, y).y");
 				Error.FunctionFail();
-				goto ExitError;
+				throw std::logic_error("fwrite");
 			}
 		}
 	}
@@ -413,13 +409,5 @@ MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> 
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
-
-	return MEANINGFUL_SUCCESS;
-// Error
-ErrorFileOpenFail:
-	return MEANINGFUL_FAILURE;
-ExitError:
-	fclose(fp);
-	return MEANINGFUL_FAILURE;
 }
 

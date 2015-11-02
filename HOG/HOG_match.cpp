@@ -136,11 +136,9 @@ HOG_vector_compensated_write(const ImgVector<double> *img_prev, const ImgVector<
 		vector2d[i].y = vector[i].y;
 	}
 	compensated.set(img_prev, img_next, &vector2d); // initialize
-
-	printf("* Output The compensated image by HOG matching vector to '%s'\n", filename.c_str());
-	filename_compensated = filename.substr(0, filename.length() - 4) + "compensated" + filename.substr(filename.length() - 4);
-	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
 	compensated.create_image_compensated(); // Make compensated image
+	filename_compensated = filename.substr(0, filename.length() - 4) + "compensated" + filename.substr(filename.length() - 4);
+	printf("* Output The compensated image by HOG matching vector to '%s'(binary)\n", filename_compensated.c_str());
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();

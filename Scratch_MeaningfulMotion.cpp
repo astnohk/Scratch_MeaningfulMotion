@@ -447,20 +447,12 @@ Write:
 			char_tmp = nullptr;
 		}
 		if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
-			if (imgd_prev.isNULL() == false
-			    && MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums) == false) {
-				Error.Function("MultipleMotion_Affine_write");
-				Error.Value("MultipleMotions_Affine");
-				Error.FunctionFail();
-				goto ExitError;
+			if (imgd_prev.isNULL() == false) {
+				MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
-			if (imgd_prev.isNULL() == false
-			    && MultipleMotion_write(&imgd_prev, &imgd_in, MultipleMotion_u, OutputNameNums) == false) {
-				Error.Function("MultipleMotion_write");
-				Error.Value("MultipleMotions_u");
-				Error.FunctionFail();
-				goto ExitError;
+			if (imgd_prev.isNULL() == false) {
+				MultipleMotion_write(&imgd_prev, &imgd_in, MultipleMotion_u, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
 			if (HOG_write(hog_raw, OutputNameNums) == false) {

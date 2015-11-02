@@ -243,7 +243,7 @@ Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<doub
 }
 
 
-bool
+void
 MultipleMotion_Affine_write(VECTOR_AFFINE u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_Affine_write");
@@ -253,30 +253,22 @@ MultipleMotion_Affine_write(VECTOR_AFFINE u, const std::string &filename)
 
 	printf("* Output Affine Parameter to '%s'\n", filename.c_str());
 	if ((fp = fopen(filename.c_str(), "w")) == nullptr) {
-		Error.Function("fopen");
-		Error.Value(filename.c_str());
-		Error.FileRead();
-		return false;
+		throw std::logic_error("fopen");
 	}
 	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		if (fprintf(fp, "%0.16e ", u.a[i]) < 0) {
 			Error.Function("fprintf");
 			Error.Value("u(a(i))");
 			Error.FunctionFail();
-			goto ExitError;
+			throw std::logic_error("fprintf");
 		}
 		if (fprintf(fp, "\n") < 0) {
 			Error.Function("fprintf");
 			Error.Value("'\n'");
 			Error.FunctionFail();
-			goto ExitError;
+			throw std::logic_error("fprintf");
 		}
 	}
 	fclose(fp);
-	return true;
-// Error
-ExitError:
-	fclose(fp);
-	return false;
 }
 

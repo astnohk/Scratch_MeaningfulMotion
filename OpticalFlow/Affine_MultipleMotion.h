@@ -21,5 +21,5 @@ VECTOR_AFFINE sup_Error_aa(ImgVector<VECTOR_2D> *Img_g, double sigmaD);
 
 double Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD);
 
-bool MultipleMotion_Affine_write(VECTOR_AFFINE u, const std::string &filename);
+void MultipleMotion_Affine_write(VECTOR_AFFINE u, const std::string &filename);
 
