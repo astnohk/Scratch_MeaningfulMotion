@@ -122,7 +122,7 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		u_levels[level].reset(I_dt_levels[level].width(), I_dt_levels[level].height());
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 		if (level < MotionParam.Level - 1) {
-			LevelDown(u_levels, level);
+			LevelDown(It_levels, Itp1_levels, I_dt_levels, u_levels, level, MotionParam.Level);
 		}
 #ifdef DEBUG_STOP_ON_LEVEL_L
 		if (level <= 2) {
@@ -130,12 +130,10 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		}
 #endif
 //		IterMax_level = MAX(10 * MAX(u_levels[level].width(), u_levels[level].height()), 1000);
-		IterMax_level = level * 10 * MAX(It->width(), It->height());
-		if (level >= MotionParam.Level - 1) {
-		if (IterMax > 0 && IterMax_level >= IterMax) {
+		IterMax_level = (level + 1) * 10 * MAX(It->width(), It->height());
+		if (IterMax < 0 && IterMax_level >= IterMax) {
 			IterMax_level = IterMax;
 		}
-		} else { IterMax_level = 1; }
 		printf("IterMax = %d\n", IterMax_level);
 		IRLS_MultipleMotion_OpticalFlow(
 		    (u_levels + level),
@@ -146,8 +144,22 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		    MotionParam.Error_Min_Threshold,
 		    level);
 	}
-	for (i = 0; i < u->size(); i++) {
-		(*u)[i] = u_levels[0][i];
+	if (MotionParam.Level > 1) {
+		for (int y = 0; y < u_levels[0].height(); y++) {
+			for (int x = 0; x < u_levels[0].width(); x++) {
+				u->ref(x, y).x =
+				    u_levels[0].get(x, y).x
+				    + u_levels[1].get(x / 2, y / 2).x * 2.0;
+				u->ref(x, y).y =
+				    u_levels[0].get(x, y).y
+				    + u_levels[1].get(x / 2, y / 2).y * 2.0;
+			}
+		}
+	} else {
+		for (i = 0; i < u->size(); i++) {
+			(*u)[i].x = u_levels[0][i].x;
+			(*u)[i].y = u_levels[0][i].y;
+		}
 	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
@@ -168,23 +180,42 @@ ExitError:
 
 
 void
-LevelDown(ImgVector<VECTOR_2D> *u_levels, int level)
+LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D> *u_levels, int level, int MaxLevel)
 {
-	int x, y;
+	if (level == MaxLevel - 1) {
+		// Do NOT need projection from higher level
+		return;
+	}
+	if (level < MaxLevel - 2) {
+		// Add offset calculated by using the higher level's motion vector
+		for (int y = 0; y < u_levels[level + 1].height(); y++) {
+			for (int x = 0; x < u_levels[level + 1].width(); x++) {
+				u_levels[level + 1].ref(x, y).x += u_levels[level + 2].get(x / 2, y / 2).x * 2.0;
+				u_levels[level + 1].ref(x, y).y += u_levels[level + 2].get(x / 2, y / 2).y * 2.0;
+			}
+		}
+	}
+	for (int y = 0; y < u_levels[level].height(); y++) {
+		for (int x = 0; x < u_levels[level].width(); x++) {
+			VECTOR_2D u = u_levels[level + 1].get(x / 2, y / 2);
 
-	for (y = 0; y < u_levels[level].height(); y++) {
-		for (x = 0; x < u_levels[level].width(); x++) {
-			u_levels[level].ref(x, y).x = 2.0 * u_levels[level + 1].get(x / 2, y / 2).x;
-			u_levels[level].ref(x, y).y = 2.0 * u_levels[level + 1].get(x / 2, y / 2).y;
+			//u_levels[level].ref(x, y).x = 2.0 * u.get(x / 2, y / 2).x;
+			//u_levels[level].ref(x, y).y = 2.0 * u.get(x / 2, y / 2).y;
+			I_dt_levels[level].ref(x, y) =
+			    Itp1_levels[level].get_zeropad(x + 2.0 * u.x, y + 2.0 * u.y)
+			    - It_levels[level].get(x, y);
+			u_levels[level].ref(x, y).x = 0.0;
+			u_levels[level].ref(x, y).y = 0.0;
 		}
 	}
 }
 
 
-bool
+void
 IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
+
 	ImgVector<VECTOR_2D> u_np1;
 	VECTOR_2D sup;
 	VECTOR_2D dE;
@@ -195,17 +226,11 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 	int n;
 
 	if (u == nullptr) {
-		Error.Value("u");
-		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("ImgVector<VECTOR_2D> *u");
 	} else if (Img_g == nullptr) {
-		Error.Value("Img_g");
-		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("ImgVector<VECTOR_2D> *Img_g");
 	} else if (Img_t == nullptr) {
-		Error.Value("Img_t");
-		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("ImgVector<double> *Img_t");
 	}
 	u_np1.copy(u); // Initialize u_np1
 	// Reset sup_Error_uu max Img_g
@@ -245,10 +270,6 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 			break;
 		}
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 

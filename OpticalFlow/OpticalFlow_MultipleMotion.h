@@ -5,6 +5,7 @@
  */
 
 #include <string>
+#include <vector>
 
 #include "../lib/Struct.h"
 #include "../MotionCompensation/MotionCompensation.h"
@@ -17,8 +18,8 @@
 
 ImgVector<VECTOR_2D>* MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax = 0);
 
-bool IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level);
-void LevelDown(ImgVector<VECTOR_2D> *u_levels, int level);
+void IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level);
+void LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D> *u_levels, int level, int MaxLevel);
 
 VECTOR_2D Error_u(int site, ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
 VECTOR_2D sup_Error_uu(ImgVector<VECTOR_2D> *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
