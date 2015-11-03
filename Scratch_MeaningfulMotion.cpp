@@ -30,7 +30,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 
 	// Optical Flow
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
-	ImgVector<VECTOR_2D> *MultipleMotion_u = nullptr;
+	ImgVector<VECTOR_2D<double> > *MultipleMotion_u = nullptr;
 	// HOG
 	HOG hog_raw;
 	HOG hog;

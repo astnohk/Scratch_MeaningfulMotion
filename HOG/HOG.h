@@ -1,6 +1,6 @@
 #include <string>
 #include "../ImgClass/ImgClass.h"
-#include "../lib/Vector.h"
+#include "../lib/ExtVector.h"
 #include "../PNM/pnm.h"
 #include "HOG_struct.h"
 

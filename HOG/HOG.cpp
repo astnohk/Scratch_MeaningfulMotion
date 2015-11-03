@@ -67,13 +67,13 @@ Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, boo
 {
 	ERROR Error("Orientation");
 	SIZE size;
-	VECTOR_2D *grad = nullptr;
+	VECTOR_2D<double> *grad = nullptr;
 	int x, y;
 
 	size.width = Img.Width();
 	size.height = Img.Height();
 	try {
-		grad = new VECTOR_2D[size.width * size.height];
+		grad = new VECTOR_2D<double>[size.width * size.height];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("grad");

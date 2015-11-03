@@ -21,7 +21,7 @@ MotionCompensation::MotionCompensation(const MotionCompensation &copy) // copy c
 	_vector.copy(copy._vector);
 }
 
-MotionCompensation::MotionCompensation(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D *vector)
+MotionCompensation::MotionCompensation(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D<double> *vector)
 {
 	motion_compensated = false;
 	_width = 0;
@@ -39,7 +39,7 @@ MotionCompensation::MotionCompensation(int width, int height, const double *imag
 	}
 }
 
-MotionCompensation::MotionCompensation(int width, int height, const double *image_prev, const double *image_next, int v_width, int v_height, const VECTOR_2D *vector)
+MotionCompensation::MotionCompensation(int width, int height, const double *image_prev, const double *image_next, int v_width, int v_height, const VECTOR_2D<double> *vector)
 {
 	motion_compensated = false;
 	_width = 0;
@@ -65,7 +65,7 @@ MotionCompensation::MotionCompensation(int width, int height, const double *imag
 	}
 }
 
-MotionCompensation::MotionCompensation(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D> &vector)
+MotionCompensation::MotionCompensation(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D<double> > &vector)
 {
 	motion_compensated = false;
 	_width = 0;
@@ -93,7 +93,7 @@ MotionCompensation::MotionCompensation(const ImgVector<double> &image_prev, cons
 	_image_compensated.reset(image_prev.width(), image_prev.height());
 }
 
-MotionCompensation::MotionCompensation(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D> *vector)
+MotionCompensation::MotionCompensation(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D<double> > *vector)
 {
 	motion_compensated = false;
 	_width = 0;
@@ -142,7 +142,7 @@ MotionCompensation::copy(const MotionCompensation &copy)
 }
 
 MotionCompensation &
-MotionCompensation::set(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D *vector)
+MotionCompensation::set(int width, int height, const double *image_prev, const double *image_next, const VECTOR_2D<double> *vector)
 {
 	if (width <= 0 || height <= 0) {
 		_width = 0;
@@ -168,7 +168,7 @@ MotionCompensation::set(int width, int height, const double *image_prev, const d
 }
 
 MotionCompensation &
-MotionCompensation::set(int width, int height, const double *image_prev, const double *image_next, int v_width, int v_height, const VECTOR_2D *vector)
+MotionCompensation::set(int width, int height, const double *image_prev, const double *image_next, int v_width, int v_height, const VECTOR_2D<double> *vector)
 {
 	if (width <= 0 || height <= 0
 	    || v_width <= 0 || v_height <= 0) {
@@ -203,7 +203,7 @@ MotionCompensation::set(int width, int height, const double *image_prev, const d
 }
 
 MotionCompensation &
-MotionCompensation::set(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D> &vector)
+MotionCompensation::set(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D<double> > &vector)
 {
 	if (image_prev.isNULL() || image_next.isNULL() || vector.isNULL()) {
 		throw std::invalid_argument("variable is empty");
@@ -232,7 +232,7 @@ MotionCompensation::set(const ImgVector<double> &image_prev, const ImgVector<dou
 }
 
 MotionCompensation &
-MotionCompensation::set(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D> *vector)
+MotionCompensation::set(const ImgVector<double> *image_prev, const ImgVector<double> *image_next, const ImgVector<VECTOR_2D<double> > *vector)
 {
 	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
 		throw std::invalid_argument("pointer is NULL");
@@ -299,13 +299,13 @@ MotionCompensation::get_image_next(int x, int y) const
 	return _image_next.get(x, y);
 }
 
-VECTOR_2D
+VECTOR_2D<double>
 MotionCompensation::get_vector(int n) const
 {
 	return _vector.get(n);
 }
 
-VECTOR_2D
+VECTOR_2D<double>
 MotionCompensation::get_vector(int x, int y) const
 {
 	return _vector.get(x, y);
@@ -334,13 +334,13 @@ MotionCompensation::get_image_compensated(int x, int y)
 
 
 // return Reference
-ImgVector<VECTOR_2D> &
-MotionCompensation::ref_vector(void) // Get reference to ImgVector<VECTOR_2D>
+ImgVector<VECTOR_2D<double> > &
+MotionCompensation::ref_vector(void) // Get reference to ImgVector<VECTOR_2D<double> >
 {
 	return _vector;
 }
 
-VECTOR_2D &
+VECTOR_2D<double> &
 MotionCompensation::ref_vector(int x, int y) // Get reference to motion vector[y][x]
 {
 	return _vector.ref(x, y);
@@ -387,7 +387,7 @@ MotionCompensation::create_image_compensated(void)
 	_image_compensated.reset(_width, _height);
 	for (int y = 0; y < _height; y++) {
 		for (int x = 0; x < _width; x++) {
-			VECTOR_2D v = _vector.get(x, y);
+			VECTOR_2D<double> v = _vector.get(x, y);
 			if (x + v.x < 0 || _width <= x + v.x
 			    || y + v.y < 0 || _height <= y + v.y) {
 				continue;
@@ -414,7 +414,7 @@ MotionCompensation::create_image_masked_compensated(ImgVector<bool> *mask)
 		_image_compensated.copy(_image_next); // Initialize with Original image (image_next)
 		for (int y = 0; y < _height; y++) {
 			for (int x = 0; x < _width; x++) {
-				VECTOR_2D v = _vector.get(x, y);
+				VECTOR_2D<double> v = _vector.get(x, y);
 				if (mask->get(x + v.x, y + v.y) == false) {
 					continue;
 				}

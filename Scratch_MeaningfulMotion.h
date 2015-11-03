@@ -54,7 +54,7 @@
 #include "lib/Class.h"
 #include "lib/ImgStruct.h"
 #include "lib/Struct.h"
-#include "lib/Vector.h"
+#include "lib/ExtVector.h"
 #include "ImgClass/ImgClass.h"
 #include "ImgClass/ImgStatistics.h"
 #include "Plot/Plot_X11_Struct.h"
@@ -151,8 +151,8 @@ ImgVector<double>* Gaussian(ImgVector<double> *img, FILTER_PARAM Param);
 ImgVector<double>* EpsilonFilter(ImgVector<double> *img, FILTER_PARAM Param);
 double HorizontalMedian(ImgVector<double> *img, int x, int y, int width);
 ImgVector<double>* DerivativeAngler(ImgVector<double> *img);
-ImgVector<VECTOR_2D>* Derivator(ImgVector<double> *Image, const char *Type);
-ImgVector<double>* Derivation_abs(ImgVector<VECTOR_2D> *Derivative_2D);
+ImgVector<VECTOR_2D<double> >* Derivator(ImgVector<double> *Image, const char *Type);
+ImgVector<double>* Derivation_abs(ImgVector<VECTOR_2D<double> > *Derivative_2D);
 ImgVector<double>* Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring);
 int IndexOfMirroring(int x, int size);
 

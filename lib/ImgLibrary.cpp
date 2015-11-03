@@ -244,7 +244,7 @@ DerivativeAngler(ImgVector<double> *img)
 {
 	ERROR Error("DerivativeAngler");
 
-	ImgVector<VECTOR_2D> *Derivative = nullptr;
+	ImgVector<VECTOR_2D<double> > *Derivative = nullptr;
 	ImgVector<double> *angles = nullptr;
 	int n;
 	double dx, dy;
@@ -297,12 +297,12 @@ ExitError:
 }
 
 
-ImgVector<VECTOR_2D> *
+ImgVector<VECTOR_2D<double> > *
 Derivator(ImgVector<double> *Image, const char *Type)
 {
 	ERROR Error("Derivator");
 
-	ImgVector<VECTOR_2D> *Derivative = nullptr;
+	ImgVector<VECTOR_2D<double> > *Derivative = nullptr;
 	ImgVector<double> *Image_dx = nullptr;
 	ImgVector<double> *Image_dy = nullptr;
 	/* Note that convolution invert *Filter */
@@ -345,7 +345,7 @@ Derivator(ImgVector<double> *Image, const char *Type)
 	Image_dy = Filterer(Image, Dy, false);
 
 	try {
-		Derivative = new ImgVector<VECTOR_2D>(Image->width(), Image->height());
+		Derivative = new ImgVector<VECTOR_2D<double> >(Image->width(), Image->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Function("new");
@@ -370,7 +370,7 @@ ExitError:
 
 
 ImgVector<double> *
-Derivation_abs(ImgVector<VECTOR_2D> *Derivative_2D)
+Derivation_abs(ImgVector<VECTOR_2D<double> > *Derivative_2D)
 {
 	ERROR Error("Derivation_abs");
 

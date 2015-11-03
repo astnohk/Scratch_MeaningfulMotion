@@ -22,7 +22,7 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 	ImgVector<double> *I_dt_levels = nullptr;
 	ImgVector<double> *It_levels = nullptr;
 	ImgVector<double> *Itp1_levels = nullptr;
-	ImgVector<VECTOR_2D> *grad_It_levels = nullptr;
+	ImgVector<VECTOR_2D<double> > *grad_It_levels = nullptr;
 	SIZE size_img_l;
 	int level;
 	int IterMax;
@@ -106,7 +106,7 @@ ExitError:
 
 
 bool
-IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
+IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
 	VECTOR_AFFINE u_np1;
 	VECTOR_AFFINE sup;
@@ -146,11 +146,11 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVec
 
 
 VECTOR_AFFINE
-Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
-	VECTOR_2D u_a;
+	VECTOR_2D<double> u_a;
 
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		E_a.a[i] = .0;
@@ -173,7 +173,7 @@ Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t,
 
 
 VECTOR_AFFINE
-sup_Error_aa(ImgVector<VECTOR_2D> *Img_g, double sigmaD)
+sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 {
 	ERROR Error("sup_Error_aa");
 
@@ -225,11 +225,11 @@ sup_Error_aa(ImgVector<VECTOR_2D> *Img_g, double sigmaD)
 
 
 double
-Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double E = 0.0;
-	VECTOR_2D u_a;
+	VECTOR_2D<double> u_a;
 	int x, y;
 
 	for (int site = 0; site < Img_g->size(); site++) {

@@ -126,7 +126,7 @@ void
 HOG_vector_compensated_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const VECTOR_2D_W_SCORE *vector, int width, int height, const std::string &filename)
 {
 	ERROR Error("HOG_vector_write");
-	ImgVector<VECTOR_2D> vector2d(width, height);
+	ImgVector<VECTOR_2D<double> > vector2d(width, height);
 	std::string filename_compensated;
 	MotionCompensation compensated;
 	PNM pnm;

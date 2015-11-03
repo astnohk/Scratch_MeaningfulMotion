@@ -99,13 +99,13 @@ ExitError:
 }
 
 
-ImgVector<VECTOR_2D> *
+ImgVector<VECTOR_2D<double> > *
 grad_Pyramid(ImgVector<double> *img_t_levels, ImgVector<double> *img_tp1_levels, int Level)
 {
 	ERROR Error("grad_Pyramid");
 
 	// Note that convolution invert *Filter
-	ImgVector<VECTOR_2D> *grad_levels = nullptr;
+	ImgVector<VECTOR_2D<double> > *grad_levels = nullptr;
 	int x, y;
 	int m, n;
 	int l;
@@ -117,7 +117,7 @@ grad_Pyramid(ImgVector<double> *img_t_levels, ImgVector<double> *img_tp1_levels,
 		goto ExitError;
 	}
 	try {
-		grad_levels = new ImgVector<VECTOR_2D>[Level];
+		grad_levels = new ImgVector<VECTOR_2D<double> >[Level];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("grad_levels");

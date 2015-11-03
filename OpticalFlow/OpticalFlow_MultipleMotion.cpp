@@ -21,7 +21,7 @@
 
 
 
-ImgVector<VECTOR_2D> *
+ImgVector<VECTOR_2D<double> > *
 MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
 {
 	ERROR Error("MultipleMotion_OpticalFlow");
@@ -38,12 +38,12 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
-	ImgVector<VECTOR_2D> *u = nullptr; // For RETURN value
-	ImgVector<VECTOR_2D> *u_levels = nullptr;
+	ImgVector<VECTOR_2D<double> > *u = nullptr; // For RETURN value
+	ImgVector<VECTOR_2D<double> > *u_levels = nullptr;
 	ImgVector<double> *I_dt_levels = nullptr;
 	ImgVector<double> *It_levels = nullptr;
 	ImgVector<double> *Itp1_levels = nullptr;
-	ImgVector<VECTOR_2D> *grad_It_levels = nullptr;
+	ImgVector<VECTOR_2D<double> > *grad_It_levels = nullptr;
 	int IterMax_level = 0;
 	int level;
 	int i;
@@ -67,7 +67,7 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 	}
 	// Multiple Motion Vectors
 	try {
-		u = new ImgVector<VECTOR_2D>(It->width(), It->height());
+		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("u");
@@ -75,7 +75,7 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		goto ExitError;
 	}
 	try {
-		u_levels = new ImgVector<VECTOR_2D>[MotionParam.Level];
+		u_levels = new ImgVector<VECTOR_2D<double> >[MotionParam.Level];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("u_levels");
@@ -180,7 +180,7 @@ ExitError:
 
 
 void
-LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D> *u_levels, int level, int MaxLevel)
+LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLevel)
 {
 	if (level == MaxLevel - 1) {
 		// Do NOT need projection from higher level
@@ -197,7 +197,7 @@ LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVecto
 	}
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D u = u_levels[level + 1].get(x / 2, y / 2);
+			VECTOR_2D<double> u = u_levels[level + 1].get(x / 2, y / 2);
 
 			I_dt_levels[level].ref(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u.x), y + (int)floor(2.0 * u.y))
@@ -216,13 +216,13 @@ LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVecto
 
 
 void
-IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
 
-	ImgVector<VECTOR_2D> u_np1;
-	VECTOR_2D sup;
-	VECTOR_2D dE;
+	ImgVector<VECTOR_2D<double> > u_np1;
+	VECTOR_2D<double> sup;
+	VECTOR_2D<double> dE;
 	double E = 0.0;
 	double E_prev = 0.0;
 	int ErrorIncrementCount = 0;
@@ -230,9 +230,9 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 	int n;
 
 	if (u == nullptr) {
-		throw std::invalid_argument("ImgVector<VECTOR_2D> *u");
+		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *u");
 	} else if (Img_g == nullptr) {
-		throw std::invalid_argument("ImgVector<VECTOR_2D> *Img_g");
+		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *Img_g");
 	} else if (Img_t == nullptr) {
 		throw std::invalid_argument("ImgVector<double> *Img_t");
 	}
@@ -277,15 +277,15 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *I
 }
 
 
-VECTOR_2D
-Error_u(int site, ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+VECTOR_2D<double>
+Error_u(int site, ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
-	VECTOR_2D us;
+	VECTOR_2D<double> us;
 	double Center;
-	VECTOR_2D Neighbor;
-	VECTOR_2D E_u;
+	VECTOR_2D<double> Neighbor;
+	VECTOR_2D<double> E_u;
 	int x, y;
 
 	x = site % u->width();
@@ -319,11 +319,11 @@ Error_u(int site, ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVecto
 }
 
 
-VECTOR_2D
-sup_Error_uu(ImgVector<VECTOR_2D> *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+VECTOR_2D<double>
+sup_Error_uu(ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
-	static VECTOR_2D Img_g_max;
-	VECTOR_2D sup;
+	static VECTOR_2D<double> Img_g_max;
+	VECTOR_2D<double> sup;
 
 	if (Img_g != nullptr) {
 		Img_g_max.reset();
@@ -343,13 +343,13 @@ sup_Error_uu(ImgVector<VECTOR_2D> *Img_g, const double &lambdaD, const double &l
 
 
 double
-Error_MultipleMotion(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+Error_MultipleMotion(ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
-	VECTOR_2D us;
+	VECTOR_2D<double> us;
 	double Center;
-	VECTOR_2D Neighbor;
+	VECTOR_2D<double> Neighbor;
 	double E = 0.0;
 	int x, y;
 
@@ -387,12 +387,12 @@ Error_MultipleMotion(ImgVector<VECTOR_2D> *u, ImgVector<VECTOR_2D> *Img_g, ImgVe
 
 
 void
-MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const ImgVector<VECTOR_2D> *u, const std::string &filename)
+MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const ImgVector<VECTOR_2D<double> > *u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 
 	FILE *fp = nullptr;
-	VECTOR_2D v;
+	VECTOR_2D<double> v;
 	int x, y;
 	MotionCompensation compensated(img_prev, img_next, u);
 	PNM pnm;

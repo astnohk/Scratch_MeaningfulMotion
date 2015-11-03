@@ -5,7 +5,7 @@ OPTION = -fopenmp
 #OPTION = -fopenmp -std=c++11
 
 
-LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/Vector.cpp
+LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp
 IMGCLASS_CFILES = ImgClass/CrossCorrelation.cpp ImgClass/ImgStatistics.cpp
 MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Exclusive.cpp
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow_MultipleMotion.cpp
@@ -17,7 +17,7 @@ PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
 CFILES = main.cpp Scratch_Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFILES) $(IMGCLASS_CFILES) $(MOTIONCOMPENSATION_CFILES) $(MEANINGFUL_CFILES) $(OPTICALFLOW_CFILES) $(HOG_CFILES) $(PLOT_CFILES) $(PNM_CFILES)
 
 
-LIBRARY_OFILES = Class.o ImgLibrary.o ImgStruct.o Library.o Struct.o Vector.o
+LIBRARY_OFILES = Class.o ImgLibrary.o ImgStruct.o Library.o Struct.o ExtVector.o
 IMGCLASS_OFILES = CrossCorrelation.o ImgStatistics.o
 MEANINGFUL_OFILES = Detection.o Exclusive.o
 OPTICALFLOW_OFILES = MultiResolution.o MEstimator.o Affine_MultipleMotion.o OpticalFlow_MultipleMotion.o
@@ -34,7 +34,7 @@ OUTNAME = Scratch_MeaningfulMotion
 Scratch_MeaningfulMotion: $(OFILES)
 	$(CC) $(WARNING) $(LIBES) $(OPTION) -O2 -o $(OUTNAME) $^
 
-Scratch_MeaningfulMotion.h: ImgClass/ImgClass.h ImgClass/ImgStatistics.h lib/ImgStruct.h lib/Vector.h Plot/Plot_X11_Struct.h PNM/pnm.h Scratch_Struct.h
+Scratch_MeaningfulMotion.h: ImgClass/ImgClass.h ImgClass/ImgStatistics.h lib/ImgStruct.h lib/ExtVector.h Plot/Plot_X11_Struct.h PNM/pnm.h Scratch_Struct.h
 
 main.o: main.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
@@ -68,9 +68,9 @@ Library.o: lib/Library.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 Library.o: Scratch_MeaningfulMotion.h
 
-Vector.o: lib/Vector.cpp
+ExtVector.o: lib/ExtVector.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Vector.o: lib/Vector.h
+ExtVector.o: lib/ExtVector.h
 
 Scratch_Struct.o: Scratch_Struct.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
@@ -91,7 +91,7 @@ Exclusive.o: Scratch_MeaningfulMotion.h
 
 MultiResolution.o: OpticalFlow/MultiResolution.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-MultiResolution.o: OpticalFlow/MultiResolution.h lib/Vector.h ImgClass/ImgClass.h Scratch_MeaningfulMotion.h
+MultiResolution.o: OpticalFlow/MultiResolution.h lib/ExtVector.h ImgClass/ImgClass.h Scratch_MeaningfulMotion.h
 
 MEstimator.o: OpticalFlow/MEstimator.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
@@ -99,19 +99,21 @@ MEstimator.o: OpticalFlow/MEstimator.h
 
 MotionCompensation.o: MotionCompensation/MotionCompensation.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-MotionCompensation.o: MotionCompensation/MotionCompensation.h
+MotionCompensation.o: MotionCompensation/MotionCompensation.h lib/ExtVector.h ImgClass/ImgClass.h
 
 Affine_MultipleMotion.o: OpticalFlow/Affine_MultipleMotion.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Affine_MultipleMotion.o: OpticalFlow/Affine_MultipleMotion.h OpticalFlow/MEstimator.h OpticalFlow/MultiResolution.h lib/Struct.h Scratch_MeaningfulMotion.h
+Affine_MultipleMotion.o: OpticalFlow/Affine_MultipleMotion.h OpticalFlow/MEstimator.h OpticalFlow/MultiResolution.h
+Affine_MultipleMotion.o: lib/Struct.h Scratch_MeaningfulMotion.h
 
 OpticalFlow_MultipleMotion.o: OpticalFlow/OpticalFlow_MultipleMotion.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-OpticalFlow_MultipleMotion.o: Scratch_MeaningfulMotion.h OpticalFlow/OpticalFlow_MultipleMotion.h
+OpticalFlow_MultipleMotion.o: OpticalFlow/OpticalFlow_MultipleMotion.h OpticalFlow/MEstimator.h OpticalFlow/MultiResolution.h
+OpticalFlow_MultipleMotion.o: lib/Struct.h MotionCompensation/MotionCompensation.h Scratch_MeaningfulMotion.h
 
 HOG.o: HOG/HOG.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-HOG.o: HOG/HOG.h HOG/HOG_struct.h ImgClass/ImgClass.h lib/Vector.h PNM/pnm.h Scratch_MeaningfulMotion.h
+HOG.o: HOG/HOG.h HOG/HOG_struct.h ImgClass/ImgClass.h lib/ExtVector.h PNM/pnm.h Scratch_MeaningfulMotion.h
 
 HOG_match.o: HOG/HOG_match.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
