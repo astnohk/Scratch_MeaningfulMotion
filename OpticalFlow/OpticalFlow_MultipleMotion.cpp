@@ -199,11 +199,15 @@ LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVecto
 		for (int x = 0; x < u_levels[level].width(); x++) {
 			VECTOR_2D u = u_levels[level + 1].get(x / 2, y / 2);
 
-			//u_levels[level].ref(x, y).x = 2.0 * u.get(x / 2, y / 2).x;
-			//u_levels[level].ref(x, y).y = 2.0 * u.get(x / 2, y / 2).y;
 			I_dt_levels[level].ref(x, y) =
-			    Itp1_levels[level].get_zeropad(x + 2.0 * u.x, y + 2.0 * u.y)
-			    - It_levels[level].get(x, y);
+			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u.x), y + (int)floor(2.0 * u.y))
+			    - It_levels[level].get_zeropad(x, y)
+			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u.x), y + (int)floor(2.0 * u.y))
+			    - It_levels[level].get_zeropad(x + 1, y)
+			    + Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u.x), y + 1 + (int)floor(2.0 * u.y))
+			    - It_levels[level].get_zeropad(x, y + 1)
+			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u.x), y + 1 + (int)floor(2.0 * u.y))
+			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
 			u_levels[level].ref(x, y).x = 0.0;
 			u_levels[level].ref(x, y).y = 0.0;
 		}
