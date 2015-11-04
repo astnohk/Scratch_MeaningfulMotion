@@ -72,6 +72,10 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	    lambdaD, lambdaS, sigmaD_l0, sigmaS_l0,
 	    IterMax,
 	    MotionParam.Error_Min_Threshold);
+	// Add offset of the motion vector computed by Block Matching
+	for (int i = 0; i < u->size(); i++) {
+		(*u)[i] += Motion_Vector[i];
+	}
 
 	return u;
 }
