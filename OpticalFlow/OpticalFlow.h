@@ -5,7 +5,6 @@
  */
 
 #include <string>
-#include <vector>
 
 #include "MEstimator.h"
 #include "MultiResolution.h"
