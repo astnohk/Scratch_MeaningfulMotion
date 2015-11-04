@@ -15,77 +15,11 @@
 ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
 {
+	std::bad_alloc except_bad_alloc;
+
 	ImgVector<VECTOR_2D<double> > *u = nullptr; // For RETURN value
-	ImgVector<double> It_normalize;
-	ImgVector<double> Itp1_normalize;
-	ImgVector<double> I_dt;
-	ImgVector<VECTOR_2D<double> > grad_It;
 
 	BlockMatching<double> block_matching;
-	ImgVector<VECTOR_2D<double> > Motion_Vector;
-
-	// M-estimator parameter
-	const double lambdaD = 5.0;
-	const double lambdaS = 1.0;
-	const double sigmaD_l0 = 0.2 / sqrt(2.0); //4.0 / sqrt(2.0);
-	const double sigmaS_l0 = 0.03 / sqrt(2.0);
-
-	if (It == nullptr) {
-		throw std::invalid_argument("ImgVector<double>* It");
-	} else if (Itp1 == nullptr) {
-		throw std::invalid_argument("ImgVector<double>* Itp1");
-	}
-
-	// ----- Block Matching -----
-	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
-	Motion_Vector.copy(block_matching.data());
-
-	// ----- Optical Flow -----
-	// Image Normalization
-	It_normalize = *It;
-	Itp1_normalize = *Itp1;
-	for (int i = 0; i < It_normalize.size(); i++) {
-		It_normalize[i] /= MaxInt;
-		Itp1_normalize[i] /= MaxInt;
-	}
-	// Multiple Motion Vectors
-	try {
-		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
-	}
-	catch (const std::bad_alloc &bad) {
-		throw;
-	}
-	// Derivative about time
-	I_dt = OpticalFlow_dt(It_normalize, Itp1_normalize, Motion_Vector);
-	grad_It = OpticalFlow_grad(It_normalize);
-
-	u->reset(It->width(), It->height());
-	printf("\n(%dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", u->width(), u->height(), sigmaD_l0, sigmaS_l0);
-	if (IterMax < 0) {
-		IterMax = 10 * MAX(It->width(), It->height());
-	}
-	printf("IterMax = %d\n", IterMax);
-	IRLS_OpticalFlow(
-	    u,
-	    &grad_It,
-	    &I_dt,
-	    lambdaD, lambdaS, sigmaD_l0, sigmaS_l0,
-	    IterMax,
-	    MotionParam.Error_Min_Threshold);
-	// Add offset of the motion vector computed by Block Matching
-	for (int i = 0; i < u->size(); i++) {
-		(*u)[i] += Motion_Vector[i];
-	}
-
-	return u;
-}
-
-ImgVector<VECTOR_2D<double> > *
-OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
-{
-	ImgVector<VECTOR_2D<double> > *u = nullptr; // For RETURN value
-
-	BlockMatching block_matching;
 	ImgVector<VECTOR_2D<double> > Motion_Vector;
 
 	ImgVector<double> It_normalize;
@@ -111,13 +45,11 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	int i;
 
 	if (It == nullptr) {
-		Error.Value("It");
-		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("const ImgVector<double>* It");
 	} else if (Itp1 == nullptr) {
-		Error.Value("Itp1");
-		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("const ImgVector<double>* Itp1");
+	} else if (MaxInt < 0) {
+		throw std::invalid_argument("double MaxInt");
 	}
 
 	// Image Normalization
@@ -129,8 +61,8 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 
 	// Adjust max level to use the Block Matching efficiently
-	if (MaxLevel > floor(log((double)MotionParm.BlockMatching_BlockSize) / log(2.0)) {
-		MaxLevel = (int)floor(log((double)MotionParm.BlockMatching_BlockSize) / log(2.0);
+	if (MaxLevel > floor(log((double)MotionParam.BlockMatching_BlockSize) / log(2.0))) {
+		MaxLevel = (int)floor(log((double)MotionParam.BlockMatching_BlockSize) / log(2.0));
 	}
 
 	// ----- Block Matching -----
@@ -142,43 +74,45 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
 	}
 	catch (const std::bad_alloc &bad) {
-		Error.Value("u");
-		Error.Malloc();
+		except_bad_alloc = bad;
 		goto ExitError;
 	}
 	try {
 		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel];
 	}
 	catch (const std::bad_alloc &bad) {
-		Error.Value("u_levels");
-		Error.Malloc();
+		except_bad_alloc = bad;
 		goto ExitError;
 	}
 	// Make Pyramid
-	if ((It_levels = Pyramider(&It_normalize, MaxLevel)) == nullptr) {
-		Error.Function("Pyramider");
-		Error.Value("It_levels");
-		Error.FunctionFail();
+	try {
+		It_levels = Pyramider(&It_normalize, MaxLevel);
+	}
+	catch (const std::bad_alloc &bad) {
+		except_bad_alloc = bad;
 		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel)) == nullptr) {
-		Error.Function("Pyramider");
-		Error.Value("Itp1_levels");
-		Error.FunctionFail();
+	try {
+		Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel);
+	}
+	catch (const std::bad_alloc &bad) {
+		except_bad_alloc = bad;
 		goto ExitError;
 	}
 	// Derivative about time
-	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MaxLevel)) == nullptr) {
-		Error.Function("dt_Pyramid");
-		Error.Value("I_dt_levels");
-		Error.FunctionFail();
+	try {
+		I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MaxLevel);
+	}
+	catch (const std::bad_alloc &bad) {
+		except_bad_alloc = bad;
 		goto ExitError;
 	}
 	// Derivative about space
-	if ((grad_It_levels = grad_Pyramid(It_levels, nullptr, MaxLevel)) == nullptr) {
-		Error.Function("grad_Pyramid");
-		Error.Value("grad_It_levels");
-		Error.FunctionFail();
+	try {
+		grad_It_levels = grad_Pyramid(It_levels, nullptr, MaxLevel);
+	}
+	catch (const std::bad_alloc &bad) {
+		except_bad_alloc = bad;
 		goto ExitError;
 	}
 
@@ -247,7 +181,7 @@ ExitError:
 	delete[] It_levels;
 	delete[] u_levels;
 	delete[] u;
-	return nullptr;
+	throw except_bad_alloc;
 }
 
 void
@@ -256,12 +190,12 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 	int level = MaxLevel - 1;
 	int W, H;
 
-	W = (int)ceil((double)u_levels[level].width() / Motion_Vector.width());
-	H = (int)ceil((double)u_levels[level].height() / Motion_Vector.height());
+	W = (int)ceil((double)u_levels[level].width() / Motion_Vector->width());
+	H = (int)ceil((double)u_levels[level].height() / Motion_Vector->height());
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = Motion_Vector.get(x / W, y / W);
+			VECTOR_2D<double> u_offset = Motion_Vector->get(x / W, y / W);
 
 			I_dt_levels[level].ref(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
