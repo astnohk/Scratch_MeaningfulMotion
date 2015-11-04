@@ -5,6 +5,8 @@
 
 
 
+#ifndef LIB_MotionCompensation
+#define LIB_MotionCompensation
 
 class MotionCompensation
 {
@@ -56,4 +58,6 @@ class MotionCompensation
 		void create_image_compensated(void);
 		void create_image_masked_compensated(ImgVector<bool> *mask);
 };
+
+#endif
 

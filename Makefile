@@ -83,7 +83,7 @@ Scratch_Struct.o: Scratch_MeaningfulMotion.h HOG/HOG_struct.h
 
 Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
-Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.h OpticalFlow/Affine_MultipleMotion.h OpticalFlow/OpticalFlow.h HOG/HOG.h
+Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.h OpticalFlow/Affine_MultipleMotion.h OpticalFlow/OpticalFlow.h OpticalFlow/OpticalFlow_BlockMatching.h HOG/HOG.h
 
 Detection.o: MeaningfulAlignments/Detection.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^

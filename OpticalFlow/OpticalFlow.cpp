@@ -171,7 +171,7 @@ ExitError:
 	delete[] Itp1_levels;
 	delete[] It_levels;
 	delete[] u_levels;
-	delete[] u;
+	delete u;
 	return nullptr;
 }
 

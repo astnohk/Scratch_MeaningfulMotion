@@ -1,6 +1,7 @@
 #include "Scratch_MeaningfulMotion.h"
 #include "OpticalFlow/Affine_MultipleMotion.h"
 #include "OpticalFlow/OpticalFlow.h"
+#include "OpticalFlow/OpticalFlow_BlockMatching.h"
 #include "HOG/HOG.h"
 
 
@@ -264,7 +265,8 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Optical Flow by method of M.J.Black\n");
-				MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				//MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_u = OpticalFlow_BlockMatching(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
