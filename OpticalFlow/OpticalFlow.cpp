@@ -41,7 +41,9 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 	ImgVector<double> *It_levels = nullptr;
 	ImgVector<double> *Itp1_levels = nullptr;
 	ImgVector<VECTOR_2D<double> > *grad_It_levels = nullptr;
+
 	int IterMax_level = 0;
+	int MaxLevel = MotionParam.Level;
 	int level;
 	int i;
 
@@ -72,7 +74,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		goto ExitError;
 	}
 	try {
-		u_levels = new ImgVector<VECTOR_2D<double> >[MotionParam.Level];
+		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("u_levels");
@@ -80,45 +82,45 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		goto ExitError;
 	}
 	// Make Pyramid
-	if ((It_levels = Pyramider(&It_normalize, MotionParam.Level)) == nullptr) {
+	if ((It_levels = Pyramider(&It_normalize, MaxLevel)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("It_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(&Itp1_normalize, MotionParam.Level)) == nullptr) {
+	if ((Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("Itp1_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	// Derivative about time
-	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MotionParam.Level)) == nullptr) {
+	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MaxLevel)) == nullptr) {
 		Error.Function("dt_Pyramid");
 		Error.Value("I_dt_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 	// Derivative about space
-	if ((grad_It_levels = grad_Pyramid(It_levels, nullptr, MotionParam.Level)) == nullptr) {
+	if ((grad_It_levels = grad_Pyramid(It_levels, nullptr, MaxLevel)) == nullptr) {
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
 		Error.FunctionFail();
 		goto ExitError;
 	}
 
-	for (level = MotionParam.Level - 1; level >= 0; level--) {
-		if (MotionParam.Level > 1) {
-			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / (MotionParam.Level - 1.0) * (MotionParam.Level - 1.0 - level);
-			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / (MotionParam.Level - 1.0) * (MotionParam.Level - 1.0 - level);
+	for (level = MaxLevel - 1; level >= 0; level--) {
+		if (MaxLevel > 1) {
+			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
+			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
 		} else {
 			sigmaD = sigmaD_l0;
 			sigmaS = sigmaS_l0;
 		}
 		u_levels[level].reset(I_dt_levels[level].width(), I_dt_levels[level].height());
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
-		if (level < MotionParam.Level - 1) {
-			LevelDown(It_levels, Itp1_levels, I_dt_levels, u_levels, level, MotionParam.Level);
+		if (level < MaxLevel - 1) {
+			LevelDown(I_dt_levels, u_levels, It_levels, Itp1_levels, level, MaxLevel);
 		}
 #ifdef DEBUG_STOP_ON_LEVEL_L
 		if (level <= 2) {
@@ -139,7 +141,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		    MotionParam.Error_Min_Threshold,
 		    level);
 	}
-	if (MotionParam.Level > 1) {
+	if (MaxLevel > 1) {
 		for (int y = 0; y < u_levels[0].height(); y++) {
 			for (int x = 0; x < u_levels[0].width(); x++) {
 				u->ref(x, y).x =
@@ -175,7 +177,7 @@ ExitError:
 
 
 void
-LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLevel)
+LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_levels, const ImgVector<double> *It_levels, const ImgVector<double> *Itp1_levels, int level, int MaxLevel)
 {
 	if (level == MaxLevel - 1) {
 		// Do NOT need projection from higher level
@@ -192,16 +194,16 @@ LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVecto
 	}
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u = u_levels[level + 1].get(x / 2, y / 2);
+			VECTOR_2D<double> u_offset = u_levels[level + 1].get(x / 2, y / 2);
 
 			I_dt_levels[level].ref(x, y) =
-			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u.x), y + (int)floor(2.0 * u.y))
+			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x, y)
-			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u.x), y + (int)floor(2.0 * u.y))
+			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x + 1, y)
-			    + Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u.x), y + 1 + (int)floor(2.0 * u.y))
+			    + Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x, y + 1)
-			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u.x), y + 1 + (int)floor(2.0 * u.y))
+			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
 			u_levels[level].ref(x, y).x = 0.0;
 			u_levels[level].ref(x, y).y = 0.0;

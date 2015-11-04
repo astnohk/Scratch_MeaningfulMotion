@@ -13,8 +13,5 @@
 
 ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<double> *It, const ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax = 0);
 
-ImgVector<double> OpticalFlow_dt(const ImgVector<double>& It, const ImgVector<double>& Itp1, const ImgVector<VECTOR_2D<double> >& vector);
-ImgVector<VECTOR_2D<double> > OpticalFlow_grad(const ImgVector<double>& It);
-
-void IRLS_OpticalFlow(ImgVector<VECTOR_2D<double> >* u, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold);
+void BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, int MaxLevel, const ImgVector<VECTOR_2D<double> >* Motion_Vector);
 
