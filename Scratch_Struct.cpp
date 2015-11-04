@@ -110,6 +110,7 @@ FILTER_PARAM::ChangeFilter(const char *name)
 #define MULTIPLE_MOTION_PARAM_lambdaS 1
 #define MULTIPLE_MOTION_PARAM_sigmaD 12.72
 #define MULTIPLE_MOTION_PARAM_sigmaS 2.121
+#define MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize 9;
 MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
 {
 	Level = MULTIPLE_MOTION_PARAM_Level;
@@ -119,6 +120,7 @@ MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
 	lambdaS = MULTIPLE_MOTION_PARAM_lambdaS;
 	sigmaD = MULTIPLE_MOTION_PARAM_sigmaD;
 	sigmaS = MULTIPLE_MOTION_PARAM_sigmaS;
+	BlockMatching_BlockSize = 9;
 }
 
 void
@@ -138,6 +140,8 @@ MULTIPLE_MOTION_PARAM::set_default(const char *name)
 		sigmaD = MULTIPLE_MOTION_PARAM_sigmaD;
 	} else if (strcmp(name, "sigmaS") == 0) {
 		sigmaS = MULTIPLE_MOTION_PARAM_sigmaS;
+	} else if (strcmp(name, "BlockMatching_BlockSize") == 0) {
+		BlockMatching_BlockSize = MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize;
 	} else {
 		fprintf(stderr, "*** MULTIPLE_MOTION_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}
@@ -169,6 +173,8 @@ MULTIPLE_MOTION_PARAM::set_value(const char *name, void *value)
 		sigmaD = *static_cast<const double*>(value);
 	} else if (strcmp(name, "sigmaS") == 0) {
 		sigmaS = *static_cast<const double*>(value);
+	} else if (strcmp(name, "BlockMatching_BlockSize") == 0) {
+		BlockMatching_BlockSize = *static_cast<const int*>(value);
 	} else {
 		fprintf(stderr, "*** MULTIPLE_MOTION_PARAM::set_default() error - There are NOT such a parameter '%s' ***\n", name);
 	}

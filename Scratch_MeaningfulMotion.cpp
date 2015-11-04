@@ -1,6 +1,6 @@
 #include "Scratch_MeaningfulMotion.h"
 #include "OpticalFlow/Affine_MultipleMotion.h"
-#include "OpticalFlow/OpticalFlow_MultipleMotion.h"
+#include "OpticalFlow/OpticalFlow.h"
 #include "HOG/HOG.h"
 
 
@@ -258,13 +258,13 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Multiple Motions Affine Parameters by method of M.J.Black\n");
 				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
-		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
+		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			// Computte and output Multiple Motion Optical Flow by method of M.J.Black
 			if (imgd_prev.isNULL() != false) {
-				printf("* Skip Calculate Multiple Motions while there is NOT any previous frame\n");
+				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
-				printf("* Compute Multiple Motions Optical Flow by method of M.J.Black\n");
-				MultipleMotion_u = MultipleMotion_OpticalFlow(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				printf("* Compute Optical Flow by method of M.J.Black\n");
+				MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
@@ -450,7 +450,7 @@ Write:
 			if (imgd_prev.isNULL() == false) {
 				MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums);
 			}
-		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW) != 0) {
+		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			if (imgd_prev.isNULL() == false) {
 				MultipleMotion_write(&imgd_prev, &imgd_in, MultipleMotion_u, OutputNameNums);
 			}

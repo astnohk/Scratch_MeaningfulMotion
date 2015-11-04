@@ -235,7 +235,7 @@ main(int argc, char *argv[])
 				} else if (strcmp(argv[i], "--multiple_affine") == 0) {
 					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
 				} else if (strcmp(argv[i], "--multiple_opticalflow") == 0) {
-					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_OPTICALFLOW;
+					Options.mode = MODE_OUTPUT_OPTICALFLOW;
 				} else if (strcmp(argv[i], "--mm_level") == 0) {
 					if (i + 1 >= argc) {
 						fprintf(stderr, "*** Please input value after '--mm_level' option ***\n");

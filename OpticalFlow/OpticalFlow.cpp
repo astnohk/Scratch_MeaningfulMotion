@@ -4,16 +4,13 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-#include "OpticalFlow_MultipleMotion.h"
+#include "OpticalFlow.h"
 
-
-// IRLS parameters
-#define IRLS_ITER_MAX 512
 
 
 // define for debug
 
-#define SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
+#define SHOW_IRLS_OPTICALFLOW_PYRAMID_E
 //#define DEBUG_STOP_ON_LEVEL_L
 
 // /define for debug
@@ -22,9 +19,9 @@
 
 
 ImgVector<VECTOR_2D<double> > *
-MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
+OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
 {
-	ERROR Error("MultipleMotion_OpticalFlow");
+	ERROR Error("OpticalFlow_Pyramid");
 
 	// M-estimator parameter
 	const double lambdaD = 5.0;
@@ -103,7 +100,6 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 		goto ExitError;
 	}
 	// Derivative about space
-	//if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, MotionParam.Level)) == nullptr) {
 	if ((grad_It_levels = grad_Pyramid(It_levels, nullptr, MotionParam.Level)) == nullptr) {
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
@@ -129,13 +125,12 @@ MultipleMotion_OpticalFlow(ImgVector<double> *It, ImgVector<double> *Itp1, doubl
 			continue;
 		}
 #endif
-//		IterMax_level = MAX(10 * MAX(u_levels[level].width(), u_levels[level].height()), 1000);
 		IterMax_level = (level + 1) * 10 * MAX(It->width(), It->height());
 		if (IterMax < 0 && IterMax_level >= IterMax) {
 			IterMax_level = IterMax;
 		}
 		printf("IterMax = %d\n", IterMax_level);
-		IRLS_MultipleMotion_OpticalFlow(
+		IRLS_OpticalFlow_Pyramid(
 		    (u_levels + level),
 		    (grad_It_levels + level),
 		    (I_dt_levels + level),
@@ -216,9 +211,9 @@ LevelDown(ImgVector<double> *It_levels, ImgVector<double> *Itp1_levels, ImgVecto
 
 
 void
-IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
-	ERROR Error("IRLS_MultipleMotion_OpticalFlow");
+	ERROR Error("IRLS_OpticalFlow_Pyramid");
 
 	ImgVector<VECTOR_2D<double> > u_np1;
 	VECTOR_2D<double> sup;
@@ -265,7 +260,7 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D<double> > *u, ImgVector<VECT
 				ErrorIncrementCount = 0;
 			}
 		}
-#ifdef SHOW_IRLS_MULTIPLEMOTION_OPTICALFLOW_E
+#ifdef SHOW_IRLS_OPTICALFLOW_PYRAMID_E
 		if ((n & 0x3F) == 0) {
 			printf("E(%4d) = %e\n", n, E);
 		}
@@ -278,7 +273,7 @@ IRLS_MultipleMotion_OpticalFlow(ImgVector<VECTOR_2D<double> > *u, ImgVector<VECT
 
 
 VECTOR_2D<double>
-Error_u(int site, ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+Error_u(int site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
@@ -320,7 +315,7 @@ Error_u(int site, ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> 
 
 
 VECTOR_2D<double>
-sup_Error_uu(ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+sup_Error_uu(const ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	static VECTOR_2D<double> Img_g_max;
 	VECTOR_2D<double> sup;
@@ -343,7 +338,7 @@ sup_Error_uu(ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const 
 
 
 double
-Error_MultipleMotion(ImgVector<VECTOR_2D<double> > *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+Error_MultipleMotion(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
