@@ -195,7 +195,7 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = Motion_Vector->get(x / W, y / W);
+			VECTOR_2D<double> u_offset = Motion_Vector->get(x / W, y / H);
 
 			I_dt_levels[level].ref(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
