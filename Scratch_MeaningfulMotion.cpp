@@ -256,7 +256,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
-				printf("* Compute Multiple Motions Affine Parameters by method of M.J.Black\n");
+				printf("* Compute Multiple Motions Affine Parameters by method of Michael J. Black\n");
 				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
@@ -264,7 +264,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
-				printf("* Compute Optical Flow by method of M.J.Black\n");
+				printf("* Compute Optical Flow by method of Michael J. Black\n");
 				//MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 				MultipleMotion_u = OpticalFlow_BlockMatching(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}

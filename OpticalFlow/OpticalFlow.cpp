@@ -140,23 +140,12 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		    IterMax_level,
 		    MotionParam.Error_Min_Threshold,
 		    level);
+		Add_VectorOffset(u_levels, level, MaxLevel);
 	}
-	if (MaxLevel > 1) {
-		for (int y = 0; y < u_levels[0].height(); y++) {
-			for (int x = 0; x < u_levels[0].width(); x++) {
-				u->ref(x, y).x =
-				    u_levels[0].get(x, y).x
-				    + u_levels[1].get(x / 2, y / 2).x * 2.0;
-				u->ref(x, y).y =
-				    u_levels[0].get(x, y).y
-				    + u_levels[1].get(x / 2, y / 2).y * 2.0;
-			}
-		}
-	} else {
-		for (i = 0; i < u->size(); i++) {
-			(*u)[i].x = u_levels[0][i].x;
-			(*u)[i].y = u_levels[0][i].y;
-		}
+	// Copy the lowest vector for output
+	for (i = 0; i < u->size(); i++) {
+		(*u)[i].x = u_levels[0][i].x;
+		(*u)[i].y = u_levels[0][i].y;
 	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
@@ -183,15 +172,6 @@ LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_level
 		// Do NOT need projection from higher level
 		return;
 	}
-	if (level < MaxLevel - 2) {
-		// Add offset calculated by using the higher level's motion vector
-		for (int y = 0; y < u_levels[level + 1].height(); y++) {
-			for (int x = 0; x < u_levels[level + 1].width(); x++) {
-				u_levels[level + 1].ref(x, y).x += u_levels[level + 2].get(x / 2, y / 2).x * 2.0;
-				u_levels[level + 1].ref(x, y).y += u_levels[level + 2].get(x / 2, y / 2).y * 2.0;
-			}
-		}
-	}
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
 			VECTOR_2D<double> u_offset = u_levels[level + 1].get(x / 2, y / 2);
@@ -207,6 +187,23 @@ LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_level
 			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
 			u_levels[level].ref(x, y).x = 0.0;
 			u_levels[level].ref(x, y).y = 0.0;
+		}
+	}
+}
+
+
+void
+Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLevel)
+{
+	if (level == MaxLevel - 1) {
+		// Do NOT need projection from higher level
+		return;
+	}
+	// Add offset calculated by using the higher level's motion vector
+	for (int y = 0; y < u_levels[level].height(); y++) {
+		for (int x = 0; x < u_levels[level].width(); x++) {
+			u_levels[level].ref(x, y).x += u_levels[level + 1].get(x / 2, y / 2).x * 2.0;
+			u_levels[level].ref(x, y).y += u_levels[level + 1].get(x / 2, y / 2).y * 2.0;
 		}
 	}
 }
