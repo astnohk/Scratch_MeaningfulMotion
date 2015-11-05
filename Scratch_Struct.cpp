@@ -1,4 +1,5 @@
 #include "Scratch_MeaningfulMotion.h"
+#include "Plot/Plot_X11.h"
 
 
 
@@ -102,15 +103,6 @@ FILTER_PARAM::ChangeFilter(const char *name)
 
 
 
-// Multiple Motion Parameters
-#define MULTIPLE_MOTION_PARAM_Level 5
-#define MULTIPLE_MOTION_PARAM_IRLS_Iter_Max 300
-#define MULTIPLE_MOTION_PARAM_Error_Min_Threshold (1.0E-6)
-#define MULTIPLE_MOTION_PARAM_lambdaD 5
-#define MULTIPLE_MOTION_PARAM_lambdaS 1
-#define MULTIPLE_MOTION_PARAM_sigmaD 12.72
-#define MULTIPLE_MOTION_PARAM_sigmaS 2.121
-#define MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize 9;
 MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
 {
 	Level = MULTIPLE_MOTION_PARAM_Level;

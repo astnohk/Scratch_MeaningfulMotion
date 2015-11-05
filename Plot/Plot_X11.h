@@ -10,13 +10,18 @@
 #define WINDOW_X_DEFAULT 800
 #define WINDOW_Y_DEFAULT 800
 
-/* Constants for Events */
+
+// Plotting parameters
+#define DEFAULT_INTENSITY_INTERVAL 8
+#define DEFAULT_PLOT_Z_SCALE 0.1
+
+
+// Constants for Events
 #define X_NO_EVENT 0
 #define X_ESCAPE 1
-/* /Constants for Events */
 
 
-/* Xlib variables */
+// Xlib variables
 extern const char *ProgramName;
 extern SIZE Window_size;
 extern Display *disp;
@@ -27,7 +32,6 @@ extern GC GCmono;
 extern GC GCcol[RGB_COLOR];
 extern GC GCcol_dark[RGB_COLOR];
 extern Colormap cmap;
-/* /Xlib variables */
 
 
 #define ROTATE_ANGLE_MAX 3600

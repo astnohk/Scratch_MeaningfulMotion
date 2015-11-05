@@ -130,10 +130,21 @@
 
 
 
+// Multiple Motion Parameters
+#define MULTIPLE_MOTION_PARAM_Level 5
+#define MULTIPLE_MOTION_PARAM_IRLS_Iter_Max 300
+#define MULTIPLE_MOTION_PARAM_Error_Min_Threshold (1.0E-6)
+#define MULTIPLE_MOTION_PARAM_lambdaD 5
+#define MULTIPLE_MOTION_PARAM_lambdaS 1
+#define MULTIPLE_MOTION_PARAM_sigmaD 12.72
+#define MULTIPLE_MOTION_PARAM_sigmaS 2.121
+#define MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize 17;
+
+
+
 
 extern const std::string Progress[NUM_PROGRESS];
 extern const std::string Progress_End;
-
 
 
 
