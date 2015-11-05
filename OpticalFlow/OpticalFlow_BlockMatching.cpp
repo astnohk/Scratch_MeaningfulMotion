@@ -40,17 +40,18 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
 	const double sigmaS_l0 = 0.03 / sqrt(2.0);
 
+	int BM_Search_Range = 61; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
 	int level;
 	int i;
 
 	if (It == nullptr) {
-		throw std::invalid_argument("const ImgVector<double>* It");
+		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* It");
 	} else if (Itp1 == nullptr) {
-		throw std::invalid_argument("const ImgVector<double>* Itp1");
+		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* Itp1");
 	} else if (MaxInt < 0) {
-		throw std::invalid_argument("double MaxInt");
+		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : double MaxInt");
 	}
 
 	// Image Normalization
@@ -68,8 +69,11 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	// ----- Block Matching -----
 	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
+	block_matching.block_matching(BM_Search_Range);
 	Motion_Vector.copy(block_matching.data());
-	printf("%d\n", Motion_Vector.width());
+	for (int i = 0; i < 10; i++) {
+		printf("(%f, %f)\n", Motion_Vector.get(1, i).x, Motion_Vector.get(1, i).y);
+	}
 
 	// ----- Optical Flow -----
 	try {
@@ -79,6 +83,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		except_bad_alloc = bad;
 		goto ExitError;
 	}
+#ifdef abababababaaa
 	try {
 		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel];
 	}
@@ -169,6 +174,14 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 			(*u)[i].y = u_levels[0][i].y;
 		}
 	}
+#endif
+	for (int y = 0 ; y < u->height(); y++) {
+		for (int x = 0; x < u->width(); x++) {
+			int W = (int)ceil((double)u->width() / Motion_Vector.width());
+			u->ref(x, y).x = Motion_Vector.get_zeropad(x / W, y / W).x;
+			u->ref(x, y).y = Motion_Vector.get_zeropad(x / W, y / W).y;
+		}
+	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
 	delete[] I_dt_levels;
@@ -201,6 +214,8 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
 			VECTOR_2D<double> u_offset = Motion_Vector->get(x / W, y / H);
+			u_offset.x /= W;
+			u_offset.y /= H;
 
 			I_dt_levels[level].ref(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
