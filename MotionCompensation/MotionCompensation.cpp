@@ -27,8 +27,12 @@ MotionCompensation::MotionCompensation(int width, int height, const double *imag
 	_width = 0;
 	_height = 0;
 	if (width > 0 && height > 0) {
-		if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
-			throw std::invalid_argument("pointer is NULL");
+		if (image_prev == nullptr) {
+			throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, const VECTOR_2D<double>*) : image_prev is NULL");
+		} else if (image_next == nullptr) {
+			throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, const VECTOR_2D<double>*) : image_next is NULL");
+		} else if (vector == nullptr) {
+			throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, const VECTOR_2D<double>*) : vector is NULL");
 		}
 		_width = width;
 		_height = height;
@@ -45,8 +49,12 @@ MotionCompensation::MotionCompensation(int width, int height, const double *imag
 	_width = 0;
 	_height = 0;
 	if (width > 0 && height > 0) {
-		if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
-			throw std::invalid_argument("pointer is NULL");
+		if (image_prev == nullptr) {
+			throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, int, int, const VECTOR_2D<double>*) : image_prev is NULL");
+		} else if (image_next == nullptr) {
+			throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, int, int, const VECTOR_2D<double>*) : image_next is NULL");
+		} else if (vector == nullptr) {
+			throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, int, int, const VECTOR_2D<double>*) : vector is NULL");
 		}
 		_width = width;
 		_height = height;
@@ -70,8 +78,12 @@ MotionCompensation::MotionCompensation(const ImgVector<double> &image_prev, cons
 	motion_compensated = false;
 	_width = 0;
 	_height = 0;
-	if (image_prev.isNULL() || image_next.isNULL() || vector.isNULL()) {
-		throw std::invalid_argument("variable is empty");
+	if (image_prev.isNULL()) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>&, const ImgVector<double>&, const VECTOR_2D<double>&) : image_prev is empty");
+	} else if (image_next.isNULL()) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>&, const ImgVector<double>&, const VECTOR_2D<double>&) : image_next is empty");
+	} else if (vector.isNULL()) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>&, const ImgVector<double>&, const VECTOR_2D<double>&) : vector is empty");
 	}
 	_width = image_prev.width();
 	_height = image_prev.height();
@@ -98,10 +110,19 @@ MotionCompensation::MotionCompensation(const ImgVector<double> *image_prev, cons
 	motion_compensated = false;
 	_width = 0;
 	_height = 0;
-	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
-		throw std::invalid_argument("pointer is NULL");
-	} else if (image_prev->isNULL() || image_next->isNULL() || vector->isNULL()) {
-		throw std::invalid_argument("variable is empty");
+	if (image_prev == nullptr) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_prev is NULL");
+	} else if (image_next == nullptr) {                                                                                                                               
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_next is NULL");
+	} else if (vector == nullptr) {                                                                                                                                   
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : vector is NULL");
+	}                                                                                                                                                                 
+	if (image_prev->isNULL()) {                                                                                                                                        
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_prev is empty");
+	} else if (image_next->isNULL()) {                                                                                                                                 
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_next is empty");
+	} else if (vector->isNULL()) {                                                                                                                                     
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : vector is empty");
 	}
 	_width = image_prev->width();
 	_height = image_prev->height();
@@ -153,8 +174,12 @@ MotionCompensation::set(int width, int height, const double *image_prev, const d
 		_image_compensated.reset(0, 0);
 		return *this;
 	}
-	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
-		throw std::invalid_argument("pointer is NULL");
+	if (image_prev == nullptr) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, const VECTOR_2D<double>*) : image_prev is NULL");
+	} else if (image_next == nullptr) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, const VECTOR_2D<double>*) : image_next is NULL");
+	} else if (vector == nullptr) {
+		throw std::invalid_argument("MotionCompensation::MotionCompensation(int, int, const double*, const double*, const VECTOR_2D<double>*) : vector is NULL");
 	}
 
 	motion_compensated = false;
@@ -180,8 +205,12 @@ MotionCompensation::set(int width, int height, const double *image_prev, const d
 		_image_compensated.reset(0, 0);
 		return *this;
 	}
-	if (image_prev == nullptr || image_next == nullptr || vector == nullptr) {
-		throw std::invalid_argument("pointer is NULL");
+	if (image_prev == nullptr) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(int, int, const double*, const double*, const VECTOR_2D<double>*) : image_prev is NULL");
+	} else if (image_next == nullptr) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(int, int, const double*, const double*, const VECTOR_2D<double>*) : image_next is NULL");
+	} else if (vector == nullptr) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(int, int, const double*, const double*, const VECTOR_2D<double>*) : vector is NULL");
 	}
 
 	motion_compensated = false;
@@ -205,8 +234,12 @@ MotionCompensation::set(int width, int height, const double *image_prev, const d
 MotionCompensation &
 MotionCompensation::set(const ImgVector<double> &image_prev, const ImgVector<double> &image_next, const ImgVector<VECTOR_2D<double> > &vector)
 {
-	if (image_prev.isNULL() || image_next.isNULL() || vector.isNULL()) {
-		throw std::invalid_argument("variable is empty");
+	if (image_prev.isNULL()) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>&, const ImgVector<double>&, const ImgVector<VECTOR_2D<double> >&) : image_prev is empty");
+	} else if (image_next.isNULL()) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>&, const ImgVector<double>&, const ImgVector<VECTOR_2D<double> >&) : image_next is empty");
+	} else if (vector.isNULL()) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>&, const ImgVector<double>&, const ImgVector<VECTOR_2D<double> >&) : vector is empty");
 	}
 
 	motion_compensated = false;
@@ -238,6 +271,20 @@ MotionCompensation::set(const ImgVector<double> *image_prev, const ImgVector<dou
 		throw std::invalid_argument("pointer is NULL");
 	} else if (image_prev->isNULL() || image_next->isNULL() || vector->isNULL()) {
 		throw std::invalid_argument("variable is empty");
+	}
+	if (image_prev == nullptr) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_prev is NULL");
+	} else if (image_next == nullptr) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_next is NULL");
+	} else if (vector == nullptr) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : vector is NULL");
+	}
+	if (image_prev->isNULL()) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_prev is empty");
+	} else if (image_next->isNULL()) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : image_next is empty");
+	} else if (vector->isNULL()) {
+		throw std::invalid_argument("MotionCompensation& MotionCompensation::set(const ImgVector<double>*, const ImgVector<double>*, const ImgVector<VECTOR_2D<double> >*) : vector is empty");
 	}
 
 	motion_compensated = false;
