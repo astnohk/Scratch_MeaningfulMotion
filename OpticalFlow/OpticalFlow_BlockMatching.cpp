@@ -40,7 +40,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
 	const double sigmaS_l0 = 0.03 / sqrt(2.0);
 
-	int BM_Search_Range = 61; // Block Matching search range
+	int BM_Search_Range = 101; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
 	int level;
@@ -179,7 +179,7 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching->get((int)floor(x * Scale / block_matching->vector_width()), (int)floor(y * Scale / block_matching->vector_height()));
+			VECTOR_2D<double> u_offset = block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size()));
 			u_offset.x /= block_matching->vector_width();
 			u_offset.y /= block_matching->vector_height();
 
@@ -208,8 +208,8 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
-				u_levels[level].ref(x, y).x += block_matching->get((int)floor(x * Scale / block_matching->vector_width()), (int)floor(y * Scale / block_matching->vector_height())).x;
-				u_levels[level].ref(x, y).y += block_matching->get((int)floor(x * Scale / block_matching->vector_width()), (int)floor(y * Scale / block_matching->vector_height())).y;
+				u_levels[level].ref(x, y).x += block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).x;
+				u_levels[level].ref(x, y).y += block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).y;
 			}
 		}
 	} else {
