@@ -24,8 +24,8 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 	ERROR Error("OpticalFlow_Pyramid");
 
 	// M-estimator parameter
-	const double lambdaD = 5.0;
-	const double lambdaS = 1.0;
+	const double lambdaD = 10.0; //5.0
+	const double lambdaS = 1.0; //1.0
 	double sigmaD;
 	const double sigmaD_init = 0.8 / sqrt(2.0); //18.0 / sqrt(2.0);
 	const double sigmaD_l0 = 0.2 / sqrt(2.0); //4.0 / sqrt(2.0);

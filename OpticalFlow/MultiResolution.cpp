@@ -7,7 +7,7 @@
 
 
 ImgVector<double> *
-Pyramider(ImgVector<double> *img, int Level)
+Pyramider(ImgVector<double> *img, int MaxLevel)
 {
 #define WEIGHTED_FILTER_SIZE 5
 	ERROR Error("Pyramider");
@@ -27,15 +27,15 @@ Pyramider(ImgVector<double> *img, int Level)
 	char filename[128];
 
 	try {
-		Pyramid = new ImgVector<double>[Level];
+		Pyramid = new ImgVector<double>[MaxLevel];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("Pyramid");
 		Error.Malloc();
 		goto ExitError;
 	}
-	Pyramid[0].reset(img->width(), img->height(), img->data()); // Level 0 is equal to original image
-	for (l = 1; l < Level; l++) {
+	Pyramid[0].reset(img->width(), img->height(), img->data()); // MaxLevel 0 is equal to original image
+	for (l = 1; l < MaxLevel; l++) {
 		size_l.width = (int)ceil(img->width() * pow_int(0.5, l));
 		size_l.height = (int)ceil(img->height() * pow_int(0.5, l));
 		if (size_l.width <= 0 || size_l.height <= 0) {
@@ -61,7 +61,7 @@ Pyramider(ImgVector<double> *img, int Level)
 	}
 
 	// Make image pyramid (l > 0)
-	for (l = 1; l < Level; l++) {
+	for (l = 1; l < MaxLevel; l++) {
 		size_lm1 = size_l;
 		size_l.width = (int)ceil(img->width() * pow_int(0.5, l));
 		size_l.height = (int)ceil(img->height() * pow_int(0.5, l));
@@ -84,7 +84,7 @@ Pyramider(ImgVector<double> *img, int Level)
 	}
 #if defined(DEBUG_PYRAMID)
 	// Test Output
-	for (l = 0; l < Level; l++) {
+	for (l = 0; l < MaxLevel; l++) {
 		pnm.copy(PORTABLE_GRAYMAP_BINARY, Pyramid[l].width(), Pyramid[l].height(), 255, Pyramid[l].data(), 256.0);
 		sprintf(filename, "Pyramid_%04d.pgm", l);
 		pnm.write(filename);

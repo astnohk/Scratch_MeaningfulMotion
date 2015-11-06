@@ -119,6 +119,11 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		goto ExitError;
 	}
 
+	// Initialize u_levels
+	for (level = 0; level < MaxLevel; level++) {
+		u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
+	}
+	// Multi-Resolution IRLS Optical Flow estimation
 	for (level = MaxLevel - 1; level >= 0; level--) {
 		if (MaxLevel > 1) {
 			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
@@ -127,7 +132,6 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 			sigmaD = sigmaD_l0;
 			sigmaS = sigmaS_l0;
 		}
-		u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 		if (level >= MaxLevel - 1) {
 			BM2OpticalFlow(I_dt_levels, u_levels, It_levels, Itp1_levels, level, &block_matching);
@@ -208,8 +212,12 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
-				u_levels[level].ref(x, y).x += block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).x;
-				u_levels[level].ref(x, y).y += block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).y;
+				u_levels[level].ref(x, y).x +=
+				    block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).x
+				    / Scale;
+				u_levels[level].ref(x, y).y +=
+				    block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).y
+				    / Scale;
 			}
 		}
 	} else {
