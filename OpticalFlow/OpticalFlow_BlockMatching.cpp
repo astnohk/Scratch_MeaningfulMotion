@@ -69,7 +69,8 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	// ----- Block Matching -----
 	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
-	block_matching.block_matching(BM_Search_Range);
+	//block_matching.block_matching(BM_Search_Range);
+	block_matching.block_matching_forward(BM_Search_Range);
 	Motion_Vector.copy(block_matching.data());
 
 	// ----- Optical Flow -----
