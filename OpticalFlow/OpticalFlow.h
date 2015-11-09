@@ -11,7 +11,7 @@
 
 #include "../lib/Struct.h"
 #include "../ImgClass/Vector.h"
-#include "../MotionCompensation/MotionCompensation.h"
+#include "../ImgClass/MotionCompensation.h"
 #include "../Scratch_MeaningfulMotion.h"
 
 

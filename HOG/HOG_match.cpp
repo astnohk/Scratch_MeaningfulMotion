@@ -1,6 +1,7 @@
-#include "../Scratch_MeaningfulMotion.h"
+#include "../ImgClass/MotionCompensation.h"
 #include "HOG.h"
-#include "../MotionCompensation/MotionCompensation.h"
+
+#include "../Scratch_MeaningfulMotion.h"
 
 
 

@@ -13,6 +13,7 @@
 
 
 
+// This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
 {
@@ -105,7 +106,8 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 	// Derivative about time
 	try {
-		I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MaxLevel);
+		//I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MaxLevel);
+		I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MaxLevel);
 	}
 	catch (const std::bad_alloc &bad) {
 		except_bad_alloc = bad;
@@ -113,7 +115,8 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 	// Derivative about space
 	try {
-		grad_It_levels = grad_Pyramid(It_levels, nullptr, MaxLevel);
+		//grad_It_levels = grad_Pyramid(It_levels, nullptr, MaxLevel);
+		grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MaxLevel);
 	}
 	catch (const std::bad_alloc &bad) {
 		except_bad_alloc = bad;
