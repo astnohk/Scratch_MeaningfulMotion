@@ -41,7 +41,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
 	const double sigmaS_l0 = 0.03 / sqrt(2.0);
 
-	int BM_Search_Range = 101; // Block Matching search range
+	int BM_Search_Range = 41; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
 	int level;
@@ -71,7 +71,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	// ----- Block Matching -----
 	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
 	//block_matching.block_matching(BM_Search_Range);
-	block_matching.block_matching_forward(BM_Search_Range);
+	block_matching.block_matching_SAD_ZNCC(BM_Search_Range);
 	Motion_Vector.copy(block_matching.data());
 
 	// ----- Optical Flow -----
@@ -142,7 +142,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		} else {
 			LevelDown(I_dt_levels, u_levels, It_levels, Itp1_levels, level, MaxLevel);
 		}
-		IterMax_level = (level + 1) * 10 * MAX(It->width(), It->height());
+		IterMax_level = (level + 1) * 5 * MAX(It->width(), It->height());
 		if (IterMax < 0 && IterMax_level >= IterMax) {
 			IterMax_level = IterMax;
 		}

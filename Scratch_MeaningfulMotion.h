@@ -138,7 +138,7 @@
 #define MULTIPLE_MOTION_PARAM_lambdaS 1
 #define MULTIPLE_MOTION_PARAM_sigmaD 12.72
 #define MULTIPLE_MOTION_PARAM_sigmaS 2.121
-#define MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize 8;
+#define MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize 16;
 
 
 
