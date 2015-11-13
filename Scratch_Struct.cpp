@@ -112,7 +112,7 @@ MULTIPLE_MOTION_PARAM::MULTIPLE_MOTION_PARAM(void)
 	lambdaS = MULTIPLE_MOTION_PARAM_lambdaS;
 	sigmaD = MULTIPLE_MOTION_PARAM_sigmaD;
 	sigmaS = MULTIPLE_MOTION_PARAM_sigmaS;
-	BlockMatching_BlockSize = 9;
+	BlockMatching_BlockSize = MULTIPLE_MOTION_PARAM_BlockMatching_BlockSize;
 }
 
 void
