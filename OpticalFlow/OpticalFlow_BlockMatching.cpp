@@ -141,7 +141,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		} else {
 			LevelDown(I_dt_levels, u_levels, It_levels, Itp1_levels, level, MaxLevel);
 		}
-		IterMax_level = (MaxLevel - level) * MAX(It->width(), It->height());
+		IterMax_level = (MaxLevel - level) * 4 * MAX(It->width(), It->height());
 		if (IterMax < 0 && IterMax_level >= IterMax) {
 			IterMax_level = IterMax;
 		}
