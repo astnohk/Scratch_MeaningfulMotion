@@ -4,19 +4,21 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
-#include "Affine_MultipleMotion.h"
+#include "Affine_BlockMatching.h"
 
 
 
 
-VECTOR_AFFINE
-MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam)
+ImgVector<VECTOR_2D<double> > *
+OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam)
 {
 	ERROR Error("MultipleMotion_Affine");
+	std::bad_alloc bad_alloc;
 
 	// M-estimator parameter
 	const double sigmaD = 0.1 * sqrt(3.0);
-	VECTOR_AFFINE u;
+	ImgVector<VECTOR_2D<double> >* u = nullptr;
+	VECTOR_AFFINE* affine = nullptr;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
 	ImgVector<double> *I_dt_levels = nullptr;
@@ -45,16 +47,21 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 		Itp1_normalize[i] /= MaxInt;
 	}
 	// Make Pyramid
-	if ((It_levels = Pyramider(&It_normalize, MotionParam.Level)) == nullptr) {
+	try {
+		It_levels = Pyramider(&It_normalize, MotionParam.Level);
+	}
+	catch (const std::bad_alloc& bad) {
 		Error.Function("Pyramider");
 		Error.Value("It_levels");
 		Error.FunctionFail();
+		bad_alloc = bad;
 		goto ExitError;
 	}
 	if ((Itp1_levels = Pyramider(&Itp1_normalize, MotionParam.Level)) == nullptr) {
 		Error.Function("Pyramider");
 		Error.Value("Itp1_levels");
 		Error.FunctionFail();
+		bad_alloc = bad;
 		goto ExitError;
 	}
 	// Derivative about time
@@ -62,6 +69,7 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 		Error.Function("dt_Pyramid");
 		Error.Value("I_dt_levels");
 		Error.FunctionFail();
+		bad_alloc = bad;
 		goto ExitError;
 	}
 	// Derivative about space
@@ -69,6 +77,7 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
 		Error.FunctionFail();
+		bad_alloc = bad;
 		goto ExitError;
 	}
 
@@ -79,7 +88,7 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 		u.a[0] *= 2;
 		u.a[3] *= 2;
 		IterMax = 2 * MAX(I_dt_levels[level].width(), I_dt_levels[level].height());
-		IRLS_MultipleMotion_Affine(
+		IRLS_Affine_Block(
 		    &u,
 		    (grad_It_levels + level),
 		    (I_dt_levels + level),
@@ -101,12 +110,12 @@ ExitError:
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u.a[i] = .0;
 	}
-	return u;
+	throw bad_alloc;
 }
 
 
 bool
-IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
+IRLS_Affine_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
 	VECTOR_AFFINE u_np1;
 	VECTOR_AFFINE sup;
@@ -146,7 +155,7 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_
 
 
 VECTOR_AFFINE
-Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_a_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
@@ -173,7 +182,7 @@ Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double
 
 
 VECTOR_AFFINE
-sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
+sup_Error_aa_Block(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 {
 	ERROR Error("sup_Error_aa");
 
@@ -225,7 +234,7 @@ sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 
 
 double
-Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_Affine_Block(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double E = 0.0;
@@ -240,35 +249,5 @@ Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVe
 		E += (*rhoD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
 	}
 	return E;
-}
-
-
-void
-MultipleMotion_Affine_write(VECTOR_AFFINE u, const std::string &filename)
-{
-	ERROR Error("MultipleMotion_Affine_write");
-
-	FILE *fp = nullptr;
-	int i;
-
-	printf("* Output Affine Parameter to '%s'\n", filename.c_str());
-	if ((fp = fopen(filename.c_str(), "w")) == nullptr) {
-		throw std::logic_error("fopen");
-	}
-	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
-		if (fprintf(fp, "%0.16e ", u.a[i]) < 0) {
-			Error.Function("fprintf");
-			Error.Value("u(a(i))");
-			Error.FunctionFail();
-			throw std::logic_error("fprintf");
-		}
-		if (fprintf(fp, "\n") < 0) {
-			Error.Function("fprintf");
-			Error.Value("'\n'");
-			Error.FunctionFail();
-			throw std::logic_error("fprintf");
-		}
-	}
-	fclose(fp);
 }
 

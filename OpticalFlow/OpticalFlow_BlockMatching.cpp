@@ -105,7 +105,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 	// Derivative about time
 	try {
-		//I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MaxLevel);
+		// The order reversed along with Block Matching (ordinary It -> Itp1)
 		I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MaxLevel);
 	}
 	catch (const std::bad_alloc &bad) {
@@ -114,7 +114,6 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 	// Derivative about space
 	try {
-		//grad_It_levels = grad_Pyramid(It_levels, nullptr, MaxLevel);
 		grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MaxLevel);
 	}
 	catch (const std::bad_alloc &bad) {
@@ -137,11 +136,13 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		}
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 		if (level >= MaxLevel - 1) {
-			BM2OpticalFlow(I_dt_levels, u_levels, It_levels, Itp1_levels, level, &block_matching);
+			// The order reversed (ordinary It -> Itp1)
+			BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
 		} else {
-			LevelDown(I_dt_levels, u_levels, It_levels, Itp1_levels, level, MaxLevel);
+			// The order reversed (ordinary It -> Itp1)
+			LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
 		}
-		IterMax_level = (MaxLevel - level) * 4 * MAX(It->width(), It->height());
+		IterMax_level = 4 * MAX(It->width(), It->height());
 		if (IterMax < 0 && IterMax_level >= IterMax) {
 			IterMax_level = IterMax;
 		}

@@ -15,13 +15,11 @@
 
 
 
-VECTOR_AFFINE MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam);
-bool IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold);
+ImgVector<VECTOR_2D<double> >* OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam);
+bool IRLS_Affine_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold);
 
-VECTOR_AFFINE Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD);
-VECTOR_AFFINE sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD);
+VECTOR_AFFINE Error_a_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD);
+VECTOR_AFFINE sup_Error_aa_Block(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD);
 
-double Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD);
-
-void MultipleMotion_Affine_write(VECTOR_AFFINE u, const std::string &filename);
+double Error_Affine_Block(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD);
 
