@@ -25,6 +25,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	ImgVector<double> *It_levels = nullptr;
 	ImgVector<double> *Itp1_levels = nullptr;
 	ImgVector<VECTOR_2D<double> > *grad_It_levels = nullptr;
+	std::vector<std::vector<VECTOR_2D<int> > > connected_domains;
 	SIZE size_img_l;
 	int level;
 	int IterMax;
@@ -115,39 +116,39 @@ ExitError:
 
 
 bool
-IRLS_Affine_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
+IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<VECTOR_2D<int> > >& connected_domains, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
-	VECTOR_AFFINE u_np1;
-	VECTOR_AFFINE sup;
-	VECTOR_AFFINE dE;
-	double E = 0.0;
-	double omega;
+	const double omega_initial = 1.0E-4;
 
 	printf("sigmaD = %e\n", sigmaD);
-	sup = sup_Error_aa(Img_g, sigmaD);
 	printf("size (%d, %d)\n", Img_g->width(), Img_g->height());
 	printf("E %e\n", Error_Affine(u, Img_g, Img_t, sigmaD));
-	for (int n = 0; n < IterMax; n++) {
-		omega = 1.0E-4;
-		dE = Error_a(u, Img_g, Img_t, sigmaD);
-		sup = sup_Error_aa(Img_g, sigmaD);
-		for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
-			u_np1.a[i] = .0;
-		}
-		for (int i = 0; i < 6; i++) {
-			if (fabs(sup.a[i]) < 1.0E-16) {
-				u_np1.a[i] = u->a[i] - omega / 1.0E-16 * SIGN_NOZERO(sup.a[i]) * dE.a[i];
-			} else {
-				u_np1.a[i] = u->a[i] - omega / sup.a[i] * dE.a[i];
+	for (int R = 0; R < connected_domains.size(); R++) {
+		for (int n = 0; n < IterMax; n++) {
+			VECTOR_AFFINE u_np1;
+			VECTOR_AFFINE dE = Error_a_Block((*u)[R], connected_domains[R], Img_g, Img_t, sigmaD);
+			VECTOR_AFFINE sup = sup_Error_aa_Block(connected_domains[R], Img_g, sigmaD);
+			double E = 0.0;
+			double omega = omega_initial;
+
+			for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+				u_np1.a[i] = .0;
 			}
-		}
-		*u = u_np1;
-		E = Error_Affine(u, Img_g, Img_t, sigmaD);
-		if ((n & 0x3F) == 0) {
-			printf("E(%4d) = %e,  u = [%.4e, %.4e, %.4e, %.4e, %.4e, %.4e]\n", n, E, u->a[0], u->a[1], u->a[2], u->a[3], u->a[4], u->a[5]);
-		}
-		if (E < ErrorMinThreshold) {
-			break;
+			for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+				if (fabs(sup.a[i]) < 1.0E-16) {
+					u_np1.a[i] = u->at(R).a[i] - omega / 1.0E-16 * SIGN_NOZERO(sup.a[i]) * dE.a[i];
+				} else {
+					u_np1.a[i] = u->at(R).a[i] - omega / sup.a[i] * dE.a[i];
+				}
+			}
+			u->at(R) = u_np1;
+			E = Error_Affine_Block((*u)[R], connected_domains[R], Img_g, Img_t, sigmaD);
+			/*if ((n & 0x3F) == 0) {
+				printf("E(%4d) = %e,  u = [%.4e, %.4e, %.4e, %.4e, %.4e, %.4e]\n", n, E, u->a[0], u->a[1], u->a[2], u->a[3], u->a[4], u->a[5]);
+			}*/
+			if (E < ErrorMinThreshold) {
+				break;
+			}
 		}
 	}
 	return MEANINGFUL_SUCCESS;
@@ -155,7 +156,7 @@ IRLS_Affine_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVec
 
 
 VECTOR_AFFINE
-Error_a_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_a_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& connected_domain, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
@@ -164,25 +165,24 @@ Error_a_Block(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		E_a.a[i] = .0;
 	}
-	for (int site = 0; site < Img_g->size(); site++) {
-		int x, y;
-		x = site % Img_g->width();
-		y = site / Img_g->width();
-		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
-		u_a.y = u->a[3] + u->a[4] * x + u->a[5] * y;
-		E_a.a[0] += Img_g->get(site).x * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
-		E_a.a[1] += Img_g->get(site).x * x * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
-		E_a.a[2] += Img_g->get(site).x * y * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
-		E_a.a[3] += Img_g->get(site).y * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
-		E_a.a[4] += Img_g->get(site).y * x * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
-		E_a.a[5] += Img_g->get(site).y * y * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
+	for (int site = 0; site < connected_domain.size(); site++) {
+		int x = connected_domain[site].x;
+		int y = connected_domain[site].y;
+		u_a.x = u.a[0] + u.a[1] * x + u.a[2] * y;
+		u_a.y = u.a[3] + u.a[4] * x + u.a[5] * y;
+		E_a.a[0] += Img_g->get(x, y).x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
+		E_a.a[1] += Img_g->get(x, y).x * x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
+		E_a.a[2] += Img_g->get(x, y).x * y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
+		E_a.a[3] += Img_g->get(x, y).y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
+		E_a.a[4] += Img_g->get(x, y).y * x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
+		E_a.a[5] += Img_g->get(x, y).y * y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
 	}
 	return E_a;
 }
 
 
 VECTOR_AFFINE
-sup_Error_aa_Block(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
+sup_Error_aa_Block(const std::vector<VECTOR_2D<int> >& connected_domain, const ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 {
 	ERROR Error("sup_Error_aa");
 
@@ -198,29 +198,28 @@ sup_Error_aa_Block(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 		Error.PointerNull();
 		return u_aa_max;
 	}
-	for (i = 0; i < Img_g->size(); i++) {
-		int x, y;
-		x = i % Img_g->width();
-		y = i / Img_g->width();
+	for (i = 0; i < connected_domain.size(); i++) {
+		int x = connected_domain[i].x;
+		int y = connected_domain[i].y;
 		/* u = a0 + a1 * x + a2 * y */
-		if (u_aa_max.a[0] < POW2(Img_g->get(i).x)) {
-			u_aa_max.a[0] = POW2(Img_g->get(i).x);
+		if (u_aa_max.a[0] < POW2(Img_g->get(x, y).x)) {
+			u_aa_max.a[0] = POW2(Img_g->get(x, y).x);
 		}
-		if (u_aa_max.a[1] < POW2(Img_g->get(i).x * x)) {
-			u_aa_max.a[1] = POW2(Img_g->get(i).x * x);
+		if (u_aa_max.a[1] < POW2(Img_g->get(x, y).x * x)) {
+			u_aa_max.a[1] = POW2(Img_g->get(x, y).x * x);
 		}
-		if (u_aa_max.a[2] < POW2(Img_g->get(i).x * y)) {
-			u_aa_max.a[2] = POW2(Img_g->get(i).x * y);
+		if (u_aa_max.a[2] < POW2(Img_g->get(x, y).x * y)) {
+			u_aa_max.a[2] = POW2(Img_g->get(x, y).x * y);
 		}
 		/* v = a3 + a4 * x + a5 * y */
-		if (u_aa_max.a[3] < POW2(Img_g->get(i).y)) {
-			u_aa_max.a[3] = POW2(Img_g->get(i).y);
+		if (u_aa_max.a[3] < POW2(Img_g->get(x, y).y)) {
+			u_aa_max.a[3] = POW2(Img_g->get(x, y).y);
 		}
-		if (u_aa_max.a[4] < POW2(Img_g->get(i).y * x)) {
-			u_aa_max.a[4] = POW2(Img_g->get(i).y * x);
+		if (u_aa_max.a[4] < POW2(Img_g->get(x, y).y * x)) {
+			u_aa_max.a[4] = POW2(Img_g->get(x, y).y * x);
 		}
-		if (u_aa_max.a[5] < POW2(Img_g->get(i).y * y)) {
-			u_aa_max.a[5] = POW2(Img_g->get(i).y * y);
+		if (u_aa_max.a[5] < POW2(Img_g->get(x, y).y * y)) {
+			u_aa_max.a[5] = POW2(Img_g->get(x, y).y * y);
 		}
 	}
 	sup.a[0] = u_aa_max.a[0] * 2.0 / POW2(sigmaD);
@@ -234,19 +233,18 @@ sup_Error_aa_Block(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 
 
 double
-Error_Affine_Block(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_Affine_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& connected_domain, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double E = 0.0;
 	VECTOR_2D<double> u_a;
-	int x, y;
 
-	for (int site = 0; site < Img_g->size(); site++) {
-		x = site % Img_g->width();
-		y = site / Img_g->width();
-		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
-		u_a.y = u->a[3] + u->a[4] * x + u->a[5] * y;
-		E += (*rhoD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
+	for (int site = 0; site < connected_domain.size(); site++) {
+		int x = connected_domain[site].x;
+		int y = connected_domain[site].y;
+		u_a.x = u.a[0] + u.a[1] * x + u.a[2] * y;
+		u_a.y = u.a[3] + u.a[4] * x + u.a[5] * y;
+		E += (*rhoD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
 	}
 	return E;
 }

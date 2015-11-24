@@ -125,7 +125,7 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_
 		for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 			u_np1.a[i] = .0;
 		}
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 			if (fabs(sup.a[i]) < 1.0E-16) {
 				u_np1.a[i] = u->a[i] - omega / 1.0E-16 * SIGN_NOZERO(sup.a[i]) * dE.a[i];
 			} else {
