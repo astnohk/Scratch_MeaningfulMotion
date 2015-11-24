@@ -5,10 +5,12 @@
  */
 
 #include <string>
+#include <vector>
 
 #include "MEstimator.h"
 #include "MultiResolution.h"
 
+#include "../ImgClass/BlockMatching.h"
 #include "../lib/Struct.h"
 #include "../Scratch_MeaningfulMotion.h"
 

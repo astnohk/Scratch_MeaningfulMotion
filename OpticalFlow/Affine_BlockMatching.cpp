@@ -15,10 +15,17 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	ERROR Error("MultipleMotion_Affine");
 	std::bad_alloc bad_alloc;
 
+	// Block matching
+	BlockMatching<double> block_matching;
+	ImgVector<VECTOR_2D<double> > Motion_Vector;
+	int BM_Search_Range = 41; // Block Matching search range
+
 	// M-estimator parameter
 	const double sigmaD = 0.1 * sqrt(3.0);
+
 	ImgVector<VECTOR_2D<double> >* u = nullptr;
-	VECTOR_AFFINE* affine = nullptr;
+
+	std::vector<VECTOR_AFFINE> u_affine;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
 	ImgVector<double> *I_dt_levels = nullptr;
@@ -47,6 +54,33 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
 	}
+
+	// ----- Block Matching -----
+	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
+	block_matching.block_matching(BM_Search_Range);
+	Motion_Vector.copy(block_matching.data());
+
+	// Set connected domain
+	for (int m = 0; m < block_matching.vector_height(); m++) {
+		int M = m * block_matching.block_size();
+		for (int n = 0; n < block_matching.vector_width(); n++) {
+			int N = n * block_matching.block_size();
+			for (int y = 0; y < block_matching.block_size(); y++) {
+				if (M + y >= block_matching.height()) {
+					break;
+				}
+				for (int x = 0; x < block_matching.block_size(); x++) {
+					if (N + x >= block_matching.width()) {
+						break;
+					}
+					connected_domains[M * block_matching.vector_width() + N].push_back((VECTOR_2D<int>){N + x, M + y});
+				}
+			}
+		}
+	}
+
+	// Prepare u_affine
+	u_affine.resize(connected_domains.size());
 	// Make Pyramid
 	try {
 		It_levels = Pyramider(&It_normalize, MotionParam.Level);
@@ -58,7 +92,10 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		bad_alloc = bad;
 		goto ExitError;
 	}
-	if ((Itp1_levels = Pyramider(&Itp1_normalize, MotionParam.Level)) == nullptr) {
+	try {
+		Itp1_levels = Pyramider(&Itp1_normalize, MotionParam.Level);
+	}
+	catch (const std::bad_alloc& bad) {
 		Error.Function("Pyramider");
 		Error.Value("Itp1_levels");
 		Error.FunctionFail();
@@ -66,7 +103,10 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		goto ExitError;
 	}
 	// Derivative about time
-	if ((I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MotionParam.Level)) == nullptr) {
+	try {
+		I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MotionParam.Level);
+	}
+	catch (const std::bad_alloc& bad) {
 		Error.Function("dt_Pyramid");
 		Error.Value("I_dt_levels");
 		Error.FunctionFail();
@@ -74,7 +114,10 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		goto ExitError;
 	}
 	// Derivative about space
-	if ((grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, MotionParam.Level)) == nullptr) {
+	try {
+		grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, MotionParam.Level);
+	}
+	catch (const std::bad_alloc& bad) {
 		Error.Function("grad_Pyramid");
 		Error.Value("grad_It_levels");
 		Error.FunctionFail();
@@ -82,15 +125,20 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		goto ExitError;
 	}
 
-	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
-		u.a[i] = .0;
+	for (unsigned int R = 0; R < connected_domains.size(); R++) {
+		for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+			u_affine[R].a[i] = .0;
+		}
 	}
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
-		u.a[0] *= 2;
-		u.a[3] *= 2;
+		for (unsigned int R = 0; R < connected_domains.size(); R++) {
+			u_affine[R].a[0] *= 2;
+			u_affine[R].a[3] *= 2;
+		}
 		IterMax = 2 * MAX(I_dt_levels[level].width(), I_dt_levels[level].height());
 		IRLS_Affine_Block(
-		    &u,
+		    &u_affine,
+		    connected_domains,
 		    (grad_It_levels + level),
 		    (I_dt_levels + level),
 		    sigmaD,
@@ -108,9 +156,6 @@ ExitError:
 	delete[] I_dt_levels;
 	delete[] Itp1_levels;
 	delete[] It_levels;
-	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
-		u.a[i] = .0;
-	}
 	throw bad_alloc;
 }
 
@@ -122,8 +167,7 @@ IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<V
 
 	printf("sigmaD = %e\n", sigmaD);
 	printf("size (%d, %d)\n", Img_g->width(), Img_g->height());
-	printf("E %e\n", Error_Affine(u, Img_g, Img_t, sigmaD));
-	for (int R = 0; R < connected_domains.size(); R++) {
+	for (unsigned int R = 0; R < connected_domains.size(); R++) {
 		for (int n = 0; n < IterMax; n++) {
 			VECTOR_AFFINE u_np1;
 			VECTOR_AFFINE dE = Error_a_Block((*u)[R], connected_domains[R], Img_g, Img_t, sigmaD);
@@ -165,7 +209,7 @@ Error_a_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& connec
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		E_a.a[i] = .0;
 	}
-	for (int site = 0; site < connected_domain.size(); site++) {
+	for (unsigned int site = 0; site < connected_domain.size(); site++) {
 		int x = connected_domain[site].x;
 		int y = connected_domain[site].y;
 		u_a.x = u.a[0] + u.a[1] * x + u.a[2] * y;
@@ -188,9 +232,8 @@ sup_Error_aa_Block(const std::vector<VECTOR_2D<int> >& connected_domain, const I
 
 	VECTOR_AFFINE sup;
 	VECTOR_AFFINE u_aa_max;
-	int i;
 
-	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u_aa_max.a[i] = .0;
 	}
 	if (Img_g == nullptr) {
@@ -198,7 +241,7 @@ sup_Error_aa_Block(const std::vector<VECTOR_2D<int> >& connected_domain, const I
 		Error.PointerNull();
 		return u_aa_max;
 	}
-	for (i = 0; i < connected_domain.size(); i++) {
+	for (unsigned i = 0; i < connected_domain.size(); i++) {
 		int x = connected_domain[i].x;
 		int y = connected_domain[i].y;
 		/* u = a0 + a1 * x + a2 * y */
@@ -239,7 +282,7 @@ Error_Affine_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& c
 	double E = 0.0;
 	VECTOR_2D<double> u_a;
 
-	for (int site = 0; site < connected_domain.size(); site++) {
+	for (unsigned int site = 0; site < connected_domain.size(); site++) {
 		int x = connected_domain[site].x;
 		int y = connected_domain[site].y;
 		u_a.x = u.a[0] + u.a[1] * x + u.a[2] * y;
