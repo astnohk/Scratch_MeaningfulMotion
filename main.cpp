@@ -233,7 +233,8 @@ main(int argc, char *argv[])
 				} else if (strcmp(argv[i], "--HOG_unsigned") == 0) {
 					Options.HOG_Param.SignedOrient = false;
 				} else if (strcmp(argv[i], "--multiple_affine") == 0) {
-					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
+					//Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
+					Options.mode = MODE_OUTPUT_AFFINE_BLOCKMATCHING;
 				} else if (strcmp(argv[i], "--multiple_opticalflow") == 0) {
 					Options.mode = MODE_OUTPUT_OPTICALFLOW;
 				} else if (strcmp(argv[i], "--mm_level") == 0) {

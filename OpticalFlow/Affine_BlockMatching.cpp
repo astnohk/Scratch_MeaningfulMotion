@@ -17,7 +17,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 
 	// Block matching
 	BlockMatching<double> block_matching;
-	ImgVector<VECTOR_2D<double> > Motion_Vector;
+	std::vector<VECTOR_2D<double> > Motion_Vector;
 	int BM_Search_Range = 41; // Block Matching search range
 
 	// M-estimator parameter
@@ -58,28 +58,34 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	// ----- Block Matching -----
 	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
 	block_matching.block_matching(BM_Search_Range);
-	Motion_Vector.copy(block_matching.data());
+	Motion_Vector.resize(block_matching.vector_width() * block_matching.vector_height());
+	for (int R = 0; R < block_matching.vector_width() * block_matching.vector_height(); R++) {
+		Motion_Vector[R] = block_matching[R];
+	}
 
 	// Set connected domain
+	printf("* Make connected_domains\n");
+	connected_domains.resize(block_matching.vector_width() * block_matching.vector_height());
 	for (int m = 0; m < block_matching.vector_height(); m++) {
 		int M = m * block_matching.block_size();
 		for (int n = 0; n < block_matching.vector_width(); n++) {
 			int N = n * block_matching.block_size();
 			for (int y = 0; y < block_matching.block_size(); y++) {
-				if (M + y >= block_matching.height()) {
+				if (M + y >= It->height()) {
 					break;
 				}
 				for (int x = 0; x < block_matching.block_size(); x++) {
-					if (N + x >= block_matching.width()) {
+					if (N + x >= It->width()) {
 						break;
 					}
-					connected_domains[M * block_matching.vector_width() + N].push_back((VECTOR_2D<int>){N + x, M + y});
+					connected_domains[m * block_matching.vector_width() + n].push_back((VECTOR_2D<int>){N + x, M + y});
 				}
 			}
 		}
 	}
 
 	// Prepare u_affine
+	printf("* Resize u_affine vector\n");
 	u_affine.resize(connected_domains.size());
 	// Make Pyramid
 	try {
@@ -104,7 +110,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	}
 	// Derivative about time
 	try {
-		I_dt_levels = dt_Pyramid(It_levels, Itp1_levels, MotionParam.Level);
+		I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MotionParam.Level);
 	}
 	catch (const std::bad_alloc& bad) {
 		Error.Function("dt_Pyramid");
@@ -115,7 +121,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	}
 	// Derivative about space
 	try {
-		grad_It_levels = grad_Pyramid(It_levels, Itp1_levels, MotionParam.Level);
+		grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MotionParam.Level);
 	}
 	catch (const std::bad_alloc& bad) {
 		Error.Function("grad_Pyramid");
@@ -130,20 +136,78 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 			u_affine[R].a[i] = .0;
 		}
 	}
+	printf("* Compute Segment-restricted Affine Motion Parameters\n");
 	for (level = MotionParam.Level - 1; level >= 0; level--) {
+		std::vector<std::vector<VECTOR_2D<int> > > connected_domains_resize(connected_domains.size());
+
+		// Resize connected_domains and Compute I_dt_levels[level]
 		for (unsigned int R = 0; R < connected_domains.size(); R++) {
 			u_affine[R].a[0] *= 2;
 			u_affine[R].a[3] *= 2;
+			for (unsigned int n = 0; n < connected_domains[R].size(); n++) {
+				VECTOR_2D<int> r;
+				r.x = connected_domains[R][n].x >> level;
+				r.y = connected_domains[R][n].y >> level;
+				if (level == 0) {
+					int x_ref = int(connected_domains[R][n].x + Motion_Vector[R].x) >> level;
+					int y_ref = int(connected_domains[R][n].y + Motion_Vector[R].y) >> level;
+					I_dt_levels[level].ref(r.x, r.y) =
+					    It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
+					    + It_levels[level].get_mirror(x_ref + 1, y_ref) - Itp1_levels[level].get_mirror(r.x + 1, r.y)
+					    + It_levels[level].get_mirror(x_ref, y_ref + 1) - Itp1_levels[level].get_mirror(r.x, r.y + 1)
+					    + It_levels[level].get_mirror(x_ref + 1, y_ref + 1) - Itp1_levels[level].get_mirror(r.x + 1, r.y + 1);
+					connected_domains_resize[R].push_back(r);
+				} else {
+					unsigned int k;
+					for (k = 0; k < connected_domains_resize[R].size(); k++) {
+						if (connected_domains_resize[R][k] == r) {
+							break;
+						}
+					}
+					if (k >= connected_domains_resize[R].size()) {
+						int x_ref = int(connected_domains[R][n].x + Motion_Vector[R].x) >> level;
+						int y_ref = int(connected_domains[R][n].y + Motion_Vector[R].y) >> level;
+						I_dt_levels[level].ref(r.x, r.y) =
+						    It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
+						    + It_levels[level].get_mirror(x_ref + 1, y_ref) - Itp1_levels[level].get_mirror(r.x + 1, r.y)
+						    + It_levels[level].get_mirror(x_ref, y_ref + 1) - Itp1_levels[level].get_mirror(r.x, r.y + 1)
+						    + It_levels[level].get_mirror(x_ref + 1, y_ref + 1) - Itp1_levels[level].get_mirror(r.x + 1, r.y + 1);
+						connected_domains_resize[R].push_back(r);
+					}
+				}
+			}
 		}
-		IterMax = 2 * MAX(I_dt_levels[level].width(), I_dt_levels[level].height());
+		// Do IRLS
+		IterMax = 4 * MAX(I_dt_levels[level].width(), I_dt_levels[level].height());
 		IRLS_Affine_Block(
 		    &u_affine,
-		    connected_domains,
+		    connected_domains_resize,
 		    (grad_It_levels + level),
 		    (I_dt_levels + level),
 		    sigmaD,
 		    IterMax,
 		    MotionParam.Error_Min_Threshold);
+	}
+
+	// Output Motion Vector Field
+	printf("* Compute Motion Vector Field from Affine Parameters\n");
+	try {
+		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
+	}
+	catch (const std::bad_alloc& bad) {
+		Error.Function("new");
+		Error.Value("u");
+		Error.FunctionFail();
+		bad_alloc = bad;
+		goto ExitError;
+	}
+	for(unsigned int R = 0; R < connected_domains.size(); R++) {
+		for (unsigned int n = 0; n < connected_domains[R].size(); n++) {
+			int x = connected_domains[R][n].x;
+			int y = connected_domains[R][n].y;
+			u->ref(x, y).x = Motion_Vector[R].x + u_affine[R].a[0] + u_affine[R].a[1] * x + u_affine[R].a[2] * y;
+			u->ref(x, y).y = Motion_Vector[R].y + u_affine[R].a[3] + u_affine[R].a[4] * x + u_affine[R].a[5] * y;
+		}
 	}
 	delete[] grad_It_levels;
 	delete[] I_dt_levels;
@@ -161,12 +225,14 @@ ExitError:
 
 
 bool
-IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<VECTOR_2D<int> > >& connected_domains, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
+IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<VECTOR_2D<int> > >& connected_domains, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double sigmaD, int IterMax, double ErrorMinThreshold)
 {
+	std::vector<bool> finish(connected_domains.size(), false);
 	const double omega_initial = 1.0E-4;
 
 	printf("sigmaD = %e\n", sigmaD);
 	printf("size (%d, %d)\n", Img_g->width(), Img_g->height());
+#pragma omp parallel for schedule(dynamic)
 	for (unsigned int R = 0; R < connected_domains.size(); R++) {
 		for (int n = 0; n < IterMax; n++) {
 			VECTOR_AFFINE u_np1;
@@ -187,13 +253,15 @@ IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<V
 			}
 			u->at(R) = u_np1;
 			E = Error_Affine_Block((*u)[R], connected_domains[R], Img_g, Img_t, sigmaD);
-			/*if ((n & 0x3F) == 0) {
-				printf("E(%4d) = %e,  u = [%.4e, %.4e, %.4e, %.4e, %.4e, %.4e]\n", n, E, u->a[0], u->a[1], u->a[2], u->a[3], u->a[4], u->a[5]);
-			}*/
 			if (E < ErrorMinThreshold) {
 				break;
 			}
 		}
+		finish[R] = true;
+		for (unsigned int n = 1; n < connected_domains.size(); n++) {
+			printf("%c", finish[n] ? '*' : '_');
+		}
+		printf("\n");
 	}
 	return MEANINGFUL_SUCCESS;
 }
@@ -214,12 +282,12 @@ Error_a_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& connec
 		int y = connected_domain[site].y;
 		u_a.x = u.a[0] + u.a[1] * x + u.a[2] * y;
 		u_a.y = u.a[3] + u.a[4] * x + u.a[5] * y;
-		E_a.a[0] += Img_g->get(x, y).x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
-		E_a.a[1] += Img_g->get(x, y).x * x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
-		E_a.a[2] += Img_g->get(x, y).x * y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
-		E_a.a[3] += Img_g->get(x, y).y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
-		E_a.a[4] += Img_g->get(x, y).y * x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
-		E_a.a[5] += Img_g->get(x, y).y * y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get(x, y), sigmaD);
+		E_a.a[0] += Img_g->get(x, y).x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get_zeropad(x, y), sigmaD);
+		E_a.a[1] += Img_g->get(x, y).x * x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get_zeropad(x, y), sigmaD);
+		E_a.a[2] += Img_g->get(x, y).x * y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get_zeropad(x, y), sigmaD);
+		E_a.a[3] += Img_g->get(x, y).y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get_zeropad(x, y), sigmaD);
+		E_a.a[4] += Img_g->get(x, y).y * x * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get_zeropad(x, y), sigmaD);
+		E_a.a[5] += Img_g->get(x, y).y * y * (*psiD)(Img_g->get(x, y).x * u_a.x + Img_g->get(x, y).y * u_a.y + Img_t->get_zeropad(x, y), sigmaD);
 	}
 	return E_a;
 }

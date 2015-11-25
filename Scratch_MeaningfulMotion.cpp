@@ -2,6 +2,7 @@
 #include "OpticalFlow/Affine_MultipleMotion.h"
 #include "OpticalFlow/OpticalFlow.h"
 #include "OpticalFlow/OpticalFlow_BlockMatching.h"
+#include "OpticalFlow/Affine_BlockMatching.h"
 #include "HOG/HOG.h"
 
 
@@ -259,8 +260,16 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				printf("* Compute Multiple Motions Affine Parameters by method of Michael J. Black\n");
 				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
+		} else if ((Options.mode & MODE_OUTPUT_AFFINE_BLOCKMATCHING) != 0) {
+			// Computte Block Matching with Multiple Motion Affine Parameters by method of M.J.Black
+			if (imgd_prev.isNULL() != false) {
+				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
+			} else {
+				printf("* Compute Block Matching with Affine by method of Michael J. Black\n");
+				MultipleMotion_u = OpticalFlow_Affine_BlockMatching(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
-			// Computte and output Multiple Motion Optical Flow by method of M.J.Black
+			// Computte Block Matching with Multiple Motion Optical Flow by method of M.J.Black
 			if (imgd_prev.isNULL() != false) {
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
@@ -452,7 +461,7 @@ Write:
 			if (imgd_prev.isNULL() == false) {
 				MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums);
 			}
-		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
+		} else if ((Options.mode & (MODE_OUTPUT_OPTICALFLOW | MODE_OUTPUT_AFFINE_BLOCKMATCHING)) != 0) {
 			if (imgd_prev.isNULL() == false) {
 				MultipleMotion_write(&imgd_prev, &imgd_in, MultipleMotion_u, OutputNameNums);
 			}
