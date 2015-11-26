@@ -101,17 +101,17 @@ EpsilonFilter(ImgVector<double> *img, FILTER_PARAM Param)
 	for (y = 0; y < img->height(); y++) {
 		for (x = 0; x < img->width(); x++) {
 			center = img->get(x, y);
-			Epsilon->ref(x, y) = .0;
+			Epsilon->at(x, y) = .0;
 			for (fy = -filter_height_2; fy <= filter_height_2; fy++) {
 				for (fx = -filter_width_2; fx <= filter_width_2; fx++) {
 					if (fabs(center - img->get(x + fx, y + fy)) <= Param.epsilon) {
-						Epsilon->ref(x, y) += img->get_mirror(x + fx, y + fy);
+						Epsilon->at(x, y) += img->get_mirror(x + fx, y + fy);
 					} else {
-						Epsilon->ref(x, y) += center;
+						Epsilon->at(x, y) += center;
 					}
 				}
 			}
-			Epsilon->ref(x, y) *= Div_coeff;
+			Epsilon->at(x, y) *= Div_coeff;
 		}
 	}
 	return Epsilon;
@@ -166,7 +166,7 @@ Gaussian(ImgVector<double> *img, FILTER_PARAM Param)
 #endif
 			for (n = 0; n < Param.size.width; n++) {
 				if (filter_width_2 * abs(m - filter_height_2) + filter_height_2 * abs(n - filter_width_2) <= filter_width_2 * filter_height_2) {
-					Gauss->ref(n, m) =
+					Gauss->at(n, m) =
 					    exp(
 					    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
 					    / (2.0 * POW2(Param.std_deviation))
@@ -188,7 +188,7 @@ Gaussian(ImgVector<double> *img, FILTER_PARAM Param)
 			printf("    |");
 #endif
 			for (n = 0; n < Param.size.width; n++) {
-				Gauss->ref(n, m) =
+				Gauss->at(n, m) =
 				    exp(
 				    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
 				    / (2.0 * POW2(Param.std_deviation))
@@ -223,7 +223,7 @@ Gaussian(ImgVector<double> *img, FILTER_PARAM Param)
 		for (n = 0; n < blurred->width(); n++) {
 			for (y = -filter_height_2; y <= filter_height_2; y++) {
 				for (x = -filter_width_2; x <= filter_width_2; x++) {
-					blurred->ref(n, m) += img->get(n + x, m + y) * Gauss->get(x + filter_width_2, y + filter_height_2);
+					blurred->at(n, m) += img->get(n + x, m + y) * Gauss->get(x + filter_width_2, y + filter_height_2);
 				}
 			}
 		}
@@ -454,7 +454,7 @@ Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring)
 					}
 				}
 			}
-			Filtered->ref(x, y) = sum;
+			Filtered->at(x, y) = sum;
 		}
 	}
 	return Filtered;

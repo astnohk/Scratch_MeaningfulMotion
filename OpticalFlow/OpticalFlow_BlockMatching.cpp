@@ -21,6 +21,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	ImgVector<VECTOR_2D<double> > *u = nullptr; // For RETURN value
 
+	ImgVector<bool> domain_map;
 	BlockMatching<double> block_matching;
 	ImgVector<VECTOR_2D<double> > Motion_Vector;
 
@@ -69,6 +70,13 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 
 	// ----- Block Matching -----
+	int BlockSize = MotionParam.BlockMatching_BlockSize;
+	domain_map.reset(It->width(), It->height());
+	for (int y = 0; y < It->height(); y++) {
+		for (int x = 0; x < It->width(); x++) {
+			domain_map.at(x, y) = (int)(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
+		}
+	}
 	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
 	block_matching.block_matching(BM_Search_Range);
 	Motion_Vector.copy(block_matching.data());
@@ -191,7 +199,7 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 			u_offset.x /= block_matching->vector_width();
 			u_offset.y /= block_matching->vector_height();
 
-			I_dt_levels[level].ref(x, y) =
+			I_dt_levels[level].at(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x, y)
 			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
@@ -200,8 +208,8 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 			    - It_levels[level].get_zeropad(x, y + 1)
 			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
-			u_levels[level].ref(x, y).x = 0.0;
-			u_levels[level].ref(x, y).y = 0.0;
+			u_levels[level].at(x, y).x = 0.0;
+			u_levels[level].at(x, y).y = 0.0;
 		}
 	}
 }
@@ -216,10 +224,10 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
-				u_levels[level].ref(x, y).x +=
+				u_levels[level].at(x, y).x +=
 				    block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).x
 				    / Scale;
-				u_levels[level].ref(x, y).y +=
+				u_levels[level].at(x, y).y +=
 				    block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).y
 				    / Scale;
 			}
@@ -228,10 +236,184 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 		// Add offset calculated by using the higher level's motion vector
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
-				u_levels[level].ref(x, y).x += u_levels[level + 1].get(x / 2, y / 2).x * 2.0;
-				u_levels[level].ref(x, y).y += u_levels[level + 1].get(x / 2, y / 2).y * 2.0;
+				u_levels[level].at(x, y).x += u_levels[level + 1].get(x / 2, y / 2).x * 2.0;
+				u_levels[level].at(x, y).y += u_levels[level + 1].get(x / 2, y / 2).y * 2.0;
 			}
 		}
 	}
+}
+
+
+void
+IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> > *u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+{
+	ERROR Error("IRLS_OpticalFlow_Pyramid_Block");
+
+	ImgVector<VECTOR_2D<double> > u_np1;
+	VECTOR_2D<double> sup;
+	VECTOR_2D<double> dE;
+	double E = 0.0;
+	double E_prev = 0.0;
+	int ErrorIncrementCount = 0;
+	int site;
+	int n;
+
+	if (u == nullptr) {
+		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *u");
+	} else if (Img_g == nullptr) {
+		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *Img_g");
+	} else if (Img_t == nullptr) {
+		throw std::invalid_argument("ImgVector<double> *Img_t");
+	}
+	u_np1.copy(u); // Initialize u_np1
+	// Reset sup_Error_uu max Img_g
+	sup_Error_uu_Block(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
+	sup = sup_Error_uu_Block(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
+	for (n = 0; n < IterMax; n++) {
+		// Calc for all sites
+#pragma omp parallel for private(dE)
+		for (site = 0; site < u->size(); site++) {
+			dE = Error_u_Block(site, u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
+			u_np1[site].x = u->get(site).x - dE.x / sup.x;
+			u_np1[site].y = u->get(site).y - dE.y / sup.y;
+		}
+		// Calc for all sites
+		for (site = 0; site < u->size(); site++) {
+			(*u)[site] = u_np1[site];
+		}
+		if (level == 0) {
+			if ((n & 0x3F) == 0) {
+				E = Error_MultipleMotion_Block(u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
+			}
+		} else {
+			E_prev = E;
+			E = Error_MultipleMotion_Block(u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
+			if (E > E_prev) {
+				ErrorIncrementCount++;
+			} else {
+				ErrorIncrementCount = 0;
+			}
+		}
+#ifdef SHOW_IRLS_OPTICALFLOW_PYRAMID_E
+		if ((n & 0x3F) == 0) {
+			printf("E(%4d) = %e\n", n, E);
+		}
+#endif
+		if (E < ErrorMinThreshold || ErrorIncrementCount > 3) {
+			break;
+		}
+	}
+}
+
+
+VECTOR_2D<double>
+Error_u_Block(int site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+{
+	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
+	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
+	VECTOR_2D<double> us;
+	double Center;
+	VECTOR_2D<double> Neighbor;
+	VECTOR_2D<double> E_u;
+	int center_domain;
+	int x, y;
+
+	x = site % u->width();
+	y = site / u->width();
+	center_domain = domain_map.get(x, y);
+
+	us = u->get(site);
+	Center = (*psiD)(Img_g->get(site).x * us.x + Img_g->get(site).y * us.y + Img_t->get(site), sigmaD);
+
+	Neighbor.x = .0;
+	Neighbor.y = .0;
+	if (x > 0 && domain_map.get(x - 1, y) == center_domain) {
+		Neighbor.x += (*psiS)(us.x - u->get(x - 1, y).x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u->get(x - 1, y).y, sigmaS);
+	}
+	if (x < u->width() - 1 && domain_map.get(x + 1, y) == center_domain) {
+		Neighbor.x += (*psiS)(us.x - u->get(x + 1, y).x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u->get(x + 1, y).y, sigmaS);
+	}
+	if (y > 0 && domain_map.get(x, y - 1) == center_domain) {
+		Neighbor.x += (*psiS)(us.x - u->get(x, y - 1).x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u->get(x, y - 1).y, sigmaS);
+	}
+	if (y < u->height() - 1 && domain_map.get(x, y + 1) == center_domain) {
+		Neighbor.x += (*psiS)(us.x - u->get(x, y + 1).x, sigmaS);
+		Neighbor.y += (*psiS)(us.y - u->get(x, y + 1).y, sigmaS);
+	}
+
+	E_u.x += lambdaD * Img_g->get(site).x * Center + lambdaS * Neighbor.x;
+	E_u.y += lambdaD * Img_g->get(site).y * Center + lambdaS * Neighbor.y;
+	return E_u;
+}
+
+
+VECTOR_2D<double>
+sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+{
+	static VECTOR_2D<double> Img_g_max;
+	VECTOR_2D<double> sup;
+
+	if (Img_g != nullptr) {
+		Img_g_max.reset();
+		for (int i = 0; i < Img_g->size(); i++) {
+			if (Img_g_max.x < POW2(Img_g->get(i).x)) {
+				Img_g_max.x = POW2(Img_g->get(i).x);
+			}
+			if (Img_g_max.y < POW2(Img_g->get(i).y)) {
+				Img_g_max.y = POW2(Img_g->get(i).y);
+			}
+		}
+	}
+	sup.x = lambdaD * Img_g_max.x / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS);
+	sup.y = lambdaD * Img_g_max.y / POW2(sigmaD) + 4.0 * lambdaS / POW2(sigmaS);
+	return sup;
+}
+
+
+double
+Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+{
+	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
+	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
+	VECTOR_2D<double> us;
+	double Center;
+	VECTOR_2D<double> Neighbor;
+	double E = 0.0;
+	int x, y;
+
+#pragma omp parallel for private(x, us, Neighbor, Center) reduction(+:E)
+	for (y = 0; y < u->height(); y++) {
+		for (x = 0; x < u->width(); x++) {
+			int center_domain = domain_map.get(x, y);
+			us = u->get(x, y);
+			Neighbor.x = .0;
+			Neighbor.y = .0;
+			if (x > 0 && domain_map.get(x - 1, y) == center_domain) {
+				Neighbor.x += (*rhoS)(us.x - u->get(x - 1, y).x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u->get(x - 1, y).y, sigmaS);
+			}
+			if (x < u->width() - 1 && domain_map.get(x + 1, y) == center_domain) {
+				Neighbor.x += (*rhoS)(us.x - u->get(x + 1, y).x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u->get(x + 1, y).y, sigmaS);
+			}
+			if (y > 0 && domain_map.get(x, y - 1) == center_domain) {
+				Neighbor.x += (*rhoS)(us.x - u->get(x, y - 1).x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u->get(x, y - 1).y, sigmaS);
+			}
+			if (y < u->height() - 1 && domain_map.get(x, y + 1) == center_domain) {
+				Neighbor.x += (*rhoS)(us.x - u->get(x, y + 1).x, sigmaS);
+				Neighbor.y += (*rhoS)(us.y - u->get(x, y + 1).y, sigmaS);
+			}
+			Center = (*rhoD)(Img_g->get(x, y).x * us.x
+			    + Img_g->get(x, y).y * us.y
+			    + Img_t->get(x, y),
+			    sigmaD);
+			E += lambdaD * Center + lambdaS * (Neighbor.x + Neighbor.y);
+		}
+	}
+	return E;
 }
 

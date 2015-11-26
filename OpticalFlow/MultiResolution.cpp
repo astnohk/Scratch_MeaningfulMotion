@@ -71,12 +71,12 @@ Pyramider(ImgVector<double> *img, int MaxLevel)
 		}
 		for (x = 0; x < size_l.width; x++) {
 			for (y = 0; y < size_l.height; y++) {
-				Pyramid[l].ref(x, y) = .0;
+				Pyramid[l].at(x, y) = .0;
 				for (m = 0; m < WEIGHTED_FILTER_SIZE; m++) {
 					ym = 2 * y + m - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
 					for (n = 0; n < WEIGHTED_FILTER_SIZE; n++) {
 						xn = 2 * x + n - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
-						Pyramid[l].ref(x, y) += w[m] * w[n] * Pyramid[l - 1].get_mirror(xn, ym);
+						Pyramid[l].at(x, y) += w[m] * w[n] * Pyramid[l - 1].get_mirror(xn, ym);
 					}
 				}
 			}
@@ -131,23 +131,23 @@ grad_Pyramid(ImgVector<double> *img_t_levels, ImgVector<double> *img_tp1_levels,
 			for (n = 0; n < img_t_levels[l].width(); n++) {
 				x = SATURATE(n, 0, img_t_levels[l].width() - 2);
 				// dx
-				grad_levels[l].ref(n, m).x =
+				grad_levels[l].at(n, m).x =
 				    (img_t_levels[l].get(x + 1, y) - img_t_levels[l].get(x, y)
 				    + img_t_levels[l].get(x + 1, y + 1) - img_t_levels[l].get(x, y + 1))
 				    / 2.0;
 				// dy
-				grad_levels[l].ref(n, m).y =
+				grad_levels[l].at(n, m).y =
 				    (img_t_levels[l].get(x, y + 1) - img_t_levels[l].get(x, y)
 				    + img_t_levels[l].get(x + 1, y + 1) - img_t_levels[l].get(x + 1, y))
 				    / 2.0;
 				if (img_tp1_levels != NULL) {
 					// dx
-					grad_levels[l].ref(n, m).x +=
+					grad_levels[l].at(n, m).x +=
 					    (img_tp1_levels[l].get(x + 1, y) - img_tp1_levels[l].get(x, y)
 					    + img_tp1_levels[l].get(x + 1, y + 1) - img_tp1_levels[l].get(x, y + 1))
 					    / 2.0;
 					// dy
-					grad_levels[l].ref(n, m).y +=
+					grad_levels[l].at(n, m).y +=
 					    (img_tp1_levels[l].get(x, y + 1) - img_tp1_levels[l].get(x, y)
 					    + img_tp1_levels[l].get(x + 1, y + 1) - img_tp1_levels[l].get(x + 1, y))
 					    / 2.0;
@@ -198,7 +198,7 @@ dt_Pyramid(ImgVector<double> *img_t_levels, ImgVector<double> *img_tp1_levels, i
 			for (n = 0; n < img_t_levels[l].width(); n++) {
 				x = SATURATE(n, 0, img_t_levels[l].width() - 2);
 				// dt
-				dt_levels[l].ref(n, m) =
+				dt_levels[l].at(n, m) =
 				    (img_tp1_levels[l].get(x, y) - img_t_levels[l].get(x, y)
 				    + img_tp1_levels[l].get(x + 1, y) - img_t_levels[l].get(x + 1, y)
 				    + img_tp1_levels[l].get(x, y + 1) - img_t_levels[l].get(x, y + 1)

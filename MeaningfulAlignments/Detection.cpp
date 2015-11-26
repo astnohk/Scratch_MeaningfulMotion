@@ -109,7 +109,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 					}
 					Ir /= (double)m;
 					if (fabs(Il - Ir) <= s_avg) {
-						scratches->ref(x, y) = PLOT_INTENSITY_MAX;
+						scratches->at(x, y) = PLOT_INTENSITY_MAX;
 					}
 				}
 			}

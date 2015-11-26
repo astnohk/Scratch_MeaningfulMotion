@@ -164,9 +164,9 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 						for (n = 0; n < Img->width(); n++) {
 							x = n - GaraxyCenter.x;
 							z = (Img->get(n, m) - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
-							Img_coord->ref(n, m).x = n;
-							Img_coord->ref(n, m).y = m;
-							Img_coord->ref(n, m).z = z;
+							Img_coord->at(n, m).x = n;
+							Img_coord->at(n, m).y = m;
+							Img_coord->at(n, m).z = z;
 							r = sqrt(POW2(x) + POW2(y) + POW2(z));
 							if (r <= 1.0E-3) {
 								r = 1.0E-3;
@@ -174,29 +174,29 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 							if (fabs(z) > 1.0E-6) {
 								X = -(y / z + z * y);
 								Y = z * x + x / z;
-								Img_vel->ref(n, m).x = X / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
-								Img_vel->ref(n, m).y = Y / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
+								Img_vel->at(n, m).x = X / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
+								Img_vel->at(n, m).y = Y / sqrt(POW2(X) + POW2(Y)) / sqrt(r);
 							} else {
-								Img_vel->ref(n, m).x = -y / r / sqrt(r);
-								Img_vel->ref(n, m).y = -x / r / sqrt(r);
+								Img_vel->at(n, m).x = -y / r / sqrt(r);
+								Img_vel->at(n, m).y = -x / r / sqrt(r);
 							}
 							if (z < -1.0E-6) {
-								Img_vel->ref(n, m).x *= -1.0;
-								Img_vel->ref(n, m).y *= -1.0;
+								Img_vel->at(n, m).x *= -1.0;
+								Img_vel->at(n, m).y *= -1.0;
 							}
-							Img_vel->ref(n, m).z = 0.0;
+							Img_vel->at(n, m).z = 0.0;
 						}
 					}
 					break;
 				case X11_Plot_GravityCorrupt:
 					for (m = 0; m < Img_size.height; m++) {
 						for (n = 0; n < Img_size.width; n++) {
-							Img_coord->ref(n, m).x = n;
-							Img_coord->ref(n, m).y = m;
-							Img_coord->ref(n, m).z = (Img->get(n, m) - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
-							Img_vel->ref(n, m).x = 0.0;
-							Img_vel->ref(n, m).y = 0.0;
-							Img_vel->ref(n, m).z = 0.0;
+							Img_coord->at(n, m).x = n;
+							Img_coord->at(n, m).y = m;
+							Img_coord->at(n, m).z = (Img->get(n, m) - MaxInt / 2.0) * X11_Param.Plot_Z_Scale * 2.0;
+							Img_vel->at(n, m).x = 0.0;
+							Img_vel->at(n, m).y = 0.0;
+							Img_vel->at(n, m).z = 0.0;
 						}
 					}
 			}
@@ -627,9 +627,9 @@ TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVec
 		for (n = 0; n < Img->width(); n++) {
 			x = (n - X11_Param.Center_x) * X11_Param.Scale;
 			z = ((-Img->get(n, m) + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
-			Img_plot->ref(n, m).point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-			Img_plot->ref(n, m).point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
-			Img_plot->ref(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+			Img_plot->at(n, m).point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
+			Img_plot->at(n, m).point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+			Img_plot->at(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 		}
 	}
 	return MEANINGFUL_SUCCESS;

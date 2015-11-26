@@ -176,7 +176,7 @@ LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_level
 		for (int x = 0; x < u_levels[level].width(); x++) {
 			VECTOR_2D<double> u_offset = u_levels[level + 1].get(x / 2, y / 2);
 
-			I_dt_levels[level].ref(x, y) =
+			I_dt_levels[level].at(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x, y)
 			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
@@ -185,8 +185,8 @@ LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_level
 			    - It_levels[level].get_zeropad(x, y + 1)
 			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
 			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
-			u_levels[level].ref(x, y).x = 0.0;
-			u_levels[level].ref(x, y).y = 0.0;
+			u_levels[level].at(x, y).x = 0.0;
+			u_levels[level].at(x, y).y = 0.0;
 		}
 	}
 }
@@ -202,8 +202,8 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 	// Add offset calculated by using the higher level's motion vector
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			u_levels[level].ref(x, y).x += u_levels[level + 1].get(x / 2, y / 2).x * 2.0;
-			u_levels[level].ref(x, y).y += u_levels[level + 1].get(x / 2, y / 2).y * 2.0;
+			u_levels[level].at(x, y).x += u_levels[level + 1].get(x / 2, y / 2).x * 2.0;
+			u_levels[level].at(x, y).y += u_levels[level + 1].get(x / 2, y / 2).y * 2.0;
 		}
 	}
 }

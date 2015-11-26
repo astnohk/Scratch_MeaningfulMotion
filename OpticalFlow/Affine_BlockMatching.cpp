@@ -151,11 +151,12 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 				if (level == 0) {
 					int x_ref = int(connected_domains[R][n].x + Motion_Vector[R].x) >> level;
 					int y_ref = int(connected_domains[R][n].y + Motion_Vector[R].y) >> level;
-					I_dt_levels[level].ref(r.x, r.y) =
-					    It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
+					I_dt_levels[level].at(r.x, r.y) =
+					    (It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
 					    + It_levels[level].get_mirror(x_ref + 1, y_ref) - Itp1_levels[level].get_mirror(r.x + 1, r.y)
 					    + It_levels[level].get_mirror(x_ref, y_ref + 1) - Itp1_levels[level].get_mirror(r.x, r.y + 1)
-					    + It_levels[level].get_mirror(x_ref + 1, y_ref + 1) - Itp1_levels[level].get_mirror(r.x + 1, r.y + 1);
+					    + It_levels[level].get_mirror(x_ref + 1, y_ref + 1) - Itp1_levels[level].get_mirror(r.x + 1, r.y + 1)
+					    ) / 4.0;
 					connected_domains_resize[R].push_back(r);
 				} else {
 					unsigned int k;
@@ -167,11 +168,12 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 					if (k >= connected_domains_resize[R].size()) {
 						int x_ref = int(connected_domains[R][n].x + Motion_Vector[R].x) >> level;
 						int y_ref = int(connected_domains[R][n].y + Motion_Vector[R].y) >> level;
-						I_dt_levels[level].ref(r.x, r.y) =
-						    It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
+						I_dt_levels[level].at(r.x, r.y) =
+						    (It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
 						    + It_levels[level].get_mirror(x_ref + 1, y_ref) - Itp1_levels[level].get_mirror(r.x + 1, r.y)
 						    + It_levels[level].get_mirror(x_ref, y_ref + 1) - Itp1_levels[level].get_mirror(r.x, r.y + 1)
-						    + It_levels[level].get_mirror(x_ref + 1, y_ref + 1) - Itp1_levels[level].get_mirror(r.x + 1, r.y + 1);
+						    + It_levels[level].get_mirror(x_ref + 1, y_ref + 1) - Itp1_levels[level].get_mirror(r.x + 1, r.y + 1)
+						    ) / 4.0;
 						connected_domains_resize[R].push_back(r);
 					}
 				}
@@ -205,8 +207,8 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		for (unsigned int n = 0; n < connected_domains[R].size(); n++) {
 			int x = connected_domains[R][n].x;
 			int y = connected_domains[R][n].y;
-			u->ref(x, y).x = Motion_Vector[R].x + u_affine[R].a[0] + u_affine[R].a[1] * x + u_affine[R].a[2] * y;
-			u->ref(x, y).y = Motion_Vector[R].y + u_affine[R].a[3] + u_affine[R].a[4] * x + u_affine[R].a[5] * y;
+			u->at(x, y).x = Motion_Vector[R].x + u_affine[R].a[0] + u_affine[R].a[1] * x + u_affine[R].a[2] * y;
+			u->at(x, y).y = Motion_Vector[R].y + u_affine[R].a[3] + u_affine[R].a[4] * x + u_affine[R].a[5] * y;
 		}
 	}
 	delete[] grad_It_levels;
@@ -312,7 +314,7 @@ sup_Error_aa_Block(const std::vector<VECTOR_2D<int> >& connected_domain, const I
 	for (unsigned i = 0; i < connected_domain.size(); i++) {
 		int x = connected_domain[i].x;
 		int y = connected_domain[i].y;
-		/* u = a0 + a1 * x + a2 * y */
+		// u = a0 + a1 * x + a2 * y
 		if (u_aa_max.a[0] < POW2(Img_g->get(x, y).x)) {
 			u_aa_max.a[0] = POW2(Img_g->get(x, y).x);
 		}
@@ -322,7 +324,7 @@ sup_Error_aa_Block(const std::vector<VECTOR_2D<int> >& connected_domain, const I
 		if (u_aa_max.a[2] < POW2(Img_g->get(x, y).x * y)) {
 			u_aa_max.a[2] = POW2(Img_g->get(x, y).x * y);
 		}
-		/* v = a3 + a4 * x + a5 * y */
+		// v = a3 + a4 * x + a5 * y
 		if (u_aa_max.a[3] < POW2(Img_g->get(x, y).y)) {
 			u_aa_max.a[3] = POW2(Img_g->get(x, y).y);
 		}

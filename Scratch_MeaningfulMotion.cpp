@@ -329,7 +329,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 #pragma omp parallel for schedule(dynamic) private(k)
 					for (L = 1; L <= maxMN; L++) {
 						for (k = 0; k <= L; k++) {
-							Pr_table->ref(k, L) = Pr(k, L, Options.p);
+							Pr_table->at(k, L) = Pr(k, L, Options.p);
 						}
 #pragma omp critical
 						{
