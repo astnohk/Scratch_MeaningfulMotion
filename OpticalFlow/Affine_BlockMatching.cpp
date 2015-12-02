@@ -56,7 +56,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	}
 
 	// ----- Block Matching -----
-	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
+	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize);
 	block_matching.block_matching(BM_Search_Range);
 	Motion_Vector.resize(block_matching.vector_width() * block_matching.vector_height());
 	for (int R = 0; R < block_matching.vector_width() * block_matching.vector_height(); R++) {

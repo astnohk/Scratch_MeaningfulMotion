@@ -7,6 +7,8 @@
 #include "OpticalFlow.h"
 #include "OpticalFlow_BlockMatching.h"
 
+#include "../ImgClass/Segmentation.h"
+
 
 #define SHOW_IRLS_OPTICALFLOW_E
 
@@ -20,6 +22,8 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	std::bad_alloc except_bad_alloc;
 
 	ImgVector<VECTOR_2D<double> > *u = nullptr; // For RETURN value
+
+	Segmentation<double> segments;
 
 	ImgVector<bool> domain_map;
 	BlockMatching<double> block_matching;
@@ -69,7 +73,17 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		MaxLevel = (int)floor(log((double)MotionParam.BlockMatching_BlockSize) / log(2.0));
 	}
 
+	// Segmentation
+	printf("* * Compute Segmentation by Mean Shift\n");
+	segments.reset(&It_normalize);
+	PNM pnm;
+	printf("max : %d\n", segments.ref_segments().max());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments().max(), segments.ref_segments().data());
+	pnm.write("Segments.pgm");
+	pnm.free();
+
 	// ----- Block Matching -----
+	printf("* * Compute Block Matching\n");
 	int BlockSize = MotionParam.BlockMatching_BlockSize;
 	domain_map.reset(It->width(), It->height());
 	for (int y = 0; y < It->height(); y++) {
@@ -77,7 +91,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 			domain_map.at(x, y) = (int)(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
 		}
 	}
-	block_matching.reset(It, Itp1, MotionParam.BlockMatching_BlockSize);
+	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize);
 	block_matching.block_matching(BM_Search_Range);
 	Motion_Vector.copy(block_matching.data());
 

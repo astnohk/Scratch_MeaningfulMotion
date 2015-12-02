@@ -130,7 +130,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 					Pr_min = MaximalSegments[n_seg].Pr;
 				}
 			}
-			IndexMap->set(x, y, line_index);
+			IndexMap->at(x, y) = line_index;
 		}
 #pragma omp critical
 		{
