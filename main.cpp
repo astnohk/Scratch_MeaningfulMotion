@@ -460,12 +460,16 @@ main(int argc, char *argv[])
 	InputName = regexp(argv[inf]);
 	OutputName = regexp(argv[outf]);
 	// main routine
-	if (Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam)
-	    != MEANINGFUL_SUCCESS) {
-		fprintf(stderr, "*** FATAL main error - There are some error on Scratch_MeaningfulMotion() ***\n");
-		delete[] InputName;
-		delete[] OutputName;
-		exit(EXIT_FAILURE);
+	try {
+		Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam);
+	}
+	catch (const std::logic_error& logic) {
+		std::cerr << logic.what();
+		goto ExitError;
+	}
+	catch (const std::runtime_error& runtime) {
+		std::cerr << runtime.what();
+		goto ExitError;
 	}
 	delete[] OutputName;
 	delete[] InputName;

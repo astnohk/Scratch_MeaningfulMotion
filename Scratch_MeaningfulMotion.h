@@ -150,7 +150,7 @@ extern const std::string Progress_End;
 
 
 // Prototype of functions
-int Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
+void Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
 
 // Mathematical Libraries
 double pow_int(double x, int a);

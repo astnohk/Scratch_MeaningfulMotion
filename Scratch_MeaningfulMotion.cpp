@@ -8,7 +8,7 @@
 
 
 
-int
+void
 Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam)
 {
 	ERROR Error("Scratch_MeaningfulMotion");
@@ -518,7 +518,7 @@ Write:
 	delete[] hog_vector;
 	delete[] k_list;
 	delete Pr_table;
-	return MEANINGFUL_SUCCESS;
+	return;
 // Exit Error
 ExitError:
 	delete[] hog_vector;
@@ -531,6 +531,6 @@ ExitError:
 	delete scratches;
 	delete filtered;
 	delete Pr_table;
-	return MEANINGFUL_FAILURE;
+	throw std::logic_error("void Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam) error");
 }
 
