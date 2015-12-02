@@ -84,6 +84,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	// ----- Block Matching -----
 	printf("* * Compute Block Matching\n");
+	/*
 	int BlockSize = MotionParam.BlockMatching_BlockSize;
 	domain_map.reset(It->width(), It->height());
 	for (int y = 0; y < It->height(); y++) {
@@ -92,9 +93,10 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		}
 	}
 	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize);
+	*/
+	block_matching.reset(*It, *Itp1, segments.ref_segments());
 	block_matching.block_matching(BM_Search_Range);
 	Motion_Vector.copy(block_matching.data());
-
 	// ----- Optical Flow -----
 	try {
 		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
@@ -103,6 +105,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		except_bad_alloc = bad;
 		goto ExitError;
 	}
+#if 0
 	try {
 		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel];
 	}
@@ -158,10 +161,10 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		}
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 		if (level >= MaxLevel - 1) {
-			// The order reversed (ordinary It -> Itp1)
+			// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
 			BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
 		} else {
-			// The order reversed (ordinary It -> Itp1)
+			// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
 			LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
 		}
 		IterMax_level = 4 * MAX(It->width(), It->height());
@@ -184,6 +187,10 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		(*u)[i].x = u_levels[0][i].x;
 		(*u)[i].y = u_levels[0][i].y;
 	}
+#endif
+	for (i = 0; i < Motion_Vector.size(); i++) {
+		(*u)[i] = Motion_Vector[i];
+	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
 	delete[] I_dt_levels;
@@ -203,15 +210,15 @@ ExitError:
 
 
 void
-BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, int level, BlockMatching<double>* block_matching)
+BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, int level, BlockMatching<double>& block_matching)
 {
 	double Scale = (double)It_levels[0].width() / It_levels[level].width();
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size()));
-			u_offset.x /= block_matching->vector_width();
-			u_offset.y /= block_matching->vector_height();
+			VECTOR_2D<double> u_offset = block_matching.get((int)floor(x * Scale / block_matching.block_size()), (int)floor(y * Scale / block_matching.block_size()));
+			u_offset.x /= block_matching.vector_width();
+			u_offset.y /= block_matching.vector_height();
 
 			I_dt_levels[level].at(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
