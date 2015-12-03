@@ -137,7 +137,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 		}
 	}
 	printf("* Compute Segment-restricted Affine Motion Parameters\n");
-	for (level = MotionParam.Level - 1; level >= 0; level--) {
+	for (level = MotionParam.Level; level >= 0; level--) {
 		std::vector<std::vector<VECTOR_2D<int> > > connected_domains_resize(connected_domains.size());
 
 		// Resize connected_domains and Compute I_dt_levels[level]

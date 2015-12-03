@@ -75,7 +75,7 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u.a[i] = .0;
 	}
-	for (level = MotionParam.Level - 1; level >= 0; level--) {
+	for (level = MotionParam.Level; level >= 0; level--) {
 		u.a[0] *= 2;
 		u.a[3] *= 2;
 		IterMax = 2 * MAX(I_dt_levels[level].width(), I_dt_levels[level].height());

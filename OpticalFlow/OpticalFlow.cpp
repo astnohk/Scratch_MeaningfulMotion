@@ -74,7 +74,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		goto ExitError;
 	}
 	try {
-		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel];
+		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
 	}
 	catch (const std::bad_alloc &bad) {
 		Error.Value("u_levels");
@@ -109,17 +109,17 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		goto ExitError;
 	}
 
-	for (level = MaxLevel - 1; level >= 0; level--) {
-		if (MaxLevel > 1) {
-			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
-			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
+	for (level = MaxLevel; level >= 0; level--) {
+		if (MaxLevel > 0) {
+			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / MaxLevel * (MaxLevel - level);
+			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / MaxLevel * (MaxLevel - level);
 		} else {
 			sigmaD = sigmaD_l0;
 			sigmaS = sigmaS_l0;
 		}
 		u_levels[level].reset(I_dt_levels[level].width(), I_dt_levels[level].height());
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
-		if (level < MaxLevel - 1) {
+		if (level < MaxLevel) {
 			LevelDown(I_dt_levels, u_levels, It_levels, Itp1_levels, level, MaxLevel);
 		}
 #ifdef DEBUG_STOP_ON_LEVEL_L
@@ -168,7 +168,7 @@ ExitError:
 void
 LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_levels, const ImgVector<double> *It_levels, const ImgVector<double> *Itp1_levels, int level, int MaxLevel)
 {
-	if (level == MaxLevel - 1) {
+	if (level == MaxLevel) {
 		// Do NOT need projection from higher level
 		return;
 	}
@@ -195,7 +195,7 @@ LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_level
 void
 Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLevel)
 {
-	if (level == MaxLevel - 1) {
+	if (level == MaxLevel) {
 		// Do NOT need projection from higher level
 		return;
 	}

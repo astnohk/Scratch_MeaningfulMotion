@@ -76,6 +76,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
 	segments.reset(&It_normalize);
+	MaxLevel = 0;
 	PNM pnm;
 	printf("max : %d\n", segments.ref_segments().max());
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments().max(), segments.ref_segments().data());
@@ -105,9 +106,8 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		except_bad_alloc = bad;
 		goto ExitError;
 	}
-#if 0
 	try {
-		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel];
+		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
 	}
 	catch (const std::bad_alloc &bad) {
 		except_bad_alloc = bad;
@@ -147,20 +147,20 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	}
 
 	// Initialize u_levels
-	for (level = 0; level < MaxLevel; level++) {
+	for (level = 0; level <= MaxLevel; level++) {
 		u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
 	}
 	// Multi-Resolution IRLS Optical Flow estimation
-	for (level = MaxLevel - 1; level >= 0; level--) {
-		if (MaxLevel > 1) {
-			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
-			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / (MaxLevel - 1.0) * (MaxLevel - 1.0 - level);
+	for (level = MaxLevel; level >= 0; level--) {
+		if (MaxLevel > 0) {
+			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / MaxLevel * (MaxLevel - level);
+			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / MaxLevel * (MaxLevel - level);
 		} else {
 			sigmaD = sigmaD_l0;
 			sigmaS = sigmaS_l0;
 		}
 		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
-		if (level >= MaxLevel - 1) {
+		if (level >= MaxLevel) {
 			// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
 			BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
 		} else {
@@ -187,7 +187,6 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		(*u)[i].x = u_levels[0][i].x;
 		(*u)[i].y = u_levels[0][i].y;
 	}
-#endif
 	for (i = 0; i < Motion_Vector.size(); i++) {
 		(*u)[i] = Motion_Vector[i];
 	}
@@ -210,15 +209,15 @@ ExitError:
 
 
 void
-BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, int level, BlockMatching<double>& block_matching)
+BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, const int level, BlockMatching<double>* block_matching)
 {
 	double Scale = (double)It_levels[0].width() / It_levels[level].width();
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching.get((int)floor(x * Scale / block_matching.block_size()), (int)floor(y * Scale / block_matching.block_size()));
-			u_offset.x /= block_matching.vector_width();
-			u_offset.y /= block_matching.vector_height();
+			VECTOR_2D<double> u_offset = block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size()));
+			u_offset.x /= block_matching->vector_width();
+			u_offset.y /= block_matching->vector_height();
 
 			I_dt_levels[level].at(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
@@ -239,7 +238,7 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 void
 Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLevel, BlockMatching<double>* block_matching)
 {
-	if (level == MaxLevel - 1) {
+	if (level == MaxLevel) {
 		// Add offset calculated by using the motion vector by Block Matching
 		double Scale = (double)u_levels[0].width() / u_levels[level].width();
 
