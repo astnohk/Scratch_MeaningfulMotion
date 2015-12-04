@@ -106,89 +106,94 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		except_bad_alloc = bad;
 		goto ExitError;
 	}
-	try {
-		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
-	}
-	catch (const std::bad_alloc &bad) {
-		except_bad_alloc = bad;
-		goto ExitError;
-	}
-	// Make Pyramid
-	try {
-		It_levels = Pyramider(&It_normalize, MaxLevel);
-	}
-	catch (const std::bad_alloc &bad) {
-		except_bad_alloc = bad;
-		goto ExitError;
-	}
-	try {
-		Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel);
-	}
-	catch (const std::bad_alloc &bad) {
-		except_bad_alloc = bad;
-		goto ExitError;
-	}
-	// Derivative about time
-	try {
-		// The order reversed along with Block Matching (ordinary It -> Itp1)
-		I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MaxLevel);
-	}
-	catch (const std::bad_alloc &bad) {
-		except_bad_alloc = bad;
-		goto ExitError;
-	}
-	// Derivative about space
-	try {
-		grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MaxLevel);
-	}
-	catch (const std::bad_alloc &bad) {
-		except_bad_alloc = bad;
-		goto ExitError;
-	}
+	if (MaxLevel >= 0) {
+		try {
+			u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
+		}
+		catch (const std::bad_alloc &bad) {
+			except_bad_alloc = bad;
+			goto ExitError;
+		}
+		// Make Pyramid
+		try {
+			It_levels = Pyramider(&It_normalize, MaxLevel);
+		}
+		catch (const std::bad_alloc &bad) {
+			except_bad_alloc = bad;
+			goto ExitError;
+		}
+		try {
+			Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel);
+		}
+		catch (const std::bad_alloc &bad) {
+			except_bad_alloc = bad;
+			goto ExitError;
+		}
+		// Derivative about time
+		try {
+			// The order reversed along with Block Matching (ordinary It -> Itp1)
+			I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MaxLevel);
+		}
+		catch (const std::bad_alloc &bad) {
+			except_bad_alloc = bad;
+			goto ExitError;
+		}
+		// Derivative about space
+		try {
+			grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MaxLevel);
+		}
+		catch (const std::bad_alloc &bad) {
+			except_bad_alloc = bad;
+			goto ExitError;
+		}
 
-	// Initialize u_levels
-	for (level = 0; level <= MaxLevel; level++) {
-		u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
-	}
-	// Multi-Resolution IRLS Optical Flow estimation
-	for (level = MaxLevel; level >= 0; level--) {
-		if (MaxLevel > 0) {
-			sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / MaxLevel * (MaxLevel - level);
-			sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / MaxLevel * (MaxLevel - level);
-		} else {
-			sigmaD = sigmaD_l0;
-			sigmaS = sigmaS_l0;
+		// Initialize u_levels
+		for (level = 0; level <= MaxLevel; level++) {
+			u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
 		}
-		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
-		if (level >= MaxLevel) {
-			// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
-			BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
-		} else {
-			// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
-			LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
+		// Multi-Resolution IRLS Optical Flow estimation
+		for (level = MaxLevel; level >= 0; level--) {
+			if (MaxLevel > 0) {
+				sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / MaxLevel * (MaxLevel - level);
+				sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / MaxLevel * (MaxLevel - level);
+			} else {
+				sigmaD = sigmaD_l0;
+				sigmaS = sigmaS_l0;
+			}
+			printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
+			if (level >= MaxLevel) {
+				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
+				BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
+			} else {
+				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
+				LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
+			}
+			IterMax_level = 4 * MAX(It->width(), It->height());
+			if (IterMax < 0 && IterMax_level >= IterMax) {
+				IterMax_level = IterMax;
+			}
+			printf("IterMax = %d\n", IterMax_level);
+			IRLS_OpticalFlow_Pyramid(
+			    (u_levels + level),
+			    (grad_It_levels + level),
+			    (I_dt_levels + level),
+			    lambdaD, lambdaS, sigmaD, sigmaS,
+			    IterMax_level,
+			    MotionParam.Error_Min_Threshold,
+			    level);
+			Add_VectorOffset(u_levels, level, MaxLevel, &block_matching);
 		}
-		IterMax_level = 4 * MAX(It->width(), It->height());
-		if (IterMax < 0 && IterMax_level >= IterMax) {
-			IterMax_level = IterMax;
-		}
-		printf("IterMax = %d\n", IterMax_level);
-		IRLS_OpticalFlow_Pyramid(
-		    (u_levels + level),
-		    (grad_It_levels + level),
-		    (I_dt_levels + level),
-		    lambdaD, lambdaS, sigmaD, sigmaS,
-		    IterMax_level,
-		    MotionParam.Error_Min_Threshold,
-		    level);
-		Add_VectorOffset(u_levels, level, MaxLevel, &block_matching);
 	}
 	// Copy the lowest vector for output
-	for (i = 0; i < u->size(); i++) {
-		(*u)[i].x = u_levels[0][i].x;
-		(*u)[i].y = u_levels[0][i].y;
-	}
-	for (i = 0; i < Motion_Vector.size(); i++) {
-		(*u)[i] = Motion_Vector[i];
+	if (u_levels == nullptr) {
+		for (i = 0; i < u->size(); i++) {
+			(*u)[i].x = u_levels[0][i].x;
+			(*u)[i].y = u_levels[0][i].y;
+		}
+	} else {
+		for (i = 0; i < Motion_Vector.size(); i++) {
+			(*u)[i] = Motion_Vector[i];
+		}
 	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
