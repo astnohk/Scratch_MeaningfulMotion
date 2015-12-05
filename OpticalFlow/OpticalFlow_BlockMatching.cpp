@@ -75,7 +75,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
-	segments.reset(&It_normalize);
+	segments.reset(It_normalize);
 	MaxLevel = 0;
 	PNM pnm;
 	printf("max : %d\n", segments.ref_segments().max());
@@ -290,7 +290,7 @@ IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> > *u, const ImgVector
 	} else if (Img_t == nullptr) {
 		throw std::invalid_argument("ImgVector<double> *Img_t");
 	}
-	u_np1.copy(u); // Initialize u_np1
+	u_np1.copy(*u); // Initialize u_np1
 	// Reset sup_Error_uu max Img_g
 	sup_Error_uu_Block(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
 	sup = sup_Error_uu_Block(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);

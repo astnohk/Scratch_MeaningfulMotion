@@ -230,7 +230,7 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 	} else if (Img_t == nullptr) {
 		throw std::invalid_argument("ImgVector<double> *Img_t");
 	}
-	u_np1.copy(u); // Initialize u_np1
+	u_np1.copy(*u); // Initialize u_np1
 	// Reset sup_Error_uu max Img_g
 	sup_Error_uu(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
 	sup = sup_Error_uu(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
