@@ -200,7 +200,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		}
 	}
 	// Copy the lowest vector for output
-	if (u_levels == nullptr) {
+	if (u_levels != nullptr) {
 		for (i = 0; i < u->size(); i++) {
 			(*u)[i].x = u_levels[0][i].x;
 			(*u)[i].y = u_levels[0][i].y;
