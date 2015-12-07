@@ -73,19 +73,10 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		MaxLevel = (int)floor(log((double)MotionParam.BlockMatching_BlockSize) / log(2.0));
 	}
 
-	// Segmentation
-	printf("* * Compute Segmentation by Mean Shift\n");
-	segments.reset(It_normalize);
-	MaxLevel = 0;
-	PNM pnm;
-	printf("max : %d\n", segments.ref_segments().max());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments().max(), segments.ref_segments().data());
-	pnm.write("Segments.pgm");
-	pnm.free();
-
 	// ----- Block Matching -----
+#if 0
+	// Normal Block Matching
 	printf("* * Compute Block Matching\n");
-	/*
 	int BlockSize = MotionParam.BlockMatching_BlockSize;
 	domain_map.reset(It->width(), It->height());
 	for (int y = 0; y < It->height(); y++) {
@@ -94,9 +85,33 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 		}
 	}
 	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize);
-	*/
+#endif
+#if 1
+	// Segmentation
+	printf("* * Compute Segmentation by Mean Shift\n");
+	segments.reset(It_normalize);
+	PNM pnm;
+	printf("max : %d\n", segments.ref_segments().max());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments().max(), segments.ref_segments().data());
+	pnm.write("Segments.pgm");
+	pnm.free();
+	// Arbitrary shaped Block Matching
+	printf("* * Compute Block Matching\n");
 	block_matching.reset(*It, *Itp1, segments.ref_segments());
 	block_matching.block_matching(BM_Search_Range);
+	if (MaxLevel > 0) {
+		MaxLevel = 0;
+	}
+#endif
+#if 0
+	// Dense Block Matching
+	printf("* * Compute Block Matching\n");
+	int BlockSize = MotionParam.BlockMatching_BlockSize;
+	domain_map.reset(It->width(), It->height(), 1);
+	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize, true);
+	MaxLevel = -1; // Do NOT need to do gradient method
+#endif
+
 	Motion_Vector.copy(block_matching.data());
 	// ----- Optical Flow -----
 	try {

@@ -144,9 +144,6 @@ MULTIPLE_MOTION_PARAM::set_value(const char *name, void *value)
 {
 	if (strcmp(name, "Level") == 0) {
 		Level = *static_cast<const int*>(value);
-		if (Level < 1) {
-			Level = 1;
-		}
 	} else if (strcmp(name, "IRLS_Iter_Max") == 0) {
 		IRLS_Iter_Max = *static_cast<const int*>(value);
 		if (IRLS_Iter_Max < 0) {
