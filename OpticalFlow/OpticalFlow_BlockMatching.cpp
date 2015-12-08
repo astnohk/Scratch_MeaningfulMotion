@@ -27,7 +27,6 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	ImgVector<bool> domain_map;
 	BlockMatching<double> block_matching;
-	ImgVector<VECTOR_2D<double> > Motion_Vector;
 
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
@@ -112,7 +111,6 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	MaxLevel = -1; // Do NOT need to do gradient method
 #endif
 
-	Motion_Vector.copy(block_matching.data());
 	// ----- Optical Flow -----
 	try {
 		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
@@ -206,8 +204,10 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 			(*u)[i].y = u_levels[0][i].y;
 		}
 	} else {
-		for (i = 0; i < Motion_Vector.size(); i++) {
-			(*u)[i] = Motion_Vector[i];
+		for (int y = 0; y < block_matching.height(); y++) {
+			for (int x = 0; x < block_matching.width(); x++) {
+				u->at(x, y) = block_matching.get(x, y);
+			}
 		}
 	}
 	delete[] u_levels;
@@ -235,9 +235,8 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size()));
-			u_offset.x /= block_matching->vector_width();
-			u_offset.y /= block_matching->vector_height();
+			VECTOR_2D<double> u_offset = block_matching->get((int)round(x * Scale), (int)round(y * Scale));
+			u_offset /= Scale;
 
 			I_dt_levels[level].at(x, y) =
 			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
@@ -265,10 +264,10 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
 				u_levels[level].at(x, y).x +=
-				    block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).x
+				    block_matching->get((int)round(x * Scale), (int)round(y * Scale)).x
 				    / Scale;
 				u_levels[level].at(x, y).y +=
-				    block_matching->get((int)floor(x * Scale / block_matching->block_size()), (int)floor(y * Scale / block_matching->block_size())).y
+				    block_matching->get((int)round(x * Scale), (int)round(y * Scale)).y
 				    / Scale;
 			}
 		}

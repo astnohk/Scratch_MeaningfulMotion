@@ -17,7 +17,6 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 
 	// Block matching
 	BlockMatching<double> block_matching;
-	std::vector<VECTOR_2D<double> > Motion_Vector;
 	int BM_Search_Range = 41; // Block Matching search range
 
 	// M-estimator parameter
@@ -58,17 +57,13 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	// ----- Block Matching -----
 	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize);
 	block_matching.block_matching(BM_Search_Range);
-	Motion_Vector.resize(block_matching.vector_width() * block_matching.vector_height());
-	for (int R = 0; R < block_matching.vector_width() * block_matching.vector_height(); R++) {
-		Motion_Vector[R] = block_matching[R];
-	}
 
 	// Set connected domain
 	printf("* Make connected_domains\n");
-	connected_domains.resize(block_matching.vector_width() * block_matching.vector_height());
-	for (int m = 0; m < block_matching.vector_height(); m++) {
+	connected_domains.resize(block_matching.vector_field_width() * block_matching.vector_field_height());
+	for (int m = 0; m < block_matching.vector_field_height(); m++) {
 		int M = m * block_matching.block_size();
-		for (int n = 0; n < block_matching.vector_width(); n++) {
+		for (int n = 0; n < block_matching.vector_field_width(); n++) {
 			int N = n * block_matching.block_size();
 			for (int y = 0; y < block_matching.block_size(); y++) {
 				if (M + y >= It->height()) {
@@ -78,7 +73,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 					if (N + x >= It->width()) {
 						break;
 					}
-					connected_domains[m * block_matching.vector_width() + n].push_back((VECTOR_2D<int>){N + x, M + y});
+					connected_domains[m * block_matching.vector_field_width() + n].push_back((VECTOR_2D<int>){N + x, M + y});
 				}
 			}
 		}
@@ -149,8 +144,9 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 				r.x = connected_domains[R][n].x >> level;
 				r.y = connected_domains[R][n].y >> level;
 				if (level == 0) {
-					int x_ref = int(connected_domains[R][n].x + Motion_Vector[R].x) >> level;
-					int y_ref = int(connected_domains[R][n].y + Motion_Vector[R].y) >> level;
+					VECTOR_2D<double> v = block_matching.get(connected_domains[R][n].x, connected_domains[R][n].y);
+					int x_ref = int(connected_domains[R][n].x + v.x) >> level;
+					int y_ref = int(connected_domains[R][n].y + v.y) >> level;
 					I_dt_levels[level].at(r.x, r.y) =
 					    (It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
 					    + It_levels[level].get_mirror(x_ref + 1, y_ref) - Itp1_levels[level].get_mirror(r.x + 1, r.y)
@@ -166,8 +162,9 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 						}
 					}
 					if (k >= connected_domains_resize[R].size()) {
-						int x_ref = int(connected_domains[R][n].x + Motion_Vector[R].x) >> level;
-						int y_ref = int(connected_domains[R][n].y + Motion_Vector[R].y) >> level;
+						VECTOR_2D<double> v = block_matching.get(connected_domains[R][n].x, connected_domains[R][n].y);
+						int x_ref = int(connected_domains[R][n].x + v.x) >> level;
+						int y_ref = int(connected_domains[R][n].y + v.y) >> level;
 						I_dt_levels[level].at(r.x, r.y) =
 						    (It_levels[level].get_mirror(x_ref, y_ref) - Itp1_levels[level].get_mirror(r.x, r.y)
 						    + It_levels[level].get_mirror(x_ref + 1, y_ref) - Itp1_levels[level].get_mirror(r.x + 1, r.y)
@@ -205,10 +202,11 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	}
 	for(unsigned int R = 0; R < connected_domains.size(); R++) {
 		for (unsigned int n = 0; n < connected_domains[R].size(); n++) {
+			VECTOR_2D<double> v = block_matching.get(connected_domains[R][n].x, connected_domains[R][n].y);
 			int x = connected_domains[R][n].x;
 			int y = connected_domains[R][n].y;
-			u->at(x, y).x = Motion_Vector[R].x + u_affine[R].a[0] + u_affine[R].a[1] * x + u_affine[R].a[2] * y;
-			u->at(x, y).y = Motion_Vector[R].y + u_affine[R].a[3] + u_affine[R].a[4] * x + u_affine[R].a[5] * y;
+			u->at(x, y).x = v.x + u_affine[R].a[0] + u_affine[R].a[1] * x + u_affine[R].a[2] * y;
+			u->at(x, y).y = v.y + u_affine[R].a[3] + u_affine[R].a[4] * x + u_affine[R].a[5] * y;
 		}
 	}
 	delete[] grad_It_levels;
