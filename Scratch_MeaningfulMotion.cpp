@@ -1,3 +1,4 @@
+#include "ImgClass/RGB.h"
 #include "Scratch_MeaningfulMotion.h"
 #include "OpticalFlow/Affine_MultipleMotion.h"
 #include "OpticalFlow/OpticalFlow.h"
@@ -26,8 +27,10 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM pnm_res;
 	PNM_DOUBLE pnmd_in;
 	PNM_DOUBLE pnmd_out;
-	ImgVector<double> imgd_prev;
-	ImgVector<double> imgd_in;
+	ImgVector<ImgClass::RGB<double> > imgd_prev;
+	ImgVector<double> imgd_prev_gray;
+	ImgVector<ImgClass::RGB<double> > imgd_in;
+	ImgVector<double> imgd_in_gray;
 	ImgVector<int> img_orig; // For X11 plotting
 
 	// Optical Flow
@@ -161,16 +164,27 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			}
 			goto Write;
 		}
-		if ((pnm_in.Desc() % 3) == 0) { // Convert to Grayscale
+		// Copy color image to ImgVector<ImgClass::RGB> imgd_in
+		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
+		for (i = 0; i < imgd_in.size(); i++) {
+			if (pnm_in.isRGB()) {
+				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
+			} else {
+				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i]);
+			}
+		}
+		if (pnm_in.isRGB()) { // Convert to Grayscale
 			printf("- The input image is color data\n");
 			printf("* Convert the image to grayscale before applying Meaningful Alignments.\n");
 			printf("Convert...   ");
+			// Convert pnm to pnm_double
 			if (pnmd_in.copy(pnm_in, 1.0) != PNM_FUNCTION_SUCCESS) {
 				Error.Function("pnmd_in.copy");
 				Error.Value("pnmd_in <- pnm_in");
 				Error.FunctionFail();
 				goto ExitError;
 			}
+			// Convert Color image to Grayscale
 			if (pnmd_out.RGB2Gray(pnmd_in) != PNM_FUNCTION_SUCCESS) {
 				Error.Function("pnmd_out.RGB2Gray");
 				Error.Value("pnmd_out <- pnmd_in");
@@ -179,6 +193,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			}
 			pnmd_in.free();
 			pnm_in.free();
+			// Convert pnm_double to pnm
 			if (pnm_in.copy(pnmd_out, 1.0, "round") != PNM_FUNCTION_SUCCESS) {
 				Error.Function("pnm_in.copy");
 				Error.Value("pnm_in <- pnmd_out");
@@ -188,9 +203,9 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			pnmd_out.free();
 			printf("Finished\n\n");
 		}
-		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
-		for (i = 0; i < imgd_in.size(); i++) {
-			imgd_in[i] = (double)pnm_in[i];
+		imgd_in_gray.reset(pnm_in.Width(), pnm_in.Height());
+		for (i = 0; i < imgd_in_gray.size(); i++) {
+			imgd_in_gray[i] = (double)pnm_in[i];
 		}
 
 		// Show Parameters
@@ -254,28 +269,28 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			filtered = nullptr;
 		} else if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			// Computte and output Multiple Motion Affine Parameters by method of M.J.Black
-			if (imgd_prev.isNULL() != false) {
+			if (imgd_prev_gray.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Multiple Motions Affine Parameters by method of Michael J. Black\n");
-				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_AffineCoeff = MultipleMotion_Affine(&imgd_prev_gray, &imgd_in_gray, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_AFFINE_BLOCKMATCHING) != 0) {
 			// Computte Block Matching with Multiple Motion Affine Parameters by method of M.J.Black
-			if (imgd_prev.isNULL() != false) {
+			if (imgd_prev_gray.isNULL() != false) {
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Block Matching with Affine by method of Michael J. Black\n");
-				MultipleMotion_u = OpticalFlow_Affine_BlockMatching(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_u = OpticalFlow_Affine_BlockMatching(&imgd_prev_gray, &imgd_in_gray, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			// Computte Block Matching with Multiple Motion Optical Flow by method of M.J.Black
-			if (imgd_prev.isNULL() != false) {
+			if (imgd_prev_gray.isNULL() != false) {
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Optical Flow by method of Michael J. Black\n");
-				//MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
-				MultipleMotion_u = OpticalFlow_BlockMatching(&imgd_prev, &imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				//MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev_gray, &imgd_in_gray, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_u = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
@@ -458,12 +473,12 @@ Write:
 			char_tmp = nullptr;
 		}
 		if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
-			if (imgd_prev.isNULL() == false) {
+			if (imgd_prev_gray.isNULL() == false) {
 				MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums);
 			}
 		} else if ((Options.mode & (MODE_OUTPUT_OPTICALFLOW | MODE_OUTPUT_AFFINE_BLOCKMATCHING)) != 0) {
-			if (imgd_prev.isNULL() == false) {
-				MultipleMotion_write(&imgd_prev, &imgd_in, MultipleMotion_u, OutputNameNums);
+			if (imgd_prev_gray.isNULL() == false) {
+				MultipleMotion_write(&imgd_prev_gray, &imgd_in_gray, MultipleMotion_u, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
 			if (HOG_write(hog_raw, OutputNameNums) == false) {
@@ -480,7 +495,7 @@ Write:
 				goto ExitError;
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_MATCHING_VECTOR) != 0) {
-			if (imgd_prev.isNULL() == false
+			if (imgd_prev_gray.isNULL() == false
 			    && hog_prv.Bins() == hog.Bins()) {
 				printf("* Compute matching each images HOG feature\n");
 				hog_vector = HOG_Matching(&hog_prv, &hog);
@@ -490,7 +505,7 @@ Write:
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				HOG_vector_compensated_write(&imgd_prev, &imgd_in, hog_vector, hog.Width(), hog.Height(), OutputNameNums);
+				HOG_vector_compensated_write(&imgd_prev_gray, &imgd_in_gray, hog_vector, hog.Width(), hog.Height(), OutputNameNums);
 				delete[] hog_vector;
 				hog_vector = nullptr;
 			} else {
@@ -508,6 +523,7 @@ Write:
 		MultipleMotion_u = nullptr;
 		if (imgd_in.isNULL() == false) {
 			imgd_prev = imgd_in;
+			imgd_prev_gray = imgd_in_gray;
 		}
 		pnmd_in.free();
 		pnm_out.free();

@@ -17,7 +17,7 @@
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 ImgVector<VECTOR_2D<double> > *
-OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
+OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, const ImgVector<ImgClass::RGB<double> >& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
 {
 	std::bad_alloc except_bad_alloc;
 
@@ -27,6 +27,9 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	ImgVector<bool> domain_map;
 	BlockMatching<double> block_matching;
+
+	ImgVector<double> It;
+	ImgVector<double> Itp1;
 
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
@@ -51,17 +54,19 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	int level;
 	int i;
 
-	if (It == nullptr) {
+	if (It_color.isNULL()) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* It");
-	} else if (Itp1 == nullptr) {
+	} else if (Itp1_color.isNULL()) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* Itp1");
 	} else if (MaxInt < 0) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : double MaxInt");
 	}
+	It.cast_copy(It_color);
+	Itp1.cast_copy(Itp1_color);
 
 	// Image Normalization
-	It_normalize = *It;
-	Itp1_normalize = *Itp1;
+	It_normalize = It;
+	Itp1_normalize = Itp1;
 	for (i = 0; i < It_normalize.size(); i++) {
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
@@ -90,13 +95,13 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 	printf("* * Compute Segmentation by Mean Shift\n");
 	segments.reset(It_normalize);
 	PNM pnm;
-	printf("max : %d\n", segments.ref_segments().max());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments().max(), segments.ref_segments().data());
+	printf("max : %d\n", segments.ref_segments_map().max());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments_map().max(), segments.ref_segments_map().data());
 	pnm.write("Segments.pgm");
 	pnm.free();
 	// Arbitrary shaped Block Matching
 	printf("* * Compute Block Matching\n");
-	block_matching.reset(*It, *Itp1, segments.ref_segments());
+	block_matching.reset(It, Itp1, segments.ref_segments_map());
 	block_matching.block_matching(BM_Search_Range);
 	if (MaxLevel > 0) {
 		MaxLevel = 0;
@@ -113,7 +118,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 
 	// ----- Optical Flow -----
 	try {
-		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
+		u = new ImgVector<VECTOR_2D<double> >(It.width(), It.height());
 	}
 	catch (const std::bad_alloc &bad) {
 		except_bad_alloc = bad;
@@ -181,7 +186,7 @@ OpticalFlow_BlockMatching(const ImgVector<double>* It, const ImgVector<double>* 
 				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
 				LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
 			}
-			IterMax_level = 4 * MAX(It->width(), It->height());
+			IterMax_level = 4 * MAX(It.width(), It.height());
 			if (IterMax < 0 && IterMax_level >= IterMax) {
 				IterMax_level = IterMax;
 			}
