@@ -6,10 +6,12 @@
  * y         m
 */
 
-// Options for Old Compiler which is not available to use -std=c++11
+// Options for environment where the option -std=c++11 is not available
+/*
 #ifndef nullptr
 #define nullptr NULL
 #endif
+*/
 
 
 // DEBUG Options

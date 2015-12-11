@@ -1,8 +1,8 @@
 CC = g++
 WARNING = -Wall -Wextra
 LIBES = -lm -lX11
-OPTION = -fopenmp
-#OPTION = -fopenmp -std=c++11
+#OPTION = -fopenmp
+OPTION = -fopenmp -std=c++11
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp

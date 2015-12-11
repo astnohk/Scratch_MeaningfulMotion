@@ -4,6 +4,8 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
+#include <string>
+
 #include "OpticalFlow.h"
 #include "OpticalFlow_BlockMatching.h"
 
@@ -17,13 +19,13 @@
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 ImgVector<VECTOR_2D<double> > *
-OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, const ImgVector<ImgClass::RGB<double> >& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, int IterMax)
+OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, const ImgVector<ImgClass::RGB<double> >& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
 	std::bad_alloc except_bad_alloc;
 
-	ImgVector<VECTOR_2D<double> > *u = nullptr; // For RETURN value
+	ImgVector<VECTOR_2D<double> >* u = nullptr; // For RETURN value
 
-	Segmentation<double> segments;
+	Segmentation<ImgClass::Lab> segments;
 
 	ImgVector<bool> domain_map;
 	BlockMatching<double> block_matching;
@@ -31,13 +33,15 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, con
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
 
+	ImgVector<ImgClass::Lab> It_Lab_color_normalize;
+	ImgVector<ImgClass::Lab> Itp1_Lab_color_normalize;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
-	ImgVector<VECTOR_2D<double> > *u_levels = nullptr;
-	ImgVector<double> *I_dt_levels = nullptr;
-	ImgVector<double> *It_levels = nullptr;
-	ImgVector<double> *Itp1_levels = nullptr;
-	ImgVector<VECTOR_2D<double> > *grad_It_levels = nullptr;
+	ImgVector<VECTOR_2D<double> >* u_levels = nullptr;
+	ImgVector<double>* I_dt_levels = nullptr;
+	ImgVector<double>* It_levels = nullptr;
+	ImgVector<double>* Itp1_levels = nullptr;
+	ImgVector<VECTOR_2D<double> >* grad_It_levels = nullptr;
 	// M-estimator parameter
 	const double lambdaD = 5.0;
 	const double lambdaS = 1.0;
@@ -65,9 +69,13 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, con
 	Itp1.cast_copy(Itp1_color);
 
 	// Image Normalization
+	It_Lab_color_normalize.cast_copy(It_color);
+	Itp1_Lab_color_normalize.cast_copy(Itp1_color);
 	It_normalize = It;
 	Itp1_normalize = Itp1;
 	for (i = 0; i < It_normalize.size(); i++) {
+		It_Lab_color_normalize[i] /= MaxInt;
+		Itp1_Lab_color_normalize[i] /= MaxInt;
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
 	}
@@ -93,12 +101,38 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, con
 #if 1
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
-	segments.reset(It_normalize);
+	segments.reset(It_Lab_color_normalize);
+	printf("The number of regions : %d\n", segments.ref_segments_map().max());
 	PNM pnm;
-	printf("max : %d\n", segments.ref_segments_map().max());
+
+	std::string ofilename_segmentation = ofilename.substr(0, ofilename.length() - 4) + "segmentation" + ofilename.substr(ofilename.length() - 4);
+	printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments_map().max(), segments.ref_segments_map().data());
-	pnm.write("Segments.pgm");
+	pnm.write(ofilename_segmentation.c_str());
 	pnm.free();
+
+	std::string ofilename_decrease = ofilename.substr(0, ofilename.length() - 4) + "decreased-color" + ofilename.substr(ofilename.length() - 4);
+	printf("* Output The decreased color image '%s'(binary)\n\n", ofilename_decrease.c_str());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_decrease_color_image().max(), segments.ref_decrease_color_image().data());
+	pnm.write(ofilename_decrease.c_str());
+	pnm.free();
+
+	// Output vectors
+	FILE *fp;
+	std::string ofilename_vector = ofilename.substr(0, ofilename.length() - 4) + "vector" + ofilename.substr(ofilename.length() - 4);
+	fp = fopen(ofilename_vector.c_str(), "w");
+	fprintf(fp, "%d %d\n", segments.width(), segments.height());
+	for (int y = 0; y < segments.height(); y++) {
+		for (int x = 0; x < segments.width(); x++) {
+			VECTOR_2D<double> v;
+			v.x = segments.ref_shift_vector().get(x, y).x - x;
+			v.y = segments.ref_shift_vector().get(x, y).y - y;
+			fwrite(&v.x, sizeof(double), 1, fp);
+			fwrite(&v.y, sizeof(double), 1, fp);
+		}
+	}
+	fclose(fp);
+
 	// Arbitrary shaped Block Matching
 	printf("* * Compute Block Matching\n");
 	block_matching.reset(It, Itp1, segments.ref_segments_map());
@@ -260,7 +294,7 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 
 
 void
-Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLevel, BlockMatching<double>* block_matching)
+Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLevel, BlockMatching<double>* block_matching)
 {
 	if (level == MaxLevel) {
 		// Add offset calculated by using the motion vector by Block Matching
@@ -289,7 +323,7 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int MaxLeve
 
 
 void
-IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> > *u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> >* u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_OpticalFlow_Pyramid_Block");
 
@@ -351,7 +385,7 @@ IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> > *u, const ImgVector
 
 
 VECTOR_2D<double>
-Error_u_Block(int site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_u_Block(int site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
@@ -395,7 +429,7 @@ Error_u_Block(int site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<
 
 
 VECTOR_2D<double>
-sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> >* Img_g, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	static VECTOR_2D<double> Img_g_max;
 	VECTOR_2D<double> sup;
@@ -418,7 +452,7 @@ sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> > *Img_g, const double &lam
 
 
 double
-Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;

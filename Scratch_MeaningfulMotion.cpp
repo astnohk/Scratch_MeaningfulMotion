@@ -170,7 +170,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			if (pnm_in.isRGB()) {
 				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
 			} else {
-				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i]);
+				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i], pnm_in[i], pnm_in[i]);
 			}
 		}
 		if (pnm_in.isRGB()) { // Convert to Grayscale
@@ -290,7 +290,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			} else {
 				printf("* Compute Optical Flow by method of Michael J. Black\n");
 				//MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev_gray, &imgd_in_gray, pnm_in.MaxInt(), Options.MultipleMotion_Param);
-				MultipleMotion_u = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param);
+				MultipleMotion_u = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
