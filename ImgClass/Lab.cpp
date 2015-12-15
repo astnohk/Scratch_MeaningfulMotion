@@ -1,1 +1,0 @@
-../../ImgClass/Lab.cpp
