@@ -13,7 +13,7 @@
 
 
 ImgVector<VECTOR_2D<double> > *
-OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It, const ImgVector<ImgClass::RGB<double> >& Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax = 0);
+OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It, const ImgVector<ImgClass::RGB>& Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax = 0);
 
 void BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, const int level, BlockMatching<double>* Motion_Vector);
 void Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLevel, BlockMatching<double>* block_matching);

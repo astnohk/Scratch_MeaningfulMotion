@@ -27,9 +27,9 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	PNM pnm_res;
 	PNM_DOUBLE pnmd_in;
 	PNM_DOUBLE pnmd_out;
-	ImgVector<ImgClass::RGB<double> > imgd_prev;
+	ImgVector<ImgClass::RGB> imgd_prev;
 	ImgVector<double> imgd_prev_gray;
-	ImgVector<ImgClass::RGB<double> > imgd_in;
+	ImgVector<ImgClass::RGB> imgd_in;
 	ImgVector<double> imgd_in_gray;
 	ImgVector<int> img_orig; // For X11 plotting
 
@@ -168,9 +168,9 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
 		for (i = 0; i < imgd_in.size(); i++) {
 			if (pnm_in.isRGB()) {
-				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
+				imgd_in[i] = ImgClass::RGB(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
 			} else {
-				imgd_in[i] = ImgClass::RGB<double>(pnm_in[i], pnm_in[i], pnm_in[i]);
+				imgd_in[i] = ImgClass::RGB(pnm_in[i], pnm_in[i], pnm_in[i]);
 			}
 		}
 		if (pnm_in.isRGB()) { // Convert to Grayscale

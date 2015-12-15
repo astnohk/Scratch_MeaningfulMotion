@@ -19,7 +19,7 @@
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 ImgVector<VECTOR_2D<double> > *
-OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, const ImgVector<ImgClass::RGB<double> >& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
+OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
 	std::bad_alloc except_bad_alloc;
 
@@ -33,8 +33,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, con
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
 
-	ImgVector<ImgClass::Lab> It_Lab_color_normalize;
-	ImgVector<ImgClass::Lab> Itp1_Lab_color_normalize;
+	ImgVector<ImgClass::RGB> It_sRGB_normalize;
+	ImgVector<ImgClass::RGB> Itp1_sRGB_normalize;
+	ImgVector<ImgClass::Lab> It_Lab_normalize;
+	ImgVector<ImgClass::Lab> Itp1_Lab_normalize;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
 	ImgVector<VECTOR_2D<double> >* u_levels = nullptr;
@@ -65,19 +67,30 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, con
 	} else if (MaxInt < 0) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : double MaxInt");
 	}
+
+	// sRGB image
+	It_sRGB_normalize.copy(It_color);
+	Itp1_sRGB_normalize.copy(It_color);
+	// Grayscale
 	It.cast_copy(It_color);
 	Itp1.cast_copy(Itp1_color);
-
 	// Image Normalization
-	It_Lab_color_normalize.cast_copy(It_color);
-	Itp1_Lab_color_normalize.cast_copy(Itp1_color);
 	It_normalize = It;
 	Itp1_normalize = Itp1;
 	for (i = 0; i < It_normalize.size(); i++) {
-		It_Lab_color_normalize[i] /= MaxInt;
-		Itp1_Lab_color_normalize[i] /= MaxInt;
+		// sRGB
+		It_sRGB_normalize[i] /= MaxInt;
+		Itp1_sRGB_normalize[i] /= MaxInt;
+		// Grayscale
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
+	}
+	// Convert sRGB to CIE Lab
+	It_Lab_normalize.reset(It_sRGB_normalize.width(), It_sRGB_normalize.height());
+	Itp1_Lab_normalize.reset(It_sRGB_normalize.width(), It_sRGB_normalize.height());
+	for (i = 0; i < It_sRGB_normalize.size(); i++) {
+		It_Lab_normalize[i].set(It_sRGB_normalize[i]);
+		Itp1_Lab_normalize[i].set(Itp1_sRGB_normalize[i]);
 	}
 
 	// Adjust max level to use the Block Matching efficiently
@@ -101,7 +114,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB<double> >& It_color, con
 #if 1
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
-	segments.reset(It_Lab_color_normalize);
+	segments.reset(It_Lab_normalize);
 	printf("The number of regions : %d\n", segments.ref_segments_map().max());
 	PNM pnm;
 
