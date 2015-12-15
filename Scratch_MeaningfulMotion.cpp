@@ -126,7 +126,22 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				Error.FunctionFail();
 				goto ExitError;
 			}
-			if (pnm_resize(&pnmd_out, pnmd_in, size_res.width, size_res.height, Options.ResampleMethod) != PNM_FUNCTION_SUCCESS) {
+			try {
+				pnm_resize(&pnmd_out, pnmd_in, size_res.width, size_res.height, Options.ResampleMethod);
+			}
+			catch (const std::bad_alloc& bad) {
+				Error.Function("pnm_resize");
+				Error.Value("(pnmd_in -> pnmd_out)");
+				Error.FunctionFail();
+				goto ExitError;
+			}
+			catch (const std::out_of_range& range) {
+				Error.Function("pnm_resize");
+				Error.Value("(pnmd_in -> pnmd_out)");
+				Error.FunctionFail();
+				goto ExitError;
+			}
+			catch (const std::invalid_argument& arg) {
 				Error.Function("pnm_resize");
 				Error.Value("(pnmd_in -> pnmd_out)");
 				Error.FunctionFail();
