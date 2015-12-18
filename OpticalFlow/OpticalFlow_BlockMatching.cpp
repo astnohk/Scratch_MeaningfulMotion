@@ -60,6 +60,9 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	int level;
 	int i;
 
+	FILE *fp;
+	std::string::size_type found;
+
 	if (It_color.isNULL()) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* It");
 	} else if (Itp1_color.isNULL()) {
@@ -118,21 +121,23 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	printf("The number of regions : %d\n", segments.ref_segments_map().max());
 	PNM pnm;
 
-	std::string ofilename_segmentation = ofilename.substr(0, ofilename.length() - 4) + "segmentation" + ofilename.substr(ofilename.length() - 4);
+	found = ofilename.find_first_of("0123456789");
+	if (found == std::string::npos) {
+		found = ofilename.find_last_of(".");
+	}
+	std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation" + ofilename.substr(found);
 	printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments_map().max(), segments.ref_segments_map().data());
 	pnm.write(ofilename_segmentation.c_str());
 	pnm.free();
 
-	std::string ofilename_decrease = ofilename.substr(0, ofilename.length() - 4) + "decreased-color" + ofilename.substr(ofilename.length() - 4);
+	std::string ofilename_decrease = ofilename.substr(0, found) + "decreased-color" + ofilename.substr(found);
 	printf("* Output The decreased color image '%s'(binary)\n\n", ofilename_decrease.c_str());
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_decrease_color_image().max(), segments.ref_decrease_color_image().data());
 	pnm.write(ofilename_decrease.c_str());
 	pnm.free();
-
 	// Output vectors
-	FILE *fp;
-	std::string ofilename_vector = ofilename.substr(0, ofilename.length() - 4) + "vector" + ofilename.substr(ofilename.length() - 4);
+	std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector" + ofilename.substr(found);
 	fp = fopen(ofilename_vector.c_str(), "w");
 	fprintf(fp, "%d %d\n", segments.width(), segments.height());
 	for (int y = 0; y < segments.height(); y++) {
@@ -145,7 +150,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 	}
 	fclose(fp);
-
 	// Arbitrary shaped Block Matching
 	printf("* * Compute Block Matching\n");
 	block_matching.reset(It, Itp1, segments.ref_segments_map());
@@ -162,6 +166,24 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize, true);
 	MaxLevel = -1; // Do NOT need to do gradient method
 #endif
+	// Output vectors
+	found = ofilename.find_first_of("0123456789");
+	if (found == std::string::npos) {
+		found = ofilename.find_last_of(".");
+	}
+	std::string ofilename_BMvector = ofilename.substr(0, found) + "BMvector" + ofilename.substr(found);
+	fp = fopen(ofilename_vector.c_str(), "w");
+	fprintf(fp, "%d %d\n", segments.width(), segments.height());
+	for (int y = 0; y < segments.height(); y++) {
+		for (int x = 0; x < segments.width(); x++) {
+			VECTOR_2D<double> v;
+			v.x = segments.ref_shift_vector().get(x, y).x - x;
+			v.y = segments.ref_shift_vector().get(x, y).y - y;
+			fwrite(&v.x, sizeof(double), 1, fp);
+			fwrite(&v.y, sizeof(double), 1, fp);
+		}
+	}
+	fclose(fp);
 
 	// ----- Optical Flow -----
 	try {
