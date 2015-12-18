@@ -154,6 +154,7 @@ main(int argc, char *argv[])
 							strtmp = new char[strlen(argv[i])];
 						}
 						catch (const std::bad_alloc &bad) {
+							std::cerr << bad.what() << std::endl;
 							Error.Value("strtmp");
 							Error.Malloc();
 							goto ExitError;
@@ -464,11 +465,11 @@ main(int argc, char *argv[])
 		Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam);
 	}
 	catch (const std::logic_error& logic) {
-		std::cerr << logic.what();
+		std::cerr << logic.what() << std::endl;
 		goto ExitError;
 	}
 	catch (const std::runtime_error& runtime) {
-		std::cerr << runtime.what();
+		std::cerr << runtime.what() << std::endl;
 		goto ExitError;
 	}
 	delete[] OutputName;
@@ -476,7 +477,7 @@ main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 // Error
 ExitError:
-	fprintf(stderr, "*** FATAL main error ***\n");
+	fprintf(stderr, "\n        *** FATAL main error ***\n");
 	delete[] OutputName;
 	delete[] InputName;
 	return EXIT_FAILURE;
