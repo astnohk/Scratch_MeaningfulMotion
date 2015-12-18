@@ -27,7 +27,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	Segmentation<ImgClass::Lab> segments;
 
-	ImgVector<bool> domain_map;
+	ImgVector<int> domain_map;
 	BlockMatching<double> block_matching;
 
 	ImgVector<double> It;
@@ -117,11 +117,11 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #if 1
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
-	segments.reset(It_Lab_normalize);
+	segments.reset(It_Lab_normalize, 64.0, 12.0 / 255.0); // kernel(spatial, intensity)
 	printf("The number of regions : %d\n", segments.ref_segments_map().max());
 	PNM pnm;
 
-	found = ofilename.find_first_of("0123456789");
+	found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));
 	if (found == std::string::npos) {
 		found = ofilename.find_last_of(".");
 	}
@@ -166,24 +166,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize, true);
 	MaxLevel = -1; // Do NOT need to do gradient method
 #endif
-	// Output vectors
-	found = ofilename.find_first_of("0123456789");
-	if (found == std::string::npos) {
-		found = ofilename.find_last_of(".");
-	}
-	std::string ofilename_BMvector = ofilename.substr(0, found) + "BMvector" + ofilename.substr(found);
-	fp = fopen(ofilename_vector.c_str(), "w");
-	fprintf(fp, "%d %d\n", segments.width(), segments.height());
-	for (int y = 0; y < segments.height(); y++) {
-		for (int x = 0; x < segments.width(); x++) {
-			VECTOR_2D<double> v;
-			v.x = segments.ref_shift_vector().get(x, y).x - x;
-			v.y = segments.ref_shift_vector().get(x, y).y - y;
-			fwrite(&v.x, sizeof(double), 1, fp);
-			fwrite(&v.y, sizeof(double), 1, fp);
-		}
-	}
-	fclose(fp);
 
 	// ----- Optical Flow -----
 	try {
@@ -260,8 +242,9 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 				IterMax_level = IterMax;
 			}
 			printf("IterMax = %d\n", IterMax_level);
-			IRLS_OpticalFlow_Pyramid(
+			IRLS_OpticalFlow_Pyramid_Segment(
 			    (u_levels + level),
+			    segments.ref_segments_map(),
 			    (grad_It_levels + level),
 			    (I_dt_levels + level),
 			    lambdaD, lambdaS, sigmaD, sigmaS,
@@ -358,7 +341,7 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLeve
 
 
 void
-IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> >* u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVector<int>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_OpticalFlow_Pyramid_Block");
 
@@ -420,7 +403,7 @@ IRLS_OpticalFlow_Pyramid_Block(ImgVector<VECTOR_2D<double> >* u, const ImgVector
 
 
 VECTOR_2D<double>
-Error_u_Block(int site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_u_Block(int site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<int>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
@@ -487,7 +470,7 @@ sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> >* Img_g, const double& lam
 
 
 double
-Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<bool>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<int>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
