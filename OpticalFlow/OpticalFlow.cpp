@@ -381,20 +381,17 @@ Error_MultipleMotion(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VEC
 
 
 void
-MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const ImgVector<VECTOR_2D<double> > *u, const std::string &filename)
+MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_next, const ImgVector<VECTOR_2D<double> >& u, const std::string& filename)
 {
 	ERROR Error("MultipleMotion_write");
 
 	FILE *fp = nullptr;
 	VECTOR_2D<double> v;
 	int x, y;
-	MotionCompensation compensated(img_prev, img_next, u);
+	MotionCompensation<double> compensated(img_prev, img_next, u);
 	PNM pnm;
 	std::string filename_compensated;
 
-	if (u == nullptr) {
-		throw std::invalid_argument("u");
-	}
 	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
 	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
 		Error.Function("fopen");
@@ -402,10 +399,10 @@ MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> 
 		Error.FileWrite();
 		throw std::logic_error("fopen");
 	}
-	fprintf(fp, "%d %d\n", u->width(), u->height());
-	for (y = 0; y < u->height(); y++) {
-		for (x = 0; x < u->width(); x++) {
-			v = u->get(x, y);
+	fprintf(fp, "%d %d\n", u.width(), u.height());
+	for (y = 0; y < u.height(); y++) {
+		for (x = 0; x < u.width(); x++) {
+			v = u.get(x, y);
 			if (fwrite(&v.x, sizeof(double), 1, fp) < 1) {
 				Error.Function("fwrite");
 				Error.Value("u(x, y).x");
@@ -429,12 +426,66 @@ MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> 
 	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
+}
 
-	compensated.create_image_estimated(2); // Make compensated image
-	found = filename.find_last_of("/\\");
-	filename_compensated = filename.substr(0, found + 1) + "estimated_" + filename.substr(found + 1);
+void
+MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_next, const ImgVector<VECTOR_2D<double> >& u, const std::string &filename)
+{
+	ERROR Error("MultipleMotion_write");
+
+	FILE *fp = nullptr;
+	VECTOR_2D<double> v;
+	int x, y;
+	MotionCompensation<ImgClass::RGB> compensated(img_prev, img_next, u);
+	PNM pnm;
+	std::string filename_compensated;
+
+	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
+	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
+		Error.Function("fopen");
+		Error.File(filename.c_str());
+		Error.FileWrite();
+		throw std::logic_error("fopen");
+	}
+	fprintf(fp, "%d %d\n", u.width(), u.height());
+	for (y = 0; y < u.height(); y++) {
+		for (x = 0; x < u.width(); x++) {
+			v = u.get(x, y);
+			if (fwrite(&v.x, sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("u(x, y).x");
+				Error.FunctionFail();
+				throw std::logic_error("fwrite");
+			}
+			if (fwrite(&v.y, sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("u(x, y).y");
+				Error.FunctionFail();
+				throw std::logic_error("fwrite");
+			}
+		}
+	}
+	fclose(fp);
+
+	compensated.create_image_compensated(); // Make compensated image
+	int* compensated_image = nullptr;
+	int size = compensated.ref_image_compensated().size();
+	std::string::size_type found = filename.find_last_of("/\\");
+	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
+	try {
+		compensated_image = new int[size * 3];
+	}
+	catch (const std::bad_alloc& bad) {
+		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
+		throw;
+	}
+	for (int n = 0; n < size; n++) {
+		compensated_image[n] = int(compensated.ref_image_compensated().get(n).R);
+		compensated_image[n + size] = int(compensated.ref_image_compensated().get(n).G);
+		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);
+	}
+	pnm.copy(PORTABLE_PIXMAP_BINARY, compensated.width(), compensated.height(), 255, compensated_image);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
 }

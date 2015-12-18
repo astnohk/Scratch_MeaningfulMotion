@@ -493,7 +493,7 @@ Write:
 			}
 		} else if ((Options.mode & (MODE_OUTPUT_OPTICALFLOW | MODE_OUTPUT_AFFINE_BLOCKMATCHING)) != 0) {
 			if (imgd_prev_gray.isNULL() == false) {
-				MultipleMotion_write(&imgd_prev_gray, &imgd_in_gray, MultipleMotion_u, OutputNameNums);
+				MultipleMotion_write(imgd_prev, imgd_in, *MultipleMotion_u, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
 			if (HOG_write(hog_raw, OutputNameNums) == false) {
@@ -520,7 +520,7 @@ Write:
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				HOG_vector_compensated_write(&imgd_prev_gray, &imgd_in_gray, hog_vector, hog.Width(), hog.Height(), OutputNameNums);
+				HOG_vector_compensated_write(imgd_prev_gray, imgd_in_gray, hog_vector, hog.Width(), hog.Height(), OutputNameNums);
 				delete[] hog_vector;
 				hog_vector = nullptr;
 			} else {

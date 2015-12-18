@@ -12,6 +12,7 @@
 #include "../lib/Struct.h"
 #include "../ImgClass/Vector.h"
 #include "../ImgClass/MotionCompensation.h"
+#include "../ImgClass/RGB.h"
 #include "../Scratch_MeaningfulMotion.h"
 
 
@@ -29,5 +30,6 @@ VECTOR_2D<double> sup_Error_uu(const ImgVector<VECTOR_2D<double> > *Img_g, const
 
 double Error_MultipleMotion(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
 
-void MultipleMotion_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const ImgVector<VECTOR_2D<double> > *u, const std::string &filename);
+void MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_next, const ImgVector<VECTOR_2D<double> >& u, const std::string& filename);
+void MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_next, const ImgVector<VECTOR_2D<double> >& u, const std::string& filename);
 

@@ -124,19 +124,19 @@ ExitError:
 
 
 void
-HOG_vector_compensated_write(const ImgVector<double> *img_prev, const ImgVector<double> *img_next, const VECTOR_2D_W_SCORE *vector, int width, int height, const std::string &filename)
+HOG_vector_compensated_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_next, const VECTOR_2D_W_SCORE* vector, int width, int height, const std::string& filename)
 {
 	ERROR Error("HOG_vector_write");
 	ImgVector<VECTOR_2D<double> > vector2d(width, height);
 	std::string filename_compensated;
-	MotionCompensation compensated;
+	MotionCompensation<double> compensated;
 	PNM pnm;
 
 	for (int i = 0; i < width * height; i++) {
 		vector2d[i].x = vector[i].x;
 		vector2d[i].y = vector[i].y;
 	}
-	compensated.set(img_prev, img_next, &vector2d); // initialize
+	compensated.set(img_prev, img_next, vector2d); // initialize
 	compensated.create_image_compensated(); // Make compensated image
 	filename_compensated = filename.substr(0, filename.length() - 4) + "compensated" + filename.substr(filename.length() - 4);
 	printf("* Output The compensated image by HOG matching vector to '%s'(binary)\n", filename_compensated.c_str());
