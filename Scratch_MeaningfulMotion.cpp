@@ -62,7 +62,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	SIZE size_orig;
 	SIZE size_res;
 	SIZE size_out;
-	int maxMN = 0;
 	int maxMN_res = 0;
 	int l_min = 1;
 	int i, k, L;
@@ -107,7 +106,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			if (size_res.height == 0) {
 				size_res.height = pnm_orig.Height();
 			}
-			maxMN = std::max(size.width, size.height);
 			maxMN_res = std::max(size_res.width, size_res.height);
 			if ((Options.PlotOptions & PLOT_AS_RESAMPLED) != 0) {
 				size_out = size_res;
