@@ -63,6 +63,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	SIZE size_res;
 	SIZE size_out;
 	int maxMN = 0;
+	int maxMN_res = 0;
 	int l_min = 1;
 	int i, k, L;
 	double progress;
@@ -99,7 +100,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			size_orig.height = pnm_orig.Height();
 			size_orig.width = pnm_orig.Width();
 			size_prev = size_orig;
-			maxMN = (size.height > size.width ? size.height : size.width);
 			size_res = Options.ResampleSize;
 			if (size_res.width == 0) {
 				size_res.width = pnm_orig.Width();
@@ -107,7 +107,9 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			if (size_res.height == 0) {
 				size_res.height = pnm_orig.Height();
 			}
-			if ((Options.PlotOptions & PLOT_AS_RESAMPLE) != 0) {
+			maxMN = std::max(size.width, size.height);
+			maxMN_res = std::max(size_res.width, size_res.height);
+			if ((Options.PlotOptions & PLOT_AS_RESAMPLED) != 0) {
 				size_out = size_res;
 			} else {
 				size_out = size;
@@ -220,14 +222,14 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		}
 		imgd_in_gray.reset(pnm_in.Width(), pnm_in.Height());
 		for (i = 0; i < imgd_in_gray.size(); i++) {
-			imgd_in_gray[i] = (double)pnm_in[i];
+			imgd_in_gray[i] = double(pnm_in[i]);
 		}
 
 		// Show Parameters
 		printf("\n      --- Parameters ---\n  %s\n", Bars);
 		if (size_res.width > 0 || size_res.height > 0) {
 			printf("  | Resample (%d), 0:z-hold, 1:bicubic\n", Options.ResampleMethod);
-			printf("  |   %dx%d -> %dx%d\n", pnm_orig.Width(), pnm_orig.Width(), size_res.width, size_res.height);
+			printf("  |   %dx%d -> %dx%d\n", pnm_orig.Width(), pnm_orig.Height(), size_res.width, size_res.height);
 		}
 		printf("  | filter type = %s\n", FilterNames[FilterParam.type < NUM_FILTER_TYPE ? FilterParam.type : 0].c_str());
 		printf("  | filter size = %dx%d\n", FilterParam.size.width, FilterParam.size.height);
@@ -345,7 +347,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				if (Initialize == 0) {
 					Initialize = 1;
 					try {
-						Pr_table = new ImgVector<double>(maxMN + 1, maxMN + 1);
+						Pr_table = new ImgVector<double>(maxMN_res + 1, maxMN_res + 1);
 					}
 					catch (const std::bad_alloc &bad) {
 						Error.Function("new");
@@ -357,26 +359,26 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					progress = 0;
 					count = 0;
 #pragma omp parallel for schedule(dynamic) private(k)
-					for (L = 1; L <= maxMN; L++) {
+					for (L = 1; L <= maxMN_res; L++) {
 						for (k = 0; k <= L; k++) {
 							Pr_table->at(k, L) = Pr(k, L, Options.p);
 						}
 #pragma omp critical
 						{
 							count++;
-							if (round((double)count / maxMN * 1000.0) > progress) {
-								progress = round((double)count / maxMN * 1000.0);
+							if (round(double(count) / double(maxMN_res) * 1000.0) > progress) {
+								progress = round(double(count) / double(maxMN_res) * 1000.0);
 								printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + maxMN)].c_str());
 							}
 						}
 					}
 					printf("\nComplete!\n");
-					l_min = (int)ceil((log(Options.ep) - (log(DIV_ANGLE) + log((double)size.height) + 2.0 * log((double)size.width))) / log(Options.p));
+					l_min = int(ceil((log(Options.ep) - (log(DIV_ANGLE) + log(double(size_res.height)) + 2.0 * log(double(size_res.width)))) / log(Options.p)));
 					if (l_min < 1) {
 						l_min = 1;
 					}
 					printf("* Compute k_list\n");
-					k_list = Calc_k_l(size, Options.p, Options.ep);
+					k_list = Calc_k_l(size_res, Options.p, Options.ep);
 					if (k_list == nullptr) {
 						Error.Function("Calc_k_l");
 						Error.Value("k_list");
@@ -424,7 +426,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					printf(" that satisfy (length < %d)", Options.Max_Output_Length);
 				}
 				printf("\n");
-				segments = PlotSegment(MaximalSegments, Num_Segments, size, size_out, Options.PlotOptions & PLOT_NEGATE);
+				segments = PlotSegment(MaximalSegments, Num_Segments, size_res, size_out, Options.PlotOptions & PLOT_NEGATE);
 				if (segments == nullptr) {
 					Error.Function("PlotSegment");
 					Error.Value("segments");
@@ -433,7 +435,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				}
 				if (Options.Superimpose != 0) {
 					printf("* Superimpose plot image on original image\n");
-					if ((Options.PlotOptions & PLOT_AS_RESAMPLE) != 0) {
+					if ((Options.PlotOptions & PLOT_AS_RESAMPLED) != 0) {
 						if (Superimposer(&pnm_out, pnm_res, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
 							Error.Function("Superimposer");
 							Error.Value("pnm_out");
