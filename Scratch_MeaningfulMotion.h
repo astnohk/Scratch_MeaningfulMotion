@@ -104,8 +104,8 @@
  *       <---------.           .--------->
  *  AVE_MAX_FAR                     AVE_MAX_FAR
 */
-//#define SCRATCH_WIDTH 24
-//#define AVE_MAX_FAR 40
+//#define SCRATCH_WIDTH 24 // for 4K resol
+//#define AVE_MAX_FAR 40 // for 4K resol
 #define SCRATCH_WIDTH 3
 #define AVE_MAX_FAR 5
 #define AVE_FAR (SCRATCH_WIDTH / 2 + AVE_MAX_FAR)

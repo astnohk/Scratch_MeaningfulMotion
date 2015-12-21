@@ -93,7 +93,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			goto ExitError;
 		}
 		// END Read
-		if (size.height == 0 || size.width == 0) { // Initialize size.height (width) and size.width (height)
+		if (size.height == 0 || size.width == 0) { // Initialize size
 			size.height = pnm_orig.Height();
 			size.width = pnm_orig.Width();
 			size_orig.height = pnm_orig.Height();

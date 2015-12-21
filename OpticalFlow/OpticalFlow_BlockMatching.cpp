@@ -117,7 +117,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #if 1
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
-	segments.reset(It_Lab_normalize, 64.0, 12.0 / 255.0); // kernel(spatial, intensity)
+	//segments.reset(It_Lab_normalize, 64.0, 12.0 / 255.0); // kernel(spatial, intensity) Sendai4K
+	segments.reset(It_Lab_normalize); // kernel(spatial, intensity) Others
 	printf("The number of regions : %d\n", segments.ref_segments_map().max());
 	PNM pnm;
 
