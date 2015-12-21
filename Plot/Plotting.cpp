@@ -13,20 +13,25 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 	int i;
 
 	try {
-		segments = new int[size_out.height * size_out.width];
+		segments = new int[size_out.width * size_out.height];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("segments");
 		Error.Malloc();
 		return nullptr;
 	}
-	scale_x = (double)size_out.width / size.width;
-	scale_y = (double)size_out.height / size.height;
+	scale_x = double(size_out.width) / double(size.width);
+	scale_y = double(size_out.height) / double(size.height);
 	if (Negate != 0) {
-		for (i = 0; i < size_out.height * size_out.width; i++) {
+		for (i = 0; i < size_out.width * size_out.height; i++) {
 			segments[i] = PLOT_INTENSITY_MAX;
 		}
 		Foreground = 0;
+	} else {
+		for (i = 0; i < size_out.width * size_out.height; i++) {
+			segments[i] = 0;
+		}
 	}
 	for (i = 0; i < Num_Segments; i++) {
 		int lx, ly, L;
