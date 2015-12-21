@@ -18,7 +18,7 @@ struct XPLOT
 	double z;
 	XPLOT(void);
 	void set(XPoint _point, double _z);
-	void set(int point_x, int point_y, double _z);
+	void set(short int point_x, short int point_y, double _z);
 };
 
 #endif

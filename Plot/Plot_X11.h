@@ -6,7 +6,7 @@
 #ifndef LIB_PLOT_X11
 #define LIB_PLOT_X11
 
-#define WAIT_TIME (1E6 / 20.0)
+#define WAIT_TIME (1000000 / 20)
 #define WINDOW_X_DEFAULT 800
 #define WINDOW_Y_DEFAULT 800
 

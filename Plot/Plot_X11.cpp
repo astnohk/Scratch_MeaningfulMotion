@@ -15,7 +15,7 @@ const char *ProgramName = "Scratch_MeaningfulMotion";
 SIZE Window_size(WINDOW_X_DEFAULT, WINDOW_Y_DEFAULT);
 Display *disp = nullptr;
 Window win;
-Atom atom1, atom2;
+static Atom atom1, atom2;
 Pixmap pix;
 GC GCmono;
 GC GCcol[RGB_COLOR];
@@ -36,7 +36,7 @@ double sin_a[ROTATE_ANGLE_MAX];
 #define X11_Plot_Grid_And_Segments 3
 #define X11_Plot_Garaxy 4
 #define X11_Plot_GravityCorrupt 5
-const char *Plot_Mode[NUMBER_OF_MODE] = {
+static const char* Plot_Mode[NUMBER_OF_MODE] = {
     "Points",
     "Points and Segments",
     "Grid",
@@ -92,6 +92,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 		Img_plot = new ImgVector<XPLOT>(Img->width(), Img->height());
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_plot");
 		Error.Malloc();
@@ -101,6 +102,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 		segments_plot = new SEGMENT_X11[Num_Segments];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("segments_plot");
 		Error.Malloc();
@@ -110,6 +112,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 		Img_coord = new ImgVector<COORDINATE_3D>(Img->width(), Img->height());
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_coord");
 		Error.Malloc();
@@ -119,6 +122,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 		Img_vel = new ImgVector<COORDINATE_3D>(Img->width(), Img->height());
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_vel");
 		Error.Malloc();
@@ -128,6 +132,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 		Img_index = new int[Img->size()];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_index");
 		Error.Malloc();
@@ -137,6 +142,7 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 		Img_index_tmp = new int[Img->size()];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_index_tmp");
 		Error.Malloc();
@@ -158,7 +164,9 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 			// Set initial velocity and position
 			switch (cur_mode) {
 				case X11_Plot_Garaxy:
-					GaraxyCenter = (COORDINATE_3D){X11_Param.Center_x, X11_Param.Center_y, X11_Param.Center_z};
+					GaraxyCenter.x = X11_Param.Center_x;
+					GaraxyCenter.x = X11_Param.Center_y;
+					GaraxyCenter.x = X11_Param.Center_z;
 					for (m = 0; m < Img->height(); m++) {
 						y = m - GaraxyCenter.y;
 						for (n = 0; n < Img->width(); n++) {
@@ -342,7 +350,7 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 		Error.Others("Cannot open display. Abort X11 Plotting");
 		return MEANINGFUL_FAILURE;
 	}
-	win = XCreateSimpleWindow(disp, RootWindow(disp, 0), 0, 0, Window_size.width, Window_size.height, 0, BlackPixel(disp, 0), WhitePixel(disp, 0));
+	win = XCreateSimpleWindow(disp, RootWindow(disp, 0), 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height), 0, BlackPixel(disp, 0), WhitePixel(disp, 0));
 	XSelectInput(disp, win, ExposureMask | StructureNotifyMask | KeyPressMask | ButtonPressMask | ButtonMotionMask);
 	XStoreName(disp, win, ProgramName);
 	XMapWindow(disp, win);
@@ -407,13 +415,13 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	}
 	XSetForeground(disp, GCcol_dark[2], col.pixel);
 	// Pixmap
-	pix = XCreatePixmap(disp, win, Window_size.width, Window_size.height, DefaultDepth(disp, 0));
+	pix = XCreatePixmap(disp, win, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height), DefaultDepth(disp, 0));
 	// Pass through XMapWindow() event
 	XMaskEvent(disp, ExposureMask, &noev);
 	// Initialize cos_a[] and sin_a[]
 	for (i = 0; i < ROTATE_ANGLE_MAX; i++) {
-		cos_a[i] = cos(2.0 * M_PI * (double)i / ROTATE_ANGLE_MAX);
-		sin_a[i] = sin(2.0 * M_PI * (double)i / ROTATE_ANGLE_MAX);
+		cos_a[i] = cos(2.0 * M_PI * double(i) / double(ROTATE_ANGLE_MAX));
+		sin_a[i] = sin(2.0 * M_PI * double(i) / double(ROTATE_ANGLE_MAX));
 	}
 	X11_Param->RotateSwitch = 0;
 
@@ -429,13 +437,13 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 {
 	static COORDINATE Current_Mice_Pos;
 	XEvent event;
-	int key;
+	KeySym key;
 	double dx, dy;
 
 	while (XPending(disp) != 0) {
 		XNextEvent(disp, &event);
 		if (event.xclient.message_type == atom1
-		    && (unsigned long)event.xclient.data.l[0] == atom2) {
+		    && static_cast<unsigned long>(event.xclient.data.l[0]) == atom2) {
 			// The window close button is pressed
 			return X_ESCAPE;
 		}
@@ -444,7 +452,7 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 				Window_size.width = event.xconfigure.width;
 				Window_size.height = event.xconfigure.height;
 				XFreePixmap(disp, pix);
-				pix = XCreatePixmap(disp, win, Window_size.width, Window_size.height, DefaultDepth(disp, 0));
+				pix = XCreatePixmap(disp, win, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height), DefaultDepth(disp, 0));
 				break;
 			case ButtonPress: // Mice button
 				if (event.xbutton.button == Button1
@@ -464,15 +472,15 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 				if (event.xbutton.state & Button1Mask) {
 					X11_Param->Longitude -= event.xbutton.x - Current_Mice_Pos.x;
 					if (X11_Param->Longitude >= ROTATE_ANGLE_MAX) {
-						X11_Param->Longitude = fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX);
+						X11_Param->Longitude = int(fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX));
 					} else if (X11_Param->Longitude < 0) {
-						X11_Param->Longitude = ROTATE_ANGLE_MAX + fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX);
+						X11_Param->Longitude = int(ROTATE_ANGLE_MAX + fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX));
 					}
 					X11_Param->Latitude += event.xbutton.y - Current_Mice_Pos.y;
 					if (X11_Param->Latitude >= ROTATE_ANGLE_MAX) {
-						X11_Param->Latitude = fmod(X11_Param->Latitude, ROTATE_ANGLE_MAX);
+						X11_Param->Latitude = int(fmod(X11_Param->Latitude, ROTATE_ANGLE_MAX));
 					} else if (X11_Param->Latitude < 0) {
-						X11_Param->Latitude = ROTATE_ANGLE_MAX + fmod(X11_Param->Latitude, ROTATE_ANGLE_MAX);
+						X11_Param->Latitude = int(ROTATE_ANGLE_MAX + fmod(X11_Param->Latitude, ROTATE_ANGLE_MAX));
 					}
 				} else if (event.xbutton.state & Button2Mask) {
 					dx = event.xbutton.x - Current_Mice_Pos.x;
@@ -483,9 +491,9 @@ XEventor(X11_PARAM *X11_Param, SIZE Img_size)
 				} else if (event.xbutton.state & Button3Mask) {
 					dy = event.xbutton.y - Current_Mice_Pos.y;
 					if (dy > 0) {
-						X11_Param->Plot_Z_Scale /= pow_int(1.01, dy);
+						X11_Param->Plot_Z_Scale /= pow_int(1.01, int(dy));
 					} else {
-						X11_Param->Plot_Z_Scale *= pow_int(1.01, -dy);
+						X11_Param->Plot_Z_Scale *= pow_int(1.01, int(-dy));
 					}
 				}
 				Current_Mice_Pos.x = event.xbutton.x;
@@ -549,9 +557,9 @@ SwitchEventer(X11_PARAM *X11_Param)
 			case 4: X11_Param->Longitude -= 6; break;
 		}
 		if (X11_Param->Longitude >= ROTATE_ANGLE_MAX) {
-			X11_Param->Longitude = fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX);
+			X11_Param->Longitude = int(fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX));
 		} else if (X11_Param->Longitude < 0) {
-			X11_Param->Longitude = ROTATE_ANGLE_MAX + fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX);
+			X11_Param->Longitude = int(ROTATE_ANGLE_MAX + fmod(X11_Param->Longitude, ROTATE_ANGLE_MAX));
 		}
 	}
 }
@@ -588,14 +596,14 @@ TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segme
 		x = (Scale_x * segments[n].n - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Scale_y * segments[n].m - X11_Param.Center_y) * X11_Param.Scale;
 		z = 0.0;
-		segments_plot[n].start.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-		segments_plot[n].start.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+		segments_plot[n].start.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+		segments_plot[n].start.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
 		// End
 		x = (Scale_x * segments[n].x - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Scale_y * segments[n].y - X11_Param.Center_y) * X11_Param.Scale;
 		z = 0.0;
-		segments_plot[n].end.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-		segments_plot[n].end.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+		segments_plot[n].end.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+		segments_plot[n].end.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
 	}
 	return MEANINGFUL_SUCCESS;
 // Error
@@ -627,8 +635,8 @@ TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVec
 		for (n = 0; n < Img->width(); n++) {
 			x = (n - X11_Param.Center_x) * X11_Param.Scale;
 			z = ((-Img->get(n, m) + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
-			Img_plot->at(n, m).point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-			Img_plot->at(n, m).point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+			Img_plot->at(n, m).point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+			Img_plot->at(n, m).point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
 			Img_plot->at(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 		}
 	}
@@ -688,8 +696,8 @@ TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINA
 		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
 		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
-		(*Img_plot)[i].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-		(*Img_plot)[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+		(*Img_plot)[i].point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+		(*Img_plot)[i].point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
 		(*Img_plot)[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
 	return MEANINGFUL_SUCCESS;
@@ -733,6 +741,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDIN
 		core = new int[Img->size()];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("core");
 		Error.Malloc();
 	}
@@ -752,7 +761,7 @@ TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDIN
 #pragma omp parallel for private(j, M, r)
 	for (i = 0; i < Img->size(); i++) {
 		for (j = 0; j < Num_Cores; j++) {
-			M = (double)Img->get(core[j]) / maxint;
+			M = double(Img->get(core[j])) / double(maxint);
 			r = sqrt(POW2(Img_coord->get(core[j]).x - Img_coord->get(i).x)
 			    + POW2(Img_coord->get(core[j]).y - Img_coord->get(i).y)
 			    + POW2(Img_coord->get(core[j]).z - Img_coord->get(i).z));
@@ -773,8 +782,8 @@ TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDIN
 		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
 		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
 		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
-		(*Img_plot)[i].point.x = Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]);
-		(*Img_plot)[i].point.y = Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]);
+		(*Img_plot)[i].point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+		(*Img_plot)[i].point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
 		(*Img_plot)[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
 	delete[] core;
@@ -805,8 +814,8 @@ Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_pl
 		goto ExitError;
 	}
 
-	rectsize.width = MAX(1, round(X11_Param.Scale * 0.25));
-	rectsize.height = MAX(1, floor(X11_Param.Scale * 0.25));
+	rectsize.width = MAX(1, int(round(X11_Param.Scale * 0.25)));
+	rectsize.height = MAX(1, int(floor(X11_Param.Scale * 0.25)));
 	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img->get(0);
 	for (i = 1; i < Img->size(); i++) {
@@ -818,7 +827,7 @@ Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_pl
 	}
 	// Fill the window with Black
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
-	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
+	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Points
 	for (i = 0; i < Img->size(); i++) {
 		index = Img_index[i];
@@ -828,19 +837,19 @@ Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_pl
 				if (rectsize.width == 1) {
 					XDrawPoint(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
-					XFillRectangle(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
+					XFillRectangle(disp, pix, GCcol[0], Img_plot->get(index).point.x, Img_plot->get(index).point.y, static_cast<unsigned int>(rectsize.width), static_cast<unsigned int>(rectsize.height));
 				}
 			} else if (Img->get(index) > (Max_Intensity - Min_Intensity) * 0.25 + Min_Intensity) {
 				if (rectsize.width == 1) {
 					XDrawPoint(disp, pix, GCcol[1], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
-					XFillRectangle(disp, pix, GCcol[1], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
+					XFillRectangle(disp, pix, GCcol[1], Img_plot->get(index).point.x, Img_plot->get(index).point.y, static_cast<unsigned int>(rectsize.width), static_cast<unsigned int>(rectsize.height));
 				}
 			} else {                                                                         
 				if (rectsize.width == 1) {
 					XDrawPoint(disp, pix, GCcol[2], Img_plot->get(index).point.x, Img_plot->get(index).point.y);
 				} else {
-					XFillRectangle(disp, pix, GCcol[2], Img_plot->get(index).point.x, Img_plot->get(index).point.y, rectsize.width, rectsize.height);
+					XFillRectangle(disp, pix, GCcol[2], Img_plot->get(index).point.x, Img_plot->get(index).point.y, static_cast<unsigned int>(rectsize.width), static_cast<unsigned int>(rectsize.height));
 				}
 			}
 		}
@@ -889,11 +898,11 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 	}
 	// Fill the window with Black
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
-	XFillRectangle(disp, pix, GCmono, 0, 0, Window_size.width, Window_size.height);
+	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Grid
 	for (n = 0; n < Img->size(); n++) {
-		x = Img_index[n] % Img->width();
-		y = Img_index[n] / Img->width();
+		x = short(Img_index[n] % Img->width());
+		y = short(Img_index[n] / Img->width());
 		if (x == Img->width() - 1 || y == Img->height() - 1) {
 			continue;
 		}
@@ -1015,7 +1024,7 @@ Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num
 	}
 	// Draw The Segments
 	// * Set Line width
-	XSetLineAttributes(disp, GCcol[0], MAX(1, (int)round(X11_Param.Scale * 0.5)), LineSolid, CapNotLast, JoinMiter);
+	XSetLineAttributes(disp, GCcol[0], MAX(1u, static_cast<unsigned int>(round(X11_Param.Scale * 0.5))), LineSolid, CapNotLast, JoinMiter);
 	for (num = 0; num < Num_Segments; num++) {
 		XDrawLine(disp, pix, GCcol[0], segments_plot[num].start.x, segments_plot[num].start.y, segments_plot[num].end.x, segments_plot[num].end.y);
 	}
@@ -1077,7 +1086,7 @@ Set_Pixmap2Window(void)
 {
 	XEvent noev;
 	// Copy pixmap to the window
-	XCopyArea(disp, pix, win, GCmono, 0, 0, Window_size.width, Window_size.height, 0, 0);
+	XCopyArea(disp, pix, win, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height), 0, 0);
 	XMaskEvent(disp, ExposureMask, &noev);
 	return MEANINGFUL_SUCCESS;
 }

@@ -4,14 +4,17 @@
 
 SEGMENT_X11::SEGMENT_X11(void)
 {
-	start = (XPoint){0, 0};
-	end = (XPoint){0, 0};
+	start.x = 0;
+	start.y = 0;
+	end.x = 0;
+	end.y = 0;
 }
 
 
 XPLOT::XPLOT(void)
 {
-	point = (XPoint){0, 0};
+	point.x = 0;
+	point.y = 0;
 	z = .0;
 }
 
@@ -23,7 +26,7 @@ XPLOT::set(XPoint _point, double _z)
 }
 
 void
-XPLOT::set(int point_x, int point_y, double _z)
+XPLOT::set(short int point_x, short int point_y, double _z)
 {
 	point.x = point_x;
 	point.x = point_y;

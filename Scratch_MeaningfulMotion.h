@@ -29,8 +29,6 @@
 
 
 
-#define _USE_MATH_DEFINES
-
 #define MEANINGFUL_TRUE 1
 #define MEANINGFUL_FALSE 0
 #define MEANINGFUL_SUCCESS true
@@ -84,9 +82,9 @@
 #define ANGLE_MAX 2.0
 
 // Filter Default Values
-#define EPSILONFILTER_SIZE (SIZE){21, 21}
+#define EPSILONFILTER_SIZE SIZE(21, 21)
 #define EPSILONFILTER_EPSILON 20
-#define GAUSSIAN_SIZE (SIZE){21, 21}
+#define GAUSSIAN_SIZE SIZE(21, 21)
 #define GAUSSIAN_STD_DEVIATION 5.0
 
 
