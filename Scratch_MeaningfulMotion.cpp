@@ -368,7 +368,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 							count++;
 							if (round(double(count) / double(maxMN_res) * 1000.0) > progress) {
 								progress = round(double(count) / double(maxMN_res) * 1000.0);
-								printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + maxMN)].c_str());
+								printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + maxMN_res)].c_str());
 							}
 						}
 					}
@@ -465,7 +465,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		if (Options.x11_plot) {
 			img_orig.reset(pnm_orig.Width(), pnm_orig.Height());
 			for (i = 0; i < img_orig.size(); i++) {
-				img_orig[i] = (int)pnm_orig[i];
+				img_orig[i] = int(pnm_orig[i]);
 			}
 			ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
 		}
