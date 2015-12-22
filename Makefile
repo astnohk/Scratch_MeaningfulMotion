@@ -6,7 +6,7 @@ OPTION = -fopenmp
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp
-IMGCLASS_CFILES = ImgClass/CrossCorrelation.cpp ImgClass/ImgStatistics.cpp ImgClass/Lab.cpp ImgClass/RGB.cpp
+IMGCLASS_CFILES = ImgClass//BlockMatching.cpp ImgClass/CrossCorrelation.cpp ImgClass/ImgStatistics.cpp ImgClass/Lab.cpp ImgClass/RGB.cpp
 MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Exclusive.cpp
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow.cpp OpticalFlow/OpticalFlow_BlockMatching.cpp OpticalFlow/Affine_BlockMatching.cpp
 HOG_CFILES = HOG/HOG.cpp HOG/HOG_struct.cpp HOG/HOG_match.cpp
@@ -17,7 +17,7 @@ CFILES = main.cpp Scratch_Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFIL
 
 
 LIBRARY_OFILES = Class.o ImgLibrary.o ImgStruct.o Library.o Struct.o ExtVector.o
-IMGCLASS_OFILES = CrossCorrelation.o ImgStatistics.o Lab.o RGB.o
+IMGCLASS_OFILES = BlockMatching.o CrossCorrelation.o ImgStatistics.o Lab.o RGB.o
 MEANINGFUL_OFILES = Detection.o Exclusive.o
 OPTICALFLOW_OFILES = MultiResolution.o MEstimator.o Affine_MultipleMotion.o OpticalFlow.o OpticalFlow_BlockMatching.o Affine_BlockMatching.o
 HOG_OFILES = HOG.o HOG_struct.o HOG_match.o
@@ -42,6 +42,9 @@ Class.o: lib/Class.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 Struct.o: lib/Struct.cpp
+	$(CC) $(WARNING) $(OPTION) -c $^
+
+BlockMatching.o: ImgClass/BlockMatching.cpp
 	$(CC) $(WARNING) $(OPTION) -c $^
 
 CrossCorrelation.o: ImgClass/CrossCorrelation.cpp
