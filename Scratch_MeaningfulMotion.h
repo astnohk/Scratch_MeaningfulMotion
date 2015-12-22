@@ -122,7 +122,7 @@
 // DIV_ANGLE affects on segments searching but not on precision
 #define DIV_ANGLE 40
 // DIV_ANGLE_VERTICAL limits the segments angle between Vertical line and Segments less than or equal to ((pi / 2) / DIV_ANGLE_VERTICAL)
-#define DIV_ANGLE_VERTICAL 9.0
+#define DIV_ANGLE_VERTICAL 18.0
 
 #define EXCLUSIVE_PRINCIPLE_MAX_RADIUS 1.5
 
@@ -171,7 +171,6 @@ int IndexOfMirroring(int x, int size);
 // Other Libraries
 char* regexp(char *s);
 
-
 // Scratch Detection
 ImgVector<double>* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, bool Do_Detection);
 #define DO_DETECTION true
@@ -189,7 +188,6 @@ SEGMENT* ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, 
 int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
 bool Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate);
 
-
 // X11 Plotting
 bool ShowSegments_X11(ImgVector<int> *Img, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
 bool Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
@@ -206,5 +204,4 @@ void PlotParameters(X11_PARAM X11_Param);
 bool Set_Pixmap2Window(void);
 bool reset_index(int *Img_index, int N);
 bool sort_index(ImgVector<XPLOT> *Img_plot, int *Index, int *Index_tmp, int N);
-// /X11 Plotting
 
