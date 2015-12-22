@@ -28,7 +28,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	Segmentation<ImgClass::Lab> segments;
 
 	ImgVector<int> domain_map;
-	BlockMatching<double> block_matching;
+	//BlockMatching<double> block_matching;
+	BlockMatching<ImgClass::Lab> block_matching;
 
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
@@ -153,7 +154,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	fclose(fp);
 	// Arbitrary shaped Block Matching
 	printf("* * Compute Block Matching\n");
-	block_matching.reset(It, Itp1, segments.ref_segments_map());
+	//block_matching.reset(It, Itp1, segments.ref_segments_map());
+	block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, segments.ref_segments_map());
 	block_matching.block_matching(BM_Search_Range);
 	if (MaxLevel > 0) {
 		MaxLevel = 0;
@@ -286,14 +288,15 @@ ExitError:
 }
 
 
+template <class T>
 void
-BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, const int level, BlockMatching<double>* block_matching)
+BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, const int level, BlockMatching<T>* block_matching)
 {
 	double Scale = (double)It_levels[0].width() / It_levels[level].width();
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching->get((int)round(x * Scale), (int)round(y * Scale));
+			VECTOR_2D<double> u_offset = block_matching->get(int(round(x * Scale)), int(round(y * Scale)));
 			u_offset /= Scale;
 
 			I_dt_levels[level].at(x, y) =
@@ -312,8 +315,9 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 }
 
 
+template <class T>
 void
-Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLevel, BlockMatching<double>* block_matching)
+Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLevel, BlockMatching<T>* block_matching)
 {
 	if (level == MaxLevel) {
 		// Add offset calculated by using the motion vector by Block Matching
@@ -322,10 +326,10 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLeve
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
 				u_levels[level].at(x, y).x +=
-				    block_matching->get((int)round(x * Scale), (int)round(y * Scale)).x
+				    block_matching->get(int(round(x * Scale)), int(round(y * Scale))).x
 				    / Scale;
 				u_levels[level].at(x, y).y +=
-				    block_matching->get((int)round(x * Scale), (int)round(y * Scale)).y
+				    block_matching->get(int(round(x * Scale)), int(round(y * Scale))).y
 				    / Scale;
 			}
 		}
