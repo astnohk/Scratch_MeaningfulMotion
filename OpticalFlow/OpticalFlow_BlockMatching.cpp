@@ -21,12 +21,12 @@
 ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
+	const int Segmentations_History_Max = 3;
+	static std::vector<Segmentation<ImgClass::Lab> > segmentations;
+
 	std::bad_alloc except_bad_alloc;
 
 	ImgVector<VECTOR_2D<double> >* u = nullptr; // For RETURN value
-
-	Segmentation<ImgClass::Lab> segments;
-
 	ImgVector<int> domain_map;
 	//BlockMatching<double> block_matching;
 	BlockMatching<ImgClass::Lab> block_matching;
@@ -74,7 +74,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	// sRGB image
 	It_sRGB_normalize.copy(It_color);
-	Itp1_sRGB_normalize.copy(It_color);
+	Itp1_sRGB_normalize.copy(Itp1_color);
 	// Grayscale
 	It.cast_copy(It_color);
 	Itp1.cast_copy(Itp1_color);
@@ -118,9 +118,19 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #if 1
 	// Segmentation
 	printf("* * Compute Segmentation by Mean Shift\n");
-	//segments.reset(It_Lab_normalize, 64.0, 12.0 / 255.0); // kernel(spatial, intensity) Sendai4K
-	segments.reset(It_Lab_normalize); // kernel(spatial, intensity) Others
-	printf("The number of regions : %d\n", segments.ref_segments_map().max());
+	//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0;
+	if (segmentations.empty()) {
+		segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least 3 histories
+		//segmentations.push_front(Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity)); // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
+		segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize); // for Others kernel(spatial, intensity)
+	} else {
+		for (int i = Segmentations_History_Max - 1; i > 0; i--) {
+			segmentations[i] = segmentations[i - 1];
+		}
+	}
+	//segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity); // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
+	segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize); // for Others kernel(spatial, intensity)
+	printf("The number of regions : %d\n", segmentations[0].ref_segmentation_map().max());
 	PNM pnm;
 
 	found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));
@@ -129,24 +139,24 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	}
 	std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation" + ofilename.substr(found);
 	printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_segments_map().max(), segments.ref_segments_map().data());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), segmentations[0].ref_segmentation_map().max(), segmentations[0].ref_segmentation_map().data());
 	pnm.write(ofilename_segmentation.c_str());
 	pnm.free();
 
 	std::string ofilename_decrease = ofilename.substr(0, found) + "decreased-color" + ofilename.substr(found);
 	printf("* Output The decreased color image '%s'(binary)\n\n", ofilename_decrease.c_str());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, segments.width(), segments.height(), segments.ref_decrease_color_image().max(), segments.ref_decrease_color_image().data());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), segmentations[0].ref_decrease_color_image().max(), segmentations[0].ref_decrease_color_image().data());
 	pnm.write(ofilename_decrease.c_str());
 	pnm.free();
 	// Output vectors
 	std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector" + ofilename.substr(found);
 	fp = fopen(ofilename_vector.c_str(), "w");
-	fprintf(fp, "%d %d\n", segments.width(), segments.height());
-	for (int y = 0; y < segments.height(); y++) {
-		for (int x = 0; x < segments.width(); x++) {
+	fprintf(fp, "%d %d\n", segmentations[0].width(), segmentations[0].height());
+	for (int y = 0; y < segmentations[0].height(); y++) {
+		for (int x = 0; x < segmentations[0].width(); x++) {
 			VECTOR_2D<double> v;
-			v.x = segments.ref_shift_vector().get(x, y).x - x;
-			v.y = segments.ref_shift_vector().get(x, y).y - y;
+			v.x = segmentations[0].ref_shift_vector().get(x, y).x - x;
+			v.y = segmentations[0].ref_shift_vector().get(x, y).y - y;
 			fwrite(&v.x, sizeof(double), 1, fp);
 			fwrite(&v.y, sizeof(double), 1, fp);
 		}
@@ -154,8 +164,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	fclose(fp);
 	// Arbitrary shaped Block Matching
 	printf("* * Compute Block Matching\n");
-	//block_matching.reset(It, Itp1, segments.ref_segments_map());
-	block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, segments.ref_segments_map());
+	//block_matching.reset(It, Itp1, segmentations.begin()->ref_segmentation_map());
+	block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, segmentations[1].ref_segmentation_map(), segmentations[0].ref_segmentation_map());
 	block_matching.block_matching(BM_Search_Range);
 	if (MaxLevel > 0) {
 		MaxLevel = 0;
@@ -247,7 +257,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			printf("IterMax = %d\n", IterMax_level);
 			IRLS_OpticalFlow_Pyramid_Segment(
 			    (u_levels + level),
-			    segments.ref_segments_map(),
+			    segmentations.begin()->ref_segmentation_map(),
 			    (grad_It_levels + level),
 			    (I_dt_levels + level),
 			    lambdaD, lambdaS, sigmaD, sigmaS,
