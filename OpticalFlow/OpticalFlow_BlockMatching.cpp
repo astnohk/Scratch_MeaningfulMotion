@@ -146,7 +146,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 		ImgVector<int> quantized(segmentations[0].width(), segmentations[0].height());
 		for (int i = 0; i < segmentations[0].ref_color_quantized_image().size(); i++) {
-			quantized.at(i) = double(segmentations[0].ref_color_quantized_image().get(i));
+			quantized.at(i) = double(segmentations[0].ref_color_quantized_image().get(i)) / 100.0;
+			if (quantized.get(i) < 0) {
+				quantized.at(i) = 0;
+			}
 		}
 		std::string ofilename_quantized = ofilename.substr(0, found) + "color-quantized_" + ofilename.substr(found);
 		printf("* Output The color quantized image '%s'(binary)\n\n", ofilename_quantized.c_str());
