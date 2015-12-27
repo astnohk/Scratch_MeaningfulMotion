@@ -119,18 +119,17 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	{
 		// Segmentation
 		printf("* * Compute Segmentation by Mean Shift\n");
-		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0;
+		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
+		double kernel_spatial = 8.0, kernel_intensity = 12.0 / 255.0; // for images under about HD resolution
 		if (segmentations.empty()) {
 			segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least 3 histories
-			//segmentations.push_front(Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity)); // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
-			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize); // for Others kernel(spatial, intensity)
+			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity);
 		} else {
 			for (int i = Segmentations_History_Max - 1; i > 0; i--) {
 				segmentations[i] = segmentations[i - 1];
 			}
 		}
-		//segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity); // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
-		segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize); // for Others kernel(spatial, intensity)
+		segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity);
 		printf("The number of regions : %d\n", segmentations[0].ref_segmentation_map().max());
 		PNM pnm;
 
