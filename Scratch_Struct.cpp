@@ -59,12 +59,13 @@ FILTER_PARAM::ChangeFilter(const char *name)
 			lower = new char[strlen(name) + 1];
 		}
 		catch (const std::bad_alloc &bad) {
+			std::cerr << bad.what() << std::endl;
 			Error.Value("lower");
 			Error.Malloc();
 			return false;
 		}
 		for (size_t i = 0; i < strlen(name); i++) {
-			lower[i] = tolower(name[i]);
+			lower[i] = char(tolower(name[i]));
 		}
 		lower[strlen(lower) + 1] = '\0';
 		if (strcmp(lower, "epsilon") == 0) {
@@ -217,12 +218,13 @@ OPTIONS::ChangeResampleMethod(const char *name)
 		lower = new char[strlen(name) + 1];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("lower");
 		Error.Malloc();
 		return false;
 	}
 	for (size_t i = 0; i < strlen(name); i++) {
-		lower[i] = tolower(name[i]);
+		lower[i] = char(tolower(name[i]));
 	}
 	lower[strlen(lower) + 1] = '\0';
 	if (strcmp(lower, "z-hold") == 0) {

@@ -14,7 +14,7 @@ FRAGMENT::FRAGMENT(void)
 	Pr = .0;
 }
 
-FRAGMENT::FRAGMENT(int s, int e, double prob)
+FRAGMENT::FRAGMENT(const int s, const int e, const double& prob)
 {
 	start = s;
 	end = e;
@@ -30,7 +30,7 @@ SEGMENT::SEGMENT(void)
 	Pr = .0;
 }
 
-SEGMENT::SEGMENT(int stx, int sty, int endx, int endy, double prob)
+SEGMENT::SEGMENT(const int stx, const int sty, const int endx, const int endy, const double& prob)
 {
 	n = stx;
 	m = sty;
@@ -47,7 +47,7 @@ LINEPOLE::LINEPOLE(void)
 	sin = .0;
 }
 
-LINEPOLE::LINEPOLE(double rad, double th, double icos, double isin)
+LINEPOLE::LINEPOLE(const double& rad, const double& th, const double& icos, const double& isin)
 {
 	r = rad;
 	theta = th;

@@ -3,8 +3,6 @@
 #include "HOG_struct.h"
 #include "../Scratch_MeaningfulMotion.h"
 
-#define nullptr 0
-
 
 
 
@@ -17,7 +15,7 @@ HOG::HOG(void)
 	hist = nullptr;
 }
 
-HOG::HOG(const HOG &copy)
+HOG::HOG(const HOG& copy)
 {
 	orient_signed = false;
 	bins = 0;
@@ -30,6 +28,7 @@ HOG::HOG(const HOG &copy)
 			tmp_hist = new Histogram[copy.width * copy.height];
 		}
 		catch (const std::bad_alloc &bad) {
+			std::cerr << bad.what() << std::endl;
 			fprintf(stderr, "HOG::HOG(const HOG &) error : Cannot allocate memory\n");
 			throw;
 		}
@@ -44,7 +43,7 @@ HOG::HOG(const HOG &copy)
 	}
 }
 
-HOG::HOG(bool init_signed, int init_width, int init_height, int init_bins)
+HOG::HOG(const bool init_signed, const int init_width, const int init_height, const int init_bins)
 {
 	orient_signed = false;
 	bins = 0;
@@ -57,6 +56,7 @@ HOG::HOG(bool init_signed, int init_width, int init_height, int init_bins)
 			tmp_hist = new Histogram[init_width * init_height];
 		}
 		catch (const std::bad_alloc &bad) {
+			std::cerr << bad.what() << std::endl;
 			fprintf(stderr, "HOG::HOG(bool, int, int, int) error : Cannot allocate memory\n");
 			throw;
 		}
@@ -72,7 +72,7 @@ HOG::HOG(bool init_signed, int init_width, int init_height, int init_bins)
 }
 
 HOG &
-HOG::copy(const HOG &copy)
+HOG::copy(const HOG& copy)
 {
 	Histogram *tmp_hist = nullptr;
 
@@ -83,9 +83,9 @@ HOG::copy(const HOG &copy)
 		tmp_hist = new Histogram[copy.width * copy.height];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		fprintf(stderr, "HOG::HOG(const HOG &) error : Cannot allocate memory\n");
 		throw;
-		return *this;
 	}
 	for (int i = 0; i < copy.width * copy.height; i++) {
 		tmp_hist[i].copy(copy.hist[i]);
@@ -100,7 +100,7 @@ HOG::copy(const HOG &copy)
 }
 
 bool
-HOG::reset(bool init_signed, int init_width, int init_height, int init_bins)
+HOG::reset(const bool init_signed, const int init_width, const int init_height, const int init_bins)
 {
 	Histogram *tmp_hist = nullptr;
 
@@ -108,6 +108,7 @@ HOG::reset(bool init_signed, int init_width, int init_height, int init_bins)
 		tmp_hist = new Histogram[init_width * init_height];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		fprintf(stderr, "HOG::reset(bool, int, int, int) error : Cannot allocate memory\n");
 		return false;
 	}
@@ -140,7 +141,7 @@ HOG::free(void)
 }
 
 void
-HOG::setSign(bool set_signed)
+HOG::setSign(const bool set_signed)
 {
 	orient_signed = set_signed;
 }
@@ -170,7 +171,7 @@ HOG::Height(void) const
 }
 
 double
-HOG::Hist(int x, int y, int bin) const
+HOG::Hist(const int x, const int y, const int bin) const
 {
 	if (x < 0 || width <= x
 	    || y < 0 || height <= y) {
@@ -186,13 +187,13 @@ HOG::Data(void) const
 }
 
 const Histogram *
-HOG::Data(int x, int y) const
+HOG::Data(const int x, const int y) const
 {
 	return &(hist[width * y + x]);
 }
 
 bool
-HOG::AddHist(int x, int y, int bin, double val)
+HOG::AddHist(const int x, const int y, const int bin, const double val)
 {
 	if (x < 0 || width <= x
 	    || y < 0 || height <= y) {
@@ -217,7 +218,7 @@ HOG_PARAM::HOG_PARAM(void)
 }
 
 void
-HOG_PARAM::set_default(const char *name)
+HOG_PARAM::set_default(const char* name)
 {
 	if (strcmp(name, "Bins") == 0) {
 		Bins = HOG_PARAM_Bins;
@@ -231,7 +232,7 @@ HOG_PARAM::set_default(const char *name)
 }
 
 void
-HOG_PARAM::set_value(const char *name, const void *value)
+HOG_PARAM::set_value(const char* name, const void* value)
 {
 	if (strcmp(name, "Bins") == 0) {
 		Bins = *static_cast<const int*>(value);

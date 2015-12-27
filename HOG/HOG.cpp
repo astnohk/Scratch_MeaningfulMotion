@@ -3,7 +3,7 @@
 
 
 bool
-HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_PARAM &HOG_Param)
+HistogramsOfOrientedGradients(HOG* hog, HOG* block, const PNM_DOUBLE& Img, const HOG_PARAM& HOG_Param)
 {
 	ERROR Error("HistogramOfOrientedGradients");
 	double *magnitude = nullptr;
@@ -25,6 +25,7 @@ HistogramsOfOrientedGradients(HOG *hog, HOG *block, const PNM_DOUBLE &Img, HOG_P
 		orient = new int[size.width * size.height];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("magnitude, orient");
 		Error.Malloc();
 		goto ExitError;
@@ -63,7 +64,7 @@ ExitError:
 
 
 bool
-Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, bool sign)
+Orientation(double* magnitude, int* orient, const PNM_DOUBLE& Img, const int bins, const bool sign)
 {
 	ERROR Error("Orientation");
 	SIZE size;
@@ -76,6 +77,7 @@ Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, boo
 		grad = new VECTOR_2D<double>[size.width * size.height];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("grad");
 		Error.Malloc();
 		goto ExitError;
@@ -101,7 +103,7 @@ Orientation(double *magnitude, int *orient, const PNM_DOUBLE &Img, int bins, boo
 		} else {
 			angle = (tmp + 1.0) / 2.0;
 		}
-		orient[i] = (int)floor(bins * angle);
+		orient[i] = int(floor(bins * angle));
 		if (orient[i] == bins) {
 			orient[i] = 0;
 		}
@@ -116,7 +118,7 @@ ExitError:
 }
 
 bool
-ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const int *orient, SIZE size, SIZE cell, int bins, bool sign, bool denseHOG)
+ComputeHistogramsOfOrientedGradients(HOG* hog, const double* magnitude, const int* orient, const SIZE& size, const SIZE& cell, const int bins, const bool sign, const bool denseHOG)
 {
 	ERROR Error("ComputeHistogramsOfOrientedGradients");
 	SIZE Cells;
@@ -126,8 +128,8 @@ ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const in
 	int m, n;
 
 	if (denseHOG == false) {
-		Cells.width = (int)ceil(size.width / cell.width);
-		Cells.height = (int)ceil(size.height / cell.height);
+		Cells.width = int(ceil(size.width / cell.width));
+		Cells.height = int(ceil(size.height / cell.height));
 	} else {
 		Cells.width = size.width - (cell.width - 1);
 		Cells.height = size.height - (cell.height - 1);
@@ -152,7 +154,7 @@ ComputeHistogramsOfOrientedGradients(HOG *hog, const double *magnitude, const in
 					dir = orient[size.width * (Y + m) + X + n];
 					if (hog->AddHist(x, y, dir, magnitude[size.width * (Y + m) + X + n]) == false) {
 						Error.OthersWarning("The bin is out of bounds");
-						printf("orient = %.0f, bin = %d\n", (double)orient[size.width * (Y + m) + X + n] / bins * 360.0, dir);
+						printf("orient = %.0f, bin = %d\n", double(orient[size.width * (Y + m) + X + n]) / bins * 360.0, dir);
 					}
 				}
 			}
@@ -166,7 +168,7 @@ ExitError:
 }
 
 bool
-HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
+HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE blocksize)
 {
 	ERROR Error("HOG_BlockNormalize");
 	SIZE size;
@@ -191,6 +193,7 @@ HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize)
 		integral_hist_norm = new double[(size.width + 1) * (size.height + 1)];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("integral_hist_norm");
 		Error.Malloc();
 		goto ExitError;
@@ -231,7 +234,7 @@ ExitError:
 }
 
 bool
-HOG_BlockNormalize(HOG *block, const HOG *hog, SIZE blocksize, SIZE distance)
+HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE& blocksize, const SIZE& distance)
 {
 	// For dense trajectories
 	ERROR Error("HOG_BlockNormalize");
@@ -290,7 +293,7 @@ ExitError:
 
 
 bool
-HOG_write(const HOG &hog, const std::string &filename)
+HOG_write(const HOG& hog, const std::string& filename)
 {
 	ERROR Error("HOG_write");
 	FILE *fp = nullptr;
@@ -303,7 +306,7 @@ HOG_write(const HOG &hog, const std::string &filename)
 		goto ExitError;
 	}
 	printf("* Output HOG to '%s'\n", filename.c_str());
-	fprintf(fp, "%d\n", (int)hog.Signed());
+	fprintf(fp, "%d\n", int(hog.Signed()));
 	fprintf(fp, "%d %d\n", hog.Width(), hog.Height());
 	fprintf(fp, "%d\n", hog.Bins());
 	for (int y = 0; y < hog.Height(); y++) {

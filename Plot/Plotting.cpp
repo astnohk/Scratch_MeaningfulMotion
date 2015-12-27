@@ -37,20 +37,20 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 		int lx, ly, L;
 		double dx, dy;
 		int m, n, x, y;
-		n = (int)round(coord_array[i].n * scale_x);
-		m = (int)round(coord_array[i].m * scale_y);
-		x = (int)round(coord_array[i].x * scale_x);
-		y = (int)round(coord_array[i].y * scale_y);
+		n = int(round(coord_array[i].n * scale_x));
+		m = int(round(coord_array[i].m * scale_y));
+		x = int(round(coord_array[i].x * scale_x));
+		y = int(round(coord_array[i].y * scale_y));
 		lx = abs(x - n);
 		ly = abs(y - m);
 		L = (lx > ly) ? lx : ly;
-		dx = (double)(x - n) / L;
-		dy = (double)(y - m) / L;
+		dx = double(x - n) / L;
+		dy = double(y - m) / L;
 		for (int t = 0; t <= L; t++) {
 			int tmpx, tmpy;
-			tmpx = (int)round(n + dx * t);
+			tmpx = int(round(n + dx * t));
 			tmpx = (tmpx >= 0) ? (tmpx < size_out.width) ? tmpx : size_out.width - 1 : 0;
-			tmpy = (int)round(m + dy * t);
+			tmpy = int(round(m + dy * t));
 			tmpy = (tmpy >= 0) ? (tmpy < size_out.height) ? tmpy : size_out.height - 1 : 0;
 			segments[size_out.width * tmpy + tmpx] = Foreground;
 		}
@@ -103,7 +103,7 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 	if (pnm_in.MaxInt() > PLOT_INTENSITY_MAX) {
 		for (i = 0; i < size.width * size.height; i++) {
 			if (Plot[i] > 0) {
-				Plot[i] = (int)round(Plot[i] * ((double)pnm_in.MaxInt() / PLOT_INTENSITY_MAX));
+				Plot[i] = int(round(Plot[i] * (double(pnm_in.MaxInt()) / PLOT_INTENSITY_MAX)));
 			}
 		}
 	}
@@ -115,7 +115,7 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 				for (i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
 						img_out[i] += Plot[i];
-						if (img_out[i] > (int)pnm_out->MaxInt()) {
+						if (img_out[i] > int(pnm_out->MaxInt())) {
 							img_out[i] = pnm_out->MaxInt();
 						}
 						img_out[size.height * size.width + i] /= 2;
@@ -124,7 +124,7 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 				}
 			} else { // Negative Superimpose
 				for (i = 0; i < size.height * size.width; i++) {
-					img_out[i] = (double)Plot[i] / pnm_out->MaxInt();
+					img_out[i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
 				}
 			}
 			break;
@@ -134,7 +134,7 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 					if (Plot[i] > 0) {
 						img_out[i] /= 2;
 						img_out[size.height * size.width + i] += Plot[i];
-						if (img_out[size.height * size.width + i] > (int)pnm_out->MaxInt()) {
+						if (img_out[size.height * size.width + i] > int(pnm_out->MaxInt())) {
 							img_out[size.height * size.width + i] = pnm_out->MaxInt();
 						}
 						img_out[2 * size.height * size.width + i] /= 2;
@@ -142,7 +142,7 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 				}
 			} else { // Negative Superimpose
 				for (i = 0; i < size.height * size.width; i++) {
-					img_out[size.height * size.width + i] = (double)Plot[i] / pnm_out->MaxInt();
+					img_out[size.height * size.width + i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
 				}
 			}
 			break;
@@ -153,14 +153,14 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 						img_out[i] /= 2;
 						img_out[size.height * size.width + i] /= 2;
 						img_out[2 * size.height * size.width + i] += Plot[i];
-						if (img_out[2 * size.height * size.width + i] > (int)pnm_out->MaxInt()) {
+						if (img_out[2 * size.height * size.width + i] > int(pnm_out->MaxInt())) {
 							img_out[2 * size.height * size.width + i] = pnm_out->MaxInt();
 						}
 					}
 				}
 			} else { // Negative Superimpose
 				for (i = 0; i < size.height * size.width; i++) {
-					img_out[2 * size.height * size.width + i] = (double)Plot[i] / pnm_out->MaxInt();
+					img_out[2 * size.height * size.width + i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
 				}
 			}
 	}

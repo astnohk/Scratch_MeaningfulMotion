@@ -616,8 +616,7 @@ bool
 TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVector<XPLOT> *Img_plot)
 {
 	ERROR Error("TransRotate_3DPoint");
-	int m, n;
-	double x, y, z;
+	int m;
 
 	if (Img == nullptr) {
 		Error.Value("Img");
@@ -629,12 +628,12 @@ TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVec
 		goto ExitError;
 	}
 	// Pixel Coordinate
-#pragma omp parallel for private(n, x, y, z) num_threads(8)
+#pragma omp parallel for num_threads(8)
 	for (m = 0; m < Img->height(); m++) {
-		y = (m - X11_Param.Center_y) * X11_Param.Scale;
-		for (n = 0; n < Img->width(); n++) {
-			x = (n - X11_Param.Center_x) * X11_Param.Scale;
-			z = ((-Img->get(n, m) + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
+		double y = (m - X11_Param.Center_y) * X11_Param.Scale;
+		for (int n = 0; n < Img->width(); n++) {
+			double x = (n - X11_Param.Center_x) * X11_Param.Scale;
+			double z = ((-Img->get(n, m) + MaxInt / 2.0) - X11_Param.Center_z) * X11_Param.Plot_Z_Scale * X11_Param.Scale;
 			Img_plot->at(n, m).point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
 			Img_plot->at(n, m).point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
 			Img_plot->at(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
@@ -1042,41 +1041,41 @@ PlotParameters(X11_PARAM X11_Param)
 
 	XSetForeground(disp, GCmono, WhitePixel(disp, 0));
 	sprintf(Str, "Center (%.2f, %.2f), Latitude %d, Longitude %d, Scale %.2f, WinSize (%d, %d)", X11_Param.Center_x, X11_Param.Center_y, X11_Param.Latitude, X11_Param.Longitude, X11_Param.Scale, Window_size.width, Window_size.height);
-	XDrawString(disp, pix, GCmono, 4, 12, Str, strlen(Str));
+	XDrawString(disp, pix, GCmono, 4, 12, Str, int(strlen(Str)));
 	sprintf(Str, "[0] Reset Vision, [y] Reset all");
-	XDrawString(disp, pix, GCmono, 4, 24, Str, strlen(Str));
+	XDrawString(disp, pix, GCmono, 4, 24, Str, int(strlen(Str)));
 	// Switches mode
 	sprintf(Str, "[m]ode :");
-	XDrawString(disp, pix, GCmono, 4, Window_size.height - 27, Str, strlen(Str));
-	XDrawString(disp, pix, GCmono, 60, Window_size.height - 27, Plot_Mode[X11_Param.ModeSwitch], strlen(Plot_Mode[X11_Param.ModeSwitch]));
+	XDrawString(disp, pix, GCmono, 4, Window_size.height - 27, Str, int(strlen(Str)));
+	XDrawString(disp, pix, GCmono, 60, Window_size.height - 27, Plot_Mode[X11_Param.ModeSwitch], int(strlen(Plot_Mode[X11_Param.ModeSwitch])));
 	// Switches
 	sprintf(Str, "[r]otate");
 	if (X11_Param.RotateSwitch != 0) {
 		if (X11_Param.RotateSwitch <= 2) {
-			XDrawString(disp, pix, GCcol[1], 4, Window_size.height - 8, Str, strlen(Str));
+			XDrawString(disp, pix, GCcol[1], 4, Window_size.height - 8, Str, int(strlen(Str)));
 		} else {
-			XDrawString(disp, pix, GCcol[0], 4, Window_size.height - 8, Str, strlen(Str));
+			XDrawString(disp, pix, GCcol[0], 4, Window_size.height - 8, Str, int(strlen(Str)));
 		}
 	} else {
-		XDrawString(disp, pix, GCmono, 4, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 4, Window_size.height - 8, Str, int(strlen(Str)));
 	}
 	sprintf(Str, "[f]ill_grid");
 	if (X11_Param.FillSwitch != 0) {
-		XDrawString(disp, pix, GCcol[0], 64, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCcol[0], 64, Window_size.height - 8, Str, int(strlen(Str)));
 	} else {
-		XDrawString(disp, pix, GCmono, 64, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 64, Window_size.height - 8, Str, int(strlen(Str)));
 	}
 	sprintf(Str, "[g]araxy");
 	if (X11_Param.ModeSwitch == X11_Plot_Garaxy) {
-		XDrawString(disp, pix, GCcol[0], 142, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCcol[0], 142, Window_size.height - 8, Str, int(strlen(Str)));
 	} else {
-		XDrawString(disp, pix, GCmono, 142, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 142, Window_size.height - 8, Str, int(strlen(Str)));
 	}
 	sprintf(Str, "[c]orrupt");
 	if (X11_Param.ModeSwitch == X11_Plot_GravityCorrupt) {
-		XDrawString(disp, pix, GCcol[0], 202, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCcol[0], 202, Window_size.height - 8, Str, int(strlen(Str)));
 	} else {
-		XDrawString(disp, pix, GCmono, 202, Window_size.height - 8, Str, strlen(Str));
+		XDrawString(disp, pix, GCmono, 202, Window_size.height - 8, Str, int(strlen(Str)));
 	}
 }
 

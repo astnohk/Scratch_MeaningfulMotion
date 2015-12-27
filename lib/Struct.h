@@ -1,7 +1,5 @@
 #include "ImgStruct.h"
 
-
-
 #ifndef LIB_Struct
 #define LIB_Struct
 
@@ -11,7 +9,7 @@ struct FRAGMENT
 	int end;
 	double Pr;
 	FRAGMENT(void);
-	FRAGMENT(int s, int e, double prob);
+	FRAGMENT(const int s, const int e, const double& prob);
 };
 
 struct SEGMENT
@@ -22,7 +20,7 @@ struct SEGMENT
 	int y; // End point y
 	double Pr; // Probability
 	SEGMENT(void);
-	SEGMENT(int stx, int sty, int endx, int endy, double prob);
+	SEGMENT(const int stx, const int sty, const int endx, const int endy, const double& prob);
 };
 
 struct LINEPOLE
@@ -32,7 +30,7 @@ struct LINEPOLE
 	double cos;
 	double sin;
 	LINEPOLE(void);
-	LINEPOLE(double rad, double th, double icos, double isin);
+	LINEPOLE(const double& rad, const double& th, const double& icos, const double& isin);
 };
 
 #endif

@@ -69,6 +69,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		u = new ImgVector<VECTOR_2D<double> >(It->width(), It->height());
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("u");
 		Error.Malloc();
 		goto ExitError;
@@ -77,6 +78,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("u_levels");
 		Error.Malloc();
 		goto ExitError;
@@ -118,7 +120,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 			sigmaS = sigmaS_l0;
 		}
 		u_levels[level].reset(I_dt_levels[level].width(), I_dt_levels[level].height());
-		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
+		printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, int(pow_int(2.0, level)), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 		if (level < MaxLevel) {
 			LevelDown(I_dt_levels, u_levels, It_levels, Itp1_levels, level, MaxLevel);
 		}
@@ -177,13 +179,13 @@ LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_level
 			VECTOR_2D<double> u_offset = u_levels[level + 1].get(x / 2, y / 2);
 
 			I_dt_levels[level].at(x, y) =
-			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
+			    (Itp1_levels[level].get_zeropad(x + int(floor(2.0 * u_offset.x)), y + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x, y)
-			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
+			    + Itp1_levels[level].get_zeropad(x + 1 + int(floor(2.0 * u_offset.x)), y + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x + 1, y)
-			    + Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
+			    + Itp1_levels[level].get_zeropad(x + int(floor(2.0 * u_offset.x)), y + 1 + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x, y + 1)
-			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
+			    + Itp1_levels[level].get_zeropad(x + 1 + int(floor(2.0 * u_offset.x)), y + 1 + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
 			u_levels[level].at(x, y).x = 0.0;
 			u_levels[level].at(x, y).y = 0.0;
@@ -214,15 +216,6 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 {
 	ERROR Error("IRLS_OpticalFlow_Pyramid");
 
-	ImgVector<VECTOR_2D<double> > u_np1;
-	VECTOR_2D<double> sup;
-	VECTOR_2D<double> dE;
-	double E = 0.0;
-	double E_prev = 0.0;
-	int ErrorIncrementCount = 0;
-	int site;
-	int n;
-
 	if (u == nullptr) {
 		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *u");
 	} else if (Img_g == nullptr) {
@@ -230,14 +223,19 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 	} else if (Img_t == nullptr) {
 		throw std::invalid_argument("ImgVector<double> *Img_t");
 	}
-	u_np1.copy(*u); // Initialize u_np1
+	ImgVector<VECTOR_2D<double> > u_np1(*u);
 	// Reset sup_Error_uu max Img_g
 	sup_Error_uu(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
+	VECTOR_2D<double> sup;
 	sup = sup_Error_uu(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
-	for (n = 0; n < IterMax; n++) {
+	double E = 0.0;
+	int ErrorIncrementCount = 0;
+	for (int n = 0; n < IterMax; n++) {
 		// Calc for all sites
-#pragma omp parallel for private(dE)
+		int site;
+#pragma omp parallel for
 		for (site = 0; site < u->size(); site++) {
+			VECTOR_2D<double> dE;
 			dE = Error_u(site, u, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u->get(site).x - dE.x / sup.x;
 			u_np1[site].y = u->get(site).y - dE.y / sup.y;
@@ -251,7 +249,7 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 				E = Error_MultipleMotion(u, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
 			}
 		} else {
-			E_prev = E;
+			double E_prev = E;
 			E = Error_MultipleMotion(u, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
 			if (E > E_prev) {
 				ErrorIncrementCount++;
@@ -477,6 +475,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 		compensated_image = new int[size * 3];
 	}
 	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl;
 		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
 		throw;
 	}

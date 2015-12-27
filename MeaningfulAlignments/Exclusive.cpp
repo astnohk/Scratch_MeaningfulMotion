@@ -3,7 +3,7 @@
 
 
 SEGMENT *
-ExclusivePrinciple(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
+ExclusivePrinciple(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, SEGMENT *MaximalSegments, unsigned int *Num_Segments, double Exclusive_max_radius)
 {
 	ERROR Error("ExclusivePrinciple");
 
@@ -25,7 +25,7 @@ ExclusivePrinciple(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr
 	}
 	printf("\nComplete!\n");
 	// DEBUG : Output IndexMap
-	pnm.copy(PORTABLE_GRAYMAP_ASCII, angles->width(), angles->height(), (*Num_Segments) - 1, IndexMap->data());
+	pnm.copy(PORTABLE_GRAYMAP_ASCII, angles->width(), angles->height(), int(*Num_Segments) - 1, IndexMap->data());
 	if (pnm.write("IndexMap.pgm") == PNM_FUNCTION_ERROR) {
 		fprintf(stderr, "*** ExclusivePrinciple error - CanNOT write out the IndexMap to \"IndexMap.pgm\" ***\n");
 	}
@@ -51,29 +51,18 @@ ExitError:
 
 
 ImgVector<int> *
-ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius)
+ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segments, double Exclusive_max_radius)
 {
 	ERROR Error("ExclusiveIndexMap");
-
 	ImgVector<int> *IndexMap = nullptr;
-
 	LINEPOLE *Lines = nullptr;
-
 	ATAN2_DIV_PI atan2_div_pi(size.width, size.height);
-
-	int line_index;
-	double Pr_min;
-	double d, d_triangle, d_max;
-	int n_seg;
-	int x, y;
-
-	int progress_count;
-	int present_count;
 
 	try {
 		IndexMap = new ImgVector<int>(size.width, size.height);
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("IndexMap");
 		Error.Malloc();
@@ -83,6 +72,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 		Lines = new LINEPOLE[(*Num_Segments)];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Lines");
 		Error.Malloc();
@@ -107,22 +97,23 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double
 	}
 	printf("* Add all pixels to the Segments Exclusively :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
 	// Select the segments each Pixel exclusively belongs to
-	progress_count = 0;
-	present_count = 0;
-#pragma omp parallel for schedule(dynamic) private(y, d, d_triangle, d_max, Pr_min, n_seg, line_index)
+	unsigned int progress_count = 0;
+	unsigned int present_count = 0;
+	int x;
+#pragma omp parallel for schedule(dynamic)
 	for (x = 0; x < size.width; x++) {
-		for (y = 0; y < size.height; y++) {
-			Pr_min = 1.0; // Reset
-			line_index = -1;
-			for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
-				d = fabs(Lines[n_seg].r - (x * Lines[n_seg].cos + y * Lines[n_seg].sin)); // Calculate distance
-				d_triangle =
-				    sqrt((double)POW2(x - MaximalSegments[n_seg].x) + (double)POW2(y - MaximalSegments[n_seg].y))
-				    + sqrt((double)POW2(x - MaximalSegments[n_seg].n) + (double)POW2(y - MaximalSegments[n_seg].m));
-				d_max = d + sqrt(
-				    (double)POW2(MaximalSegments[n_seg].x - MaximalSegments[n_seg].n)
-				    + (double)POW2(MaximalSegments[n_seg].y - MaximalSegments[n_seg].m)
-				    + (double)d * d);
+		for (int y = 0; y < size.height; y++) {
+			double Pr_min = 1.0; // Reset
+			int line_index = -1;
+			for (unsigned int n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
+				double d = fabs(Lines[n_seg].r - (x * Lines[n_seg].cos + y * Lines[n_seg].sin)); // Calculate distance
+				double d_triangle =
+				    sqrt(double(POW2(x - MaximalSegments[n_seg].x)) + double(POW2(y - MaximalSegments[n_seg].y)))
+				    + sqrt(double(POW2(x - MaximalSegments[n_seg].n)) + double(POW2(y - MaximalSegments[n_seg].m)));
+				double d_max = d + sqrt(
+				    double(POW2(MaximalSegments[n_seg].x - MaximalSegments[n_seg].n))
+				    + double(POW2(MaximalSegments[n_seg].y - MaximalSegments[n_seg].m))
+				    + double(d) * d);
 				if ((d < Exclusive_max_radius)
 				    && (d_triangle <= d_max)
 				    && (MaximalSegments[n_seg].Pr < Pr_min)) {
@@ -153,7 +144,7 @@ ExitError:
 
 
 SEGMENT *
-ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, ImgVector<double> *Pr_table)
+ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *MaximalSegments, unsigned int *Num_Segments, int *k_list, ImgVector<double> *Pr_table)
 {
 	ERROR Error("ExclusiveSegments");
 
@@ -161,54 +152,44 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 
 	double *EPSegments_Pr = nullptr;
 	int Num_EPSegments = 0;
-
 	ATAN2_DIV_PI atan2_div_pi(angles->width(), angles->height());
-	double aligned_angle;
-
-	int n_seg;
-	int m, n;
-	int x, y, t;
-	int x_t, y_t;
-	double dx, dy;
-	int k, L;
-	
-	int progress_count;
-	int present_count;
 
 	try {
 		EPSegments_Pr = new double[(*Num_Segments)];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("EPSegments_Pr");
 		Error.Malloc();
 		goto ExitError;
 	}
-	progress_count = 0;
-	present_count = 0;
+	unsigned int progress_count = 0;
+	unsigned int present_count = 0;
 	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
-#pragma omp parallel for schedule(dynamic) private(m, n, x, y, t, k, L, dx, dy, x_t, y_t, aligned_angle) reduction(+:Num_EPSegments)
-	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
+#pragma omp parallel for schedule(dynamic) reduction(+:Num_EPSegments)
+	for (unsigned int n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
 		// Re-meaningful segments
-		n = MaximalSegments[n_seg].n;
-		m = MaximalSegments[n_seg].m;
-		x = MaximalSegments[n_seg].x;
-		y = MaximalSegments[n_seg].y;
+		int n = MaximalSegments[n_seg].n;
+		int m = MaximalSegments[n_seg].m;
+		int x = MaximalSegments[n_seg].x;
+		int y = MaximalSegments[n_seg].y;
+		int L;
 		if (abs(x - n) > abs(y - m)) {
 			L = abs(x - n) + 1;
 		} else {
 			L = abs(y - m) + 1;
 		}
-		aligned_angle = atan2_div_pi.val(y - m, x - n);
+		double aligned_angle = atan2_div_pi.val(y - m, x - n);
 		if (aligned_angle < 0.0) {
 			aligned_angle += ANGLE_MAX;
 		}
-		dx = (x - n) / (double)(L - 1.0);
-		dy = (y - m) / (double)(L - 1.0);
-		k = 0;
-		for (t = 0; t < L; t++) {
-			x_t = (int)round(dx * t + n);
-			y_t = (int)round(dy * t + m);
+		double dx = (x - n) / double(L - 1.0);
+		double dy = (y - m) / double(L - 1.0);
+		int k = 0;
+		for (int t = 0; t < L; t++) {
+			int x_t = int(round(dx * t + n));
+			int y_t = int(round(dy * t + m));
 			if (x_t < 0 || angles->width() <= x_t || y_t < 0 || angles->height() <= y_t) {
 				break;
 			}
@@ -239,12 +220,13 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 		MaxEPSegments = new SEGMENT[Num_EPSegments];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("MaxEPSegments");
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (n_seg = k = 0; n_seg < (*Num_Segments); n_seg++) {
+	for (unsigned int n_seg = 0, k = 0; n_seg < (*Num_Segments); n_seg++) {
 		if (EPSegments_Pr[n_seg] > 0.0) {
 			MaxEPSegments[k].n = MaximalSegments[n_seg].n;
 			MaxEPSegments[k].m = MaximalSegments[n_seg].m;

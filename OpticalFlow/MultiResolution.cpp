@@ -30,14 +30,15 @@ Pyramider(const ImgVector<double> *img, const int MaxLevel)
 		Pyramid = new ImgVector<double>[MaxLevel + 1];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("Pyramid");
 		Error.Malloc();
 		goto ExitError;
 	}
 	Pyramid[0].reset(img->width(), img->height(), img->data()); // MaxLevel 0 is equal to original image
 	for (l = 1; l <= MaxLevel; l++) {
-		size_l.width = (int)ceil(img->width() * pow_int(0.5, l));
-		size_l.height = (int)ceil(img->height() * pow_int(0.5, l));
+		size_l.width = int(ceil(img->width() * pow_int(0.5, l)));
+		size_l.height = int(ceil(img->height() * pow_int(0.5, l)));
 		if (size_l.width <= 0 || size_l.height <= 0) {
 			Error.OthersWarning("The image reaches minimum size in Pyramid");
 			break;
@@ -63,8 +64,8 @@ Pyramider(const ImgVector<double> *img, const int MaxLevel)
 	// Make image pyramid (l > 0)
 	for (l = 1; l <= MaxLevel; l++) {
 		size_lm1 = size_l;
-		size_l.width = (int)ceil(img->width() * pow_int(0.5, l));
-		size_l.height = (int)ceil(img->height() * pow_int(0.5, l));
+		size_l.width = int(ceil(img->width() * pow_int(0.5, l)));
+		size_l.height = int(ceil(img->height() * pow_int(0.5, l)));
 		if (size_l.width <= 0 || size_l.height <= 0) {
 			Error.OthersWarning("The image reaches minimum size in Pyramid");
 			break;
@@ -73,9 +74,9 @@ Pyramider(const ImgVector<double> *img, const int MaxLevel)
 			for (y = 0; y < size_l.height; y++) {
 				Pyramid[l].at(x, y) = .0;
 				for (m = 0; m < WEIGHTED_FILTER_SIZE; m++) {
-					ym = 2 * y + m - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
+					ym = 2 * y + m - int(floor(WEIGHTED_FILTER_SIZE / 2.0));
 					for (n = 0; n < WEIGHTED_FILTER_SIZE; n++) {
-						xn = 2 * x + n - (int)floor(WEIGHTED_FILTER_SIZE / 2.0);
+						xn = 2 * x + n - int(floor(WEIGHTED_FILTER_SIZE / 2.0));
 						Pyramid[l].at(x, y) += w[m] * w[n] * Pyramid[l - 1].get_mirror(xn, ym);
 					}
 				}
@@ -120,6 +121,7 @@ grad_Pyramid(const ImgVector<double> *img_t_levels, const ImgVector<double> *img
 		grad_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("grad_levels");
 		Error.Malloc();
 		goto ExitError;
@@ -187,6 +189,7 @@ dt_Pyramid(const ImgVector<double> *img_t_levels, const ImgVector<double> *img_t
 		dt_levels = new ImgVector<double>[MaxLevel + 1];
 	}
 	catch (const std::bad_alloc &bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("dt_levels");
 		Error.Malloc();
 		goto ExitError;

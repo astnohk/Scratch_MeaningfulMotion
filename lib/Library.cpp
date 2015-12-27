@@ -5,7 +5,7 @@
 
 // Strings Library
 char *
-regexp(char *string)
+regexp(const char* str)
 {
 	ERROR Error("regexp");
 
@@ -13,29 +13,28 @@ regexp(char *string)
 	char *start_after = nullptr;
 	char tmp[4 + REGEXP_MAX_DIGITS];
 	char *out = nullptr;
-	unsigned int len_before = 0;
-	unsigned int len_after = 0;
-	unsigned int num_sharp = 0;
-	unsigned int length = 0;
-	unsigned int i;
+	size_t len_before = 0;
+	size_t len_after = 0;
 
-	s = string;
+	s = str;
 	while (*s != '\0' && *s != '#') {
 		len_before++;
 		s++;
 	}
-	if (*s == '\0') { // There are NO # in string
+	if (*s == '\0') { // There are NO # in str
 		try {
-			out = new char[strlen(string) + 1u];
+			out = new char[strlen(str) + 1u];
 		}
-		catch (const std::bad_alloc &bad) {
+		catch (const std::bad_alloc& bad) {
+			std::cerr << bad.what() << std::endl;
 			Error.Value("out");
 			Error.Malloc();
 			goto ExitError;
 		}
-		strcpy(out, string);
+		strcpy(out, str);
 		return out;
 	}
+	size_t num_sharp = 0;
 	while (*s != '\0' && *s == '#') {
 		num_sharp++;
 		s++;
@@ -50,25 +49,26 @@ regexp(char *string)
 		exit(EXIT_FAILURE);
 	}
 	sprintf(tmp, "%%0%ud", num_sharp);
-	length = len_before + strlen(tmp) + len_after;
+	size_t length = len_before + strlen(tmp) + len_after;
 	try {
 		out = new char[length + 1];
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl;
 		Error.Value("out");
 		Error.Malloc();
 		goto ExitError;
 	}
 	s = out;
-	for (i = 0; i < len_before; i++) {
-		*s = string[i];
+	for (size_t i = 0; i < len_before; i++) {
+		*s = str[i];
 		s++;
 	}
-	for (i = 0; i < strlen(tmp); i++) {
+	for (size_t i = 0; i < strlen(tmp); i++) {
 		*s = tmp[i];
 		s++;
 	}
-	for (i = 0; i < len_after; i++) {
+	for (size_t i = 0; i < len_after; i++) {
 		*s = start_after[i];
 		s++;
 	}
@@ -106,32 +106,32 @@ pow_int(double x, int a)
 }
 
 
-int*
-Calc_k_l(SIZE &size, double p, double ep)
+int *
+Calc_k_l(const SIZE& size, const double& p, const double& ep)
 {
-	const char *FunctionName = "Calc_k_l";
 	const int L = (size.height > size.width) ? size.height : size.width;
 	const double C = 2.0 * p * (1.0 - p);
 	int *k_list = nullptr;
-	int k_start, k0;
-	int count = 0;
-	double progress = 0.0;
 
 	try {
 		k_list = new int[L + 1];
 	}
-	catch (const std::bad_alloc &bad) {
-		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*k_list) ***\n", FunctionName);
+	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl
+		    << "error : int* Calc_k_l(SIZE&, double, double) Cannot allocate memory" << std::endl;
 		return nullptr;
 	}
+
+	int count = 0;
+	double progress = 0.0;
 	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
-#pragma omp parallel for schedule(dynamic) private(k_start, k0)
+#pragma omp parallel for schedule(dynamic)
 	for (int l = 1; l <= L; l++) {
-		k_start = floor(p * l + sqrt(C * l * (log(DIV_ANGLE) + log(size.height) + 2.0 * log(size.width) - log(ep))));
+		int k_start = int(floor(p * l + sqrt(C * l * (log(DIV_ANGLE) + log(size.height) + 2.0 * log(size.width) - log(ep)))));
 		if (k_start < 0) {
 			k_start = 0;
 		}
-		for (k0 = k_start; k0 <= l; k0++) {
+		for (int k0 = k_start; k0 <= l; k0++) {
 			k_list[l] = k0;
 			if (Pr(k0, l, p) * size.width * size.width * DIV_ANGLE * size.height <= ep) {
 				break;
@@ -140,8 +140,8 @@ Calc_k_l(SIZE &size, double p, double ep)
 #pragma omp critical
 		{
 			count++;
-			if (round((double)count / L * 1000.0) > progress) {
-				progress = round((double)count / L * 1000.0); // Take account of Overflow
+			if (round(double(count) / L * 1000.0) > progress) {
+				progress = round(double(count) / L * 1000.0); // Take account of Overflow
 				printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + L)].c_str());
 			}
 		}
@@ -152,7 +152,7 @@ Calc_k_l(SIZE &size, double p, double ep)
 
 
 double
-Pr(int k, int l, double p)
+Pr(const int k, const int l, const double& p)
 {
 	double sum = 0.0;
 	double Combination = 1.0;

@@ -61,19 +61,23 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	// Set connected domain
 	printf("* Make connected_domains\n");
 	connected_domains.resize(block_matching.vector_field_width() * block_matching.vector_field_height());
-	for (int m = 0; m < block_matching.vector_field_height(); m++) {
-		int M = m * block_matching.block_size();
-		for (int n = 0; n < block_matching.vector_field_width(); n++) {
-			int N = n * block_matching.block_size();
-			for (int y = 0; y < block_matching.block_size(); y++) {
-				if (M + y >= It->height()) {
+	for (unsigned int m = 0; m < block_matching.vector_field_height(); m++) {
+		unsigned int M = m * block_matching.block_size();
+		for (unsigned int n = 0; n < block_matching.vector_field_width(); n++) {
+			unsigned int N = n * block_matching.block_size();
+			for (unsigned int y = 0;
+			    y < static_cast<unsigned int>(block_matching.block_size());
+			    y++) {
+				if (M + y >= static_cast<unsigned int>(It->height())) {
 					break;
 				}
-				for (int x = 0; x < block_matching.block_size(); x++) {
-					if (N + x >= It->width()) {
+				for (unsigned int x = 0;
+				    x < static_cast<unsigned int>(block_matching.block_size());
+				    x++) {
+					if (N + x >= static_cast<unsigned int>(It->width())) {
 						break;
 					}
-					connected_domains[m * block_matching.vector_field_width() + n].push_back((VECTOR_2D<int>){N + x, M + y});
+					connected_domains[m * block_matching.vector_field_width() + n].push_back(VECTOR_2D<int>(N + x, M + y));
 				}
 			}
 		}

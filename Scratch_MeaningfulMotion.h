@@ -151,25 +151,24 @@ extern const std::string Progress_End;
 
 
 // Prototype of functions
-void Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam);
+void Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const size_t OutputNameLength, const size_t InputNameLength, const int Start, const int End, const OPTIONS& Options, const FILTER_PARAM& FilterParam);
 
 // Mathematical Libraries
 double pow_int(double x, int a);
-int* Calc_k_l(SIZE &size, double p, double ep);
-double Pr(int k, int l, double p);
+int* Calc_k_l(const SIZE& size, const double& p, const double& ep);
+double Pr(const int k, const int l, const double& p);
 
 // Image Libraries
-ImgVector<double>* Gaussian(ImgVector<double> *img, FILTER_PARAM Param);
-ImgVector<double>* EpsilonFilter(ImgVector<double> *img, FILTER_PARAM Param);
-double HorizontalMedian(ImgVector<double> *img, int x, int y, int width);
-ImgVector<double>* DerivativeAngler(ImgVector<double> *img);
-ImgVector<VECTOR_2D<double> >* Derivator(ImgVector<double> *Image, const char *Type);
-ImgVector<double>* Derivation_abs(ImgVector<VECTOR_2D<double> > *Derivative_2D);
-ImgVector<double>* Filterer(ImgVector<double> *Image, ImgVector<double> *Filter, bool Mirroring);
-int IndexOfMirroring(int x, int size);
+ImgVector<double>* Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param);
+ImgVector<double>* EpsilonFilter(const ImgVector<double>* img, const FILTER_PARAM& Param);
+double HorizontalMedian(const ImgVector<double> *img, const int x, const int y, const int width);
+ImgVector<double>* DerivativeAngler(const ImgVector<double> *img);
+ImgVector<VECTOR_2D<double> >* Derivator(const ImgVector<double> *Image, const char *Type);
+ImgVector<double>* Derivation_abs(const ImgVector<VECTOR_2D<double> > *Derivative_2D);
+ImgVector<double>* Filterer(const ImgVector<double> *Image, const ImgVector<double> *Filter, const bool Mirroring);
 
 // Other Libraries
-char* regexp(char *s);
+char* regexp(const char* str);
 
 // Scratch Detection
 ImgVector<double>* DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterParam, bool Do_Detection);
@@ -177,16 +176,16 @@ ImgVector<double>* DetectScratch(const PNM &pnm, double s_med, double s_avg, FIL
 #define DO_NOT_DETECTION false
 
 // Meaningful Alignments
-SEGMENT* AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVector<double> *Pr_table, int *Num_segments, int Max_Length, int Max_Output_Length);
-std::list<FRAGMENT>* AlignedCheck(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, int l_min, int m, int n, int x, int y, int Max_Length);
+SEGMENT* AlignedSegment_vertical(ImgVector<double>* angles, int* k_list, int l_min, ImgVector<double>* Pr_table, unsigned int* Num_segments, int Max_Length, int Max_Output_Length);
+std::list<FRAGMENT>* AlignedCheck(ImgVector<double>* angles, int* k_list, ImgVector<double>* Pr_table, int l_min, int m, int n, int x, int y, int Max_Length);
 bool MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* list_fragment, int m, int n, int x, int y, int Max_Output_Length);
-SEGMENT* ExclusivePrinciple(ImgVector<double> *angles, int *k_list, ImgVector<double> *Pr_table, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
-ImgVector<int>* ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, int *Num_Segments, double Exclusive_max_radius);
-SEGMENT* ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *MaximalSegments, int *Num_Segments, int *k_list, ImgVector<double> *Pr_table);
+SEGMENT* ExclusivePrinciple(ImgVector<double>* angles, int* k_list, ImgVector<double>* Pr_table, SEGMENT* MaximalSegments, unsigned int* Num_Segments, double Exclusive_max_radius);
+ImgVector<int>* ExclusiveIndexMap(SIZE size, SEGMENT* MaximalSegments, unsigned int* Num_Segments, double Exclusive_max_radius);
+SEGMENT* ExclusiveSegments(ImgVector<int>* IndexMap, ImgVector<double>* angles, SEGMENT* MaximalSegments, unsigned int* Num_Segments, int* k_list, ImgVector<double>* Pr_table);
 
 // Plotting
-int* PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
-bool Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate);
+int* PlotSegment(SEGMENT* coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
+bool Superimposer(PNM* pnm_out, const PNM& pnm_in, int* Plot, SIZE size, int Color, int Negate);
 
 // X11 Plotting
 bool ShowSegments_X11(ImgVector<int> *Img, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);

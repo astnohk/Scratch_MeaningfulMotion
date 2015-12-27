@@ -1,5 +1,5 @@
 CC = clang++ -std=c++11
-WARNING = -Weverything -Wno-c++98-compat
+WARNING = -Weverything -Wno-c++98-compat -Wno-padded
 LIBES = -lm -lX11
 OPTION = -fopenmp
 

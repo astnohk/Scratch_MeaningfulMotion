@@ -12,9 +12,6 @@
 #include "../ImgClass/Segmentation.h"
 
 
-#define SHOW_IRLS_OPTICALFLOW_E
-
-
 
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
@@ -98,8 +95,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	}
 
 	// Adjust max level to use the Block Matching efficiently
-	if (MaxLevel > floor(log((double)MotionParam.BlockMatching_BlockSize) / log(2.0))) {
-		MaxLevel = (int)floor(log((double)MotionParam.BlockMatching_BlockSize) / log(2.0));
+	if (MaxLevel > floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0))) {
+		MaxLevel = int(floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0)));
 	}
 
 	// ----- Block Matching -----
@@ -310,7 +307,7 @@ template <class T>
 void
 BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, const int level, BlockMatching<T>* block_matching)
 {
-	double Scale = (double)It_levels[0].width() / It_levels[level].width();
+	double Scale = double(It_levels[0].width()) / It_levels[level].width();
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
@@ -318,13 +315,13 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 			u_offset /= Scale;
 
 			I_dt_levels[level].at(x, y) =
-			    (Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
+			    (Itp1_levels[level].get_zeropad(x + int(floor(2.0 * u_offset.x)), y + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x, y)
-			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + (int)floor(2.0 * u_offset.y))
+			    + Itp1_levels[level].get_zeropad(x + 1 + int(floor(2.0 * u_offset.x)), y + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x + 1, y)
-			    + Itp1_levels[level].get_zeropad(x + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
+			    + Itp1_levels[level].get_zeropad(x + int(floor(2.0 * u_offset.x)), y + 1 + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x, y + 1)
-			    + Itp1_levels[level].get_zeropad(x + 1 + (int)floor(2.0 * u_offset.x), y + 1 + (int)floor(2.0 * u_offset.y))
+			    + Itp1_levels[level].get_zeropad(x + 1 + int(floor(2.0 * u_offset.x)), y + 1 + int(floor(2.0 * u_offset.y)))
 			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
 			u_levels[level].at(x, y).x = 0.0;
 			u_levels[level].at(x, y).y = 0.0;
@@ -339,7 +336,7 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLeve
 {
 	if (level == MaxLevel) {
 		// Add offset calculated by using the motion vector by Block Matching
-		double Scale = (double)u_levels[0].width() / u_levels[level].width();
+		double Scale = double(u_levels[0].width()) / u_levels[level].width();
 
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {

@@ -10,7 +10,7 @@
 
 
 void
-Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputNameLength, unsigned int InputNameLength, int Start, int End, OPTIONS Options, FILTER_PARAM FilterParam)
+Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const size_t OutputNameLength, const size_t InputNameLength, const int Start, const int End, const OPTIONS& Options, const FILTER_PARAM& FilterParam)
 {
 	ERROR Error("Scratch_MeaningfulMotion");
 	const char *Bars = "------------------------------------------------";
@@ -53,7 +53,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	SEGMENT *MaximalSegments = nullptr;
 	SEGMENT *EPSegments = nullptr;
 	int *segments = nullptr;
-	int Num_Segments = 0;
+	unsigned int Num_Segments = 0;
 
 	int Initialize = 0;
 
@@ -64,7 +64,6 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 	SIZE size_out;
 	int maxMN_res = 0;
 	int l_min = 1;
-	int i, k, L;
 	double progress;
 	int count;
 
@@ -77,6 +76,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				char_tmp = new char[InputNameLength + 1];
 			}
 			catch (const std::bad_alloc &bad) {
+				std::cerr << bad.what() << std::endl;
 				Error.Value("char_tmp");
 				Error.Malloc();
 				goto ExitError;
@@ -117,7 +117,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			Error.Others("Image size are not match with previous one");
 			goto ExitError;
 		}
-		printf("- The input image size is %dx%d\n- and bit depth is %d\n", size.width, size.height, (int)round(log2((double)pnm_orig.MaxInt())));
+		printf("- The input image size is %dx%d\n- and bit depth is %d\n", size.width, size.height, int(round(log2(double(pnm_orig.MaxInt())))));
 		if (size_res.width > 0 || size_res.height > 0) { // Resample
 			size = size_res;
 			if (pnmd_in.copy(pnm_orig, 1.0) != PNM_FUNCTION_SUCCESS) {
@@ -130,18 +130,21 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 				pnm_resize(&pnmd_out, pnmd_in, size_res.width, size_res.height, Options.ResampleMethod);
 			}
 			catch (const std::bad_alloc& bad) {
+				std::cerr << bad.what() << std::endl;
 				Error.Function("pnm_resize");
 				Error.Value("(pnmd_in -> pnmd_out)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			catch (const std::out_of_range& range) {
+				std::cerr << range.what() << std::endl;
 				Error.Function("pnm_resize");
 				Error.Value("(pnmd_in -> pnmd_out)");
 				Error.FunctionFail();
 				goto ExitError;
 			}
 			catch (const std::invalid_argument& arg) {
+				std::cerr << arg.what() << std::endl;
 				Error.Function("pnm_resize");
 				Error.Value("(pnmd_in -> pnmd_out)");
 				Error.FunctionFail();
@@ -181,7 +184,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		}
 		// Copy color image to ImgVector<ImgClass::RGB> imgd_in
 		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
-		for (i = 0; i < imgd_in.size(); i++) {
+		for (int i = 0; i < imgd_in.size(); i++) {
 			if (pnm_in.isRGB()) {
 				imgd_in[i] = ImgClass::RGB(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
 			} else {
@@ -219,7 +222,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 			printf("Finished\n\n");
 		}
 		imgd_in_gray.reset(pnm_in.Width(), pnm_in.Height());
-		for (i = 0; i < imgd_in_gray.size(); i++) {
+		for (int i = 0; i < imgd_in_gray.size(); i++) {
 			imgd_in_gray[i] = double(pnm_in[i]);
 		}
 
@@ -338,7 +341,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					goto ExitError;
 				}
 				for (int i = 0; i < pnm_out.Width() * pnm_out.Height(); i++) {
-					pnm_out[i] = scratches->get(i);
+					pnm_out[i] = int(round(scratches->get(i)));
 				}
 			} else {
 				// A Contrario Method : Meaningful Alignments
@@ -348,6 +351,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 						Pr_table = new ImgVector<double>(maxMN_res + 1, maxMN_res + 1);
 					}
 					catch (const std::bad_alloc &bad) {
+						std::cerr << bad.what() << std::endl;
 						Error.Function("new");
 						Error.Value("Pr_table");
 						Error.Malloc();
@@ -357,8 +361,8 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 					progress = 0;
 					count = 0;
 #pragma omp parallel for schedule(dynamic) private(k)
-					for (L = 1; L <= maxMN_res; L++) {
-						for (k = 0; k <= L; k++) {
+					for (int L = 1; L <= maxMN_res; L++) {
+						for (int k = 0; k <= L; k++) {
 							Pr_table->at(k, L) = Pr(k, L, Options.p);
 						}
 #pragma omp critical
@@ -462,7 +466,7 @@ Scratch_MeaningfulMotion(char *OutputName, char *InputName, unsigned int OutputN
 		// X11 Plotting
 		if (Options.x11_plot) {
 			img_orig.reset(pnm_orig.Width(), pnm_orig.Height());
-			for (i = 0; i < img_orig.size(); i++) {
+			for (int i = 0; i < img_orig.size(); i++) {
 				img_orig[i] = int(pnm_orig[i]);
 			}
 			ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
@@ -478,6 +482,7 @@ Write:
 				char_tmp = new char[OutputNameLength + 1];
 			}
 			catch (const std::bad_alloc &bad) {
+				std::cerr << bad.what() << std::endl;
 				Error.Value("char_tmp");
 				Error.Malloc();
 				goto ExitError;
