@@ -93,6 +93,7 @@ EpsilonFilter(const ImgVector<double> *img, const FILTER_PARAM& Param)
 		Error.Malloc();
 		goto ExitError;
 	}
+	int y;
 #pragma omp parallel for
 	for (y = 0; y < img->height(); y++) {
 		for (int x = 0; x < img->width(); x++) {
@@ -119,7 +120,7 @@ ExitError:
 
 
 ImgVector<double> *
-Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param)
+Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 {
 	ERROR Error("Gaussian");
 
@@ -131,18 +132,18 @@ Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param)
 	double sum = 0;
 	int norm = 0;
 	
-	if ((Param.size.width & 1) == 0) {
+	if ((Param->size.width & 1) == 0) {
 		norm = 1;
-		Param.size.width++;
+		Param->size.width++;
 	}
-	if ((Param.size.height & 1) == 0) {
+	if ((Param->size.height & 1) == 0) {
 		norm = 1;
-		Param.size.height++;
+		Param->size.height++;
 	}
-	filter_width_2 = Param.size.width / 2;
-	filter_height_2 = Param.size.height / 2;
+	filter_width_2 = Param->size.width / 2;
+	filter_height_2 = Param->size.height / 2;
 	try {
-		Gauss = new ImgVector<double>(Param.size.width, Param.size.height);
+		Gauss = new ImgVector<double>(Param->size.width, Param->size.height);
 	}
 	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
@@ -157,16 +158,16 @@ Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param)
 #endif
 	if (norm == 1) {
 		// Diamond
-		for (m = 0; m < Param.size.height; m++) {
+		for (m = 0; m < Param->size.height; m++) {
 #if defined(SHOW_GAUSSIAN_FILTER)
 			printf("    |");
 #endif
-			for (n = 0; n < Param.size.width; n++) {
+			for (n = 0; n < Param->size.width; n++) {
 				if (filter_width_2 * abs(m - filter_height_2) + filter_height_2 * abs(n - filter_width_2) <= filter_width_2 * filter_height_2) {
 					Gauss->at(n, m) =
 					    exp(
 					    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
-					    / (2.0 * POW2(Param.std_deviation))
+					    / (2.0 * POW2(Param->std_deviation))
 					    );
 					sum += Gauss->get(n, m);
 				}
@@ -180,15 +181,15 @@ Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param)
 		}
 	} else {
 		// Square
-		for (m = 0; m < Param.size.height; m++) {
+		for (m = 0; m < Param->size.height; m++) {
 #if defined(SHOW_GAUSSIAN_FILTER)
 			printf("    |");
 #endif
-			for (n = 0; n < Param.size.width; n++) {
+			for (n = 0; n < Param->size.width; n++) {
 				Gauss->at(n, m) =
 				    exp(
 				    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
-				    / (2.0 * POW2(Param.std_deviation))
+				    / (2.0 * POW2(Param->std_deviation))
 				    );
 				sum += Gauss->get(n, m);
 #if defined(SHOW_GAUSSIAN_FILTER)
@@ -203,7 +204,7 @@ Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param)
 #if defined(SHOW_GAUSSIAN_FILTER)
 	printf("\n");
 #endif
-	for (m = 0; m < Param.size.width * Param.size.height; m++) {
+	for (m = 0; m < Param->size.width * Param->size.height; m++) {
 		(*Gauss)[m] /= sum;
 	}
 	try {
@@ -392,7 +393,7 @@ Derivation_abs(const ImgVector<VECTOR_2D<double> >* Derivative_2D)
 		goto ExitError;
 	}
 	for (n = 0; n < Derivative_2D->size(); n++) {
-		(*Derivative)[n] = sqrt(POW2((*Derivative_2D)[n].x) + POW2((*Derivative_2D)[n].y));
+		Derivative->at(n) = sqrt(POW2(Derivative_2D->get(n).x) + POW2(Derivative_2D->get(n).y));
 	}
 	return Derivative;
 // Error
@@ -402,7 +403,7 @@ ExitError:
 
 
 ImgVector<double> *
-Filterer(const ImgVector<double>* Image, ImgVector<double>* Filter, const bool Mirroring)
+Filterer(const ImgVector<double>* Image, const ImgVector<double>* Filter, const bool Mirroring)
 {
 	ERROR Error("Filterer");
 	ImgVector<double> *Filtered = nullptr;
@@ -410,19 +411,19 @@ Filterer(const ImgVector<double>* Image, ImgVector<double>* Filter, const bool M
 	if (Image == nullptr) {
 		Error.Value("Image");
 		Error.PointerNull();
-		goto ExitError;
+		return nullptr;
 	} else if (Filter == nullptr) {
 		Error.Value("Filter");
 		Error.PointerNull();
-		goto ExitError;
+		return nullptr;
 	} else if (Image->width() < 0 || Image->height() < 0) {
 		Error.Value("size");
 		Error.ValueIncorrect();
-		goto ExitError;
+		return nullptr;
 	} else if (Filter->width() < 0 || Filter->height() < 0) {
 		Error.Value("size_f");
 		Error.ValueIncorrect();
-		goto ExitError;
+		return nullptr;
 	}
 
 	try {
@@ -433,10 +434,11 @@ Filterer(const ImgVector<double>* Image, ImgVector<double>* Filter, const bool M
 		Error.Function("new");
 		Error.Value("Filtered");
 		Error.Malloc();
-		goto ExitError;
+		return nullptr;
 	}
 	int center_x = Filter->width() / 2;
 	int center_y = Filter->height() / 2;
+	int y;
 #pragma omp parallel for
 	for (y = 0; y < Image->height(); y++) {
 		for (int x = 0; x < Image->width(); x++) {
@@ -454,9 +456,5 @@ Filterer(const ImgVector<double>* Image, ImgVector<double>* Filter, const bool M
 		}
 	}
 	return Filtered;
-// Error
-ExitError:
-	delete Filtered;
-	return nullptr;
 }
 

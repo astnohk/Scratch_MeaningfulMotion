@@ -9,10 +9,11 @@ regexp(const char* str)
 {
 	ERROR Error("regexp");
 
-	char *s = nullptr;
-	char *start_after = nullptr;
+	const char* s = str;
+	const char* start_after = nullptr;
 	char tmp[4 + REGEXP_MAX_DIGITS];
-	char *out = nullptr;
+	char* out = nullptr;
+	char* sout = nullptr;
 	size_t len_before = 0;
 	size_t len_after = 0;
 
@@ -29,7 +30,7 @@ regexp(const char* str)
 			std::cerr << bad.what() << std::endl;
 			Error.Value("out");
 			Error.Malloc();
-			goto ExitError;
+			exit(EXIT_FAILURE);
 		}
 		strcpy(out, str);
 		return out;
@@ -48,7 +49,7 @@ regexp(const char* str)
 		Error.Others("Expression digits over REGEXP_MAX_DIGITS");
 		exit(EXIT_FAILURE);
 	}
-	sprintf(tmp, "%%0%ud", num_sharp);
+	sprintf(tmp, "%%0%lud", num_sharp);
 	size_t length = len_before + strlen(tmp) + len_after;
 	try {
 		out = new char[length + 1];
@@ -57,28 +58,23 @@ regexp(const char* str)
 		std::cerr << bad.what() << std::endl;
 		Error.Value("out");
 		Error.Malloc();
-		goto ExitError;
+		exit(EXIT_FAILURE);
 	}
-	s = out;
+	sout = out;
 	for (size_t i = 0; i < len_before; i++) {
-		*s = str[i];
-		s++;
+		*sout = str[i];
+		sout++;
 	}
 	for (size_t i = 0; i < strlen(tmp); i++) {
-		*s = tmp[i];
-		s++;
+		*sout = tmp[i];
+		sout++;
 	}
 	for (size_t i = 0; i < len_after; i++) {
-		*s = start_after[i];
-		s++;
+		*sout = start_after[i];
+		sout++;
 	}
-	*s = '\0';
+	*sout = '\0';
 	return out;
-// Error
-ExitError:
-	delete[] out;
-	out = nullptr;
-	exit(EXIT_FAILURE);
 }
 
 

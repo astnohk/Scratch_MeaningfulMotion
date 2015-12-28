@@ -61,9 +61,9 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	// Set connected domain
 	printf("* Make connected_domains\n");
 	connected_domains.resize(block_matching.vector_field_width() * block_matching.vector_field_height());
-	for (unsigned int m = 0; m < block_matching.vector_field_height(); m++) {
+	for (unsigned int m = 0; m < static_cast<unsigned int>(block_matching.vector_field_height()); m++) {
 		unsigned int M = m * block_matching.block_size();
-		for (unsigned int n = 0; n < block_matching.vector_field_width(); n++) {
+		for (unsigned int n = 0; n < static_cast<unsigned int>(block_matching.vector_field_width()); n++) {
 			unsigned int N = n * block_matching.block_size();
 			for (unsigned int y = 0;
 			    y < static_cast<unsigned int>(block_matching.block_size());

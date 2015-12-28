@@ -159,7 +159,7 @@ int* Calc_k_l(const SIZE& size, const double& p, const double& ep);
 double Pr(const int k, const int l, const double& p);
 
 // Image Libraries
-ImgVector<double>* Gaussian(const ImgVector<double>* img, const FILTER_PARAM& Param);
+ImgVector<double>* Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param);
 ImgVector<double>* EpsilonFilter(const ImgVector<double>* img, const FILTER_PARAM& Param);
 double HorizontalMedian(const ImgVector<double> *img, const int x, const int y, const int width);
 ImgVector<double>* DerivativeAngler(const ImgVector<double> *img);

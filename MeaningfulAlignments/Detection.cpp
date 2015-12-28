@@ -45,7 +45,7 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 			break;
 		case FILTER_ID_GAUSSIAN: // Gaussian Filter
 			printf("* Gaussian filtering on input\n");
-			if ((img_filtered = Gaussian(img, FilterParam)) == nullptr) {
+			if ((img_filtered = Gaussian(img, &FilterParam)) == nullptr) {
 				Error.Function("Gaussian");
 				Error.Value("*img_filtered");
 				Error.FunctionFail();
@@ -138,7 +138,6 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 
 	double rad_offset = M_PI * (0.5 - 0.5 / double(DIV_ANGLE_VERTICAL));
 	double tan_list[DIV_ANGLE];
-	std::list<FRAGMENT>* list_fragment = nullptr;
 	std::list<SEGMENT> list_segment;
 
 	if (angles == nullptr) {
@@ -175,7 +174,7 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 	double progress = .0;
 	int current_count = 0;
 	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
-#pragma omp parallel for schedule(dynamic) private(list_fragment, r, x, y, dx, dy)
+#pragma omp parallel for schedule(dynamic)
 	for (int n = 0; n < angles->width(); n++) {
 		for (int r = 0; r < DIV_ANGLE; r++) {
 			// Upper side to Other 3 sides (n, 0) -> (x, y)
@@ -189,7 +188,7 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 					dy = round(-n * tan_list[r]);
 				}
 				int y = (dy >= 0.0) ? (dy < double(angles->height())) ? int(dy) : angles->height() - 1 : 0;
-				list_fragment = AlignedCheck(angles, k_list, Pr_table, l_min, 0, n, x, y, Max_Length);
+				std::list<FRAGMENT>* list_fragment = AlignedCheck(angles, k_list, Pr_table, l_min, 0, n, x, y, Max_Length);
 				if (list_fragment == nullptr) {
 					printf("error\n");
 					ErrorDescription = "Occured at Upper side to Other 3 sides";
@@ -217,7 +216,7 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 					dy = angles->height() - 1 + round((angles->width() - 1 - n) * tan_list[r]);
 				}
 				int y = (dy >= 0.0) ? (dy < double(angles->height())) ? int(dy) : angles->height() - 1 : 0;
-				list_fragment = AlignedCheck(angles, k_list, Pr_table, l_min, angles->height() - 1, n, x, y, Max_Length);
+				std::list<FRAGMENT>* list_fragment = AlignedCheck(angles, k_list, Pr_table, l_min, angles->height() - 1, n, x, y, Max_Length);
 				if (list_fragment == nullptr) {
 					printf("error\n");
 					ErrorDescription = "Occured at Bottom side to Other 3 sides";

@@ -66,7 +66,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 		Error.Function("new");
 		Error.Value("IndexMap");
 		Error.Malloc();
-		goto ExitError;
+		return nullptr;
 	}
 	try {
 		Lines = new LINEPOLE[(*Num_Segments)];
@@ -76,11 +76,12 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 		Error.Function("new");
 		Error.Value("Lines");
 		Error.Malloc();
-		goto ExitError;
+		delete IndexMap;
+		return nullptr;
 	}
 
 	// Convert the segments Cartesian coordinates to Polar coordinates Expression
-	for (n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
+	for (unsigned int n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
 		Lines[n_seg].theta = M_PI * atan2_div_pi.val(
 		    MaximalSegments[n_seg].n - MaximalSegments[n_seg].x,
 		    MaximalSegments[n_seg].y - MaximalSegments[n_seg].m);
@@ -135,11 +136,6 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 	delete[] Lines;
 	Lines = nullptr;
 	return IndexMap;
-// Error
-ExitError:
-	delete IndexMap;
-	delete[] Lines;
-	return nullptr;
 }
 
 
@@ -147,11 +143,9 @@ SEGMENT *
 ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *MaximalSegments, unsigned int *Num_Segments, int *k_list, ImgVector<double> *Pr_table)
 {
 	ERROR Error("ExclusiveSegments");
-
 	SEGMENT *MaxEPSegments = nullptr;
-
 	double *EPSegments_Pr = nullptr;
-	int Num_EPSegments = 0;
+	unsigned int Num_EPSegments = 0u;
 	ATAN2_DIV_PI atan2_div_pi(angles->width(), angles->height());
 
 	try {
@@ -162,13 +156,13 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 		Error.Function("new");
 		Error.Value("EPSegments_Pr");
 		Error.Malloc();
-		goto ExitError;
+		return nullptr;
 	}
 	unsigned int progress_count = 0;
 	unsigned int present_count = 0;
 	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
 #pragma omp parallel for schedule(dynamic) reduction(+:Num_EPSegments)
-	for (unsigned int n_seg = 0; n_seg < (*Num_Segments); n_seg++) {
+	for (int n_seg = 0; n_seg < static_cast<int>(*Num_Segments); n_seg++) {
 		// Re-meaningful segments
 		int n = MaximalSegments[n_seg].n;
 		int m = MaximalSegments[n_seg].m;
@@ -224,7 +218,8 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 		Error.Function("new");
 		Error.Value("MaxEPSegments");
 		Error.Malloc();
-		goto ExitError;
+		delete[] EPSegments_Pr;
+		return nullptr;
 	}
 	for (unsigned int n_seg = 0, k = 0; n_seg < (*Num_Segments); n_seg++) {
 		if (EPSegments_Pr[n_seg] > 0.0) {
@@ -241,12 +236,6 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 	}
 	*Num_Segments = Num_EPSegments;
 	delete[] EPSegments_Pr;
-	EPSegments_Pr = nullptr;
 	return MaxEPSegments;
-// Error
-ExitError:
-	delete[] EPSegments_Pr;
-	delete[] MaxEPSegments;
-	return nullptr;
 }
 

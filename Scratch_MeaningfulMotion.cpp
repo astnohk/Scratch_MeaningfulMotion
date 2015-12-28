@@ -360,7 +360,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 					printf("* Calculate Pr(k, L) table :\n[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
 					progress = 0;
 					count = 0;
-#pragma omp parallel for schedule(dynamic) private(k)
+#pragma omp parallel for schedule(dynamic)
 					for (int L = 1; L <= maxMN_res; L++) {
 						for (int k = 0; k <= L; k++) {
 							Pr_table->at(k, L) = Pr(k, L, Options.p);
