@@ -48,10 +48,11 @@ class ATAN2_DIV_PI
 		ATAN2_DIV_PI(const ATAN2_DIV_PI &copy);
 		ATAN2_DIV_PI(int W, int H);
 		~ATAN2_DIV_PI(void);
+
 		int Width(void) const;
 		int Height(void) const;
 		const double* Data(void) const;
-		bool reset(int W, int H);
+		void reset(int W, int H);
 		double val(int y, int x) const;
 };
 

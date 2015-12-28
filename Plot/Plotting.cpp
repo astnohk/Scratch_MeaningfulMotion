@@ -3,19 +3,18 @@
 
 
 int *
-PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate)
+PlotSegment(const SEGMENT* coord_array, const unsigned int Num_Segments, const SIZE& size, const SIZE& size_out, const bool Negate)
 {
 	ERROR Error("PlotSegment");
 
 	int *segments = nullptr;
 	int Foreground = PLOT_INTENSITY_MAX;
 	double scale_x, scale_y;
-	int i;
 
 	try {
 		segments = new int[size_out.width * size_out.height];
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Value("segments");
 		Error.Malloc();
@@ -23,17 +22,17 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 	}
 	scale_x = double(size_out.width) / double(size.width);
 	scale_y = double(size_out.height) / double(size.height);
-	if (Negate != 0) {
-		for (i = 0; i < size_out.width * size_out.height; i++) {
+	if (Negate) {
+		for (int i = 0; i < size_out.width * size_out.height; i++) {
 			segments[i] = PLOT_INTENSITY_MAX;
 		}
 		Foreground = 0;
 	} else {
-		for (i = 0; i < size_out.width * size_out.height; i++) {
+		for (int i = 0; i < size_out.width * size_out.height; i++) {
 			segments[i] = 0;
 		}
 	}
-	for (i = 0; i < Num_Segments; i++) {
+	for (unsigned int i = 0; i < Num_Segments; i++) {
 		int lx, ly, L;
 		double dx, dy;
 		int m, n, x, y;
@@ -59,29 +58,28 @@ PlotSegment(SEGMENT *coord_array, int Num_Segments, SIZE size, SIZE size_out, in
 }
 
 
-bool
-Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, int Negate)
+void
+Superimposer(PNM* pnm_out, const PNM& pnm_in, int* Plot, const SIZE& size, const int Color, const bool Negate)
 {
 	ERROR Error("Superimposer");
-	int i;
 	pnm_img *img_out = nullptr;
 
 	if (pnm_out == nullptr) {
 		Error.Value("pnm_out");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Superimposer(PNM*, const PNM&, int*, const SIZE&, const int, bool) : PNM* pnm_out");
 	} else if (pnm_in.isNULL() != false) {
 		Error.Value("pnm_in");
 		Error.ValueIncorrect();
-		goto ExitError;
+		throw std::invalid_argument("void Superimposer(PNM*, const PNM&, int*, const SIZE&, const int, bool) : PNM& pnm_in");
 	} else if (Plot == nullptr) {
 		Error.Value("Plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Superimposer(PNM*, const PNM&, int*, const SIZE&, const int, bool) : int* Plot");
 	} else if (size.width <= 0 || size.height <= 0) {
 		Error.Value("size");
 		Error.ValueIncorrect();
-		goto ExitError;
+		throw std::invalid_argument("void Superimposer(PNM*, const PNM&, int*, const SIZE&, const int, bool) : SIZE& size");
 	}
 
 	if (pnm_in.isRGB() != false) {
@@ -89,19 +87,19 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 			Error.Function("pnm_out->copy");
 			Error.Value("pnm_out <- pnm_in");
 			Error.FunctionFail();
-			goto ExitError;
+			throw std::runtime_error("void Superimposer(PNM*, const PNM&, int*, const SIZE&, const int, bool) : pnm_out->copy(PNM &)");
 		}
 	} else {
 		if (pnm_out->Gray2RGB(pnm_in) == PNM_FUNCTION_ERROR) {
 			Error.Function("pnm_out->Gray2RGB");
 			Error.Value("pnm_out <- pnm_in");
 			Error.FunctionFail();
-			goto ExitError;
+			throw std::runtime_error("void Superimposer(PNM*, const PNM&, int*, const SIZE&, const int, bool) : pnm_out->Gray2RGB(PNM &)");
 		}
 	}
 
 	if (pnm_in.MaxInt() > PLOT_INTENSITY_MAX) {
-		for (i = 0; i < size.width * size.height; i++) {
+		for (int i = 0; i < size.width * size.height; i++) {
 			if (Plot[i] > 0) {
 				Plot[i] = int(round(Plot[i] * (double(pnm_in.MaxInt()) / PLOT_INTENSITY_MAX)));
 			}
@@ -111,8 +109,12 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 	switch (Color) {
 		default: // DEFAULT is Red
 		case RED: // RED
-			if (Negate == 0) {
-				for (i = 0; i < size.height * size.width; i++) {
+			if (Negate) { // negative Superimpose
+				for (int i = 0; i < size.height * size.width; i++) {
+					img_out[i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
+				}
+			} else {
+				for (int i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
 						img_out[i] += Plot[i];
 						if (img_out[i] > int(pnm_out->MaxInt())) {
@@ -122,15 +124,15 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 						img_out[2 * size.height * size.width + i] /= 2;
 					}
 				}
-			} else { // Negative Superimpose
-				for (i = 0; i < size.height * size.width; i++) {
-					img_out[i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
-				}
 			}
 			break;
 		case GREEN: // GREEN
-			if (Negate == 0) {
-				for (i = 0; i < size.height * size.width; i++) {
+			if (Negate) { // Negative Superimpose
+				for (int i = 0; i < size.height * size.width; i++) {
+					img_out[size.height * size.width + i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
+				}
+			} else {
+				for (int i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
 						img_out[i] /= 2;
 						img_out[size.height * size.width + i] += Plot[i];
@@ -140,15 +142,15 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 						img_out[2 * size.height * size.width + i] /= 2;
 					}
 				}
-			} else { // Negative Superimpose
-				for (i = 0; i < size.height * size.width; i++) {
-					img_out[size.height * size.width + i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
-				}
 			}
 			break;
 		case BLUE: // BLUE
-			if (Negate == 0) {
-				for (i = 0; i < size.height * size.width; i++) {
+			if (Negate) { // Negative Superimpose
+				for (int i = 0; i < size.height * size.width; i++) {
+					img_out[2 * size.height * size.width + i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
+				}
+			} else {
+				for (int i = 0; i < size.height * size.width; i++) {
 					if (Plot[i] > 0) {
 						img_out[i] /= 2;
 						img_out[size.height * size.width + i] /= 2;
@@ -158,17 +160,7 @@ Superimposer(PNM *pnm_out, const PNM &pnm_in, int *Plot, SIZE size, int Color, i
 						}
 					}
 				}
-			} else { // Negative Superimpose
-				for (i = 0; i < size.height * size.width; i++) {
-					img_out[2 * size.height * size.width + i] = pnm_img(double(Plot[i]) / pnm_out->MaxInt());
-				}
 			}
 	}
-	img_out = nullptr;
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	pnm_out->free();
-	return MEANINGFUL_FAILURE;
 }
 

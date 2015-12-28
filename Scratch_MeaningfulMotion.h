@@ -184,23 +184,27 @@ ImgVector<int>* ExclusiveIndexMap(SIZE size, SEGMENT* MaximalSegments, unsigned 
 SEGMENT* ExclusiveSegments(ImgVector<int>* IndexMap, ImgVector<double>* angles, SEGMENT* MaximalSegments, unsigned int* Num_Segments, int* k_list, ImgVector<double>* Pr_table);
 
 // Plotting
-int* PlotSegment(SEGMENT* coord_array, int Num_Segments, SIZE size, SIZE size_out, int Negate);
-bool Superimposer(PNM* pnm_out, const PNM& pnm_in, int* Plot, SIZE size, int Color, int Negate);
+int* PlotSegment(const SEGMENT* coord_array, const unsigned int Num_Segments, const SIZE& size, const SIZE& size_out, const bool Negate);
+void Superimposer(PNM* pnm_out, const PNM& pnm_in, int* Plot, const SIZE& size, const int Color, const bool Negate);
 
 // X11 Plotting
-bool ShowSegments_X11(ImgVector<int> *Img, SIZE Img_size_resample, int MaxInt, SEGMENT *Segment_Array, unsigned int Num_Segments);
-bool Init_X11(X11_PARAM *X11_Param, SIZE Img_size);
-int XEventor(X11_PARAM *X11_Param, SIZE Img_size);
+void freeXWindow(void);
+void ShowSegments_X11(const ImgVector<pnm_img>* Img, const SIZE& Img_size_resample, const int MaxInt, const SEGMENT* segments, const unsigned int Num_Segments);
+void Init_X11(X11_PARAM* X11_Param, SIZE Img_size);
+int XEventor(X11_PARAM* X11_Param, SIZE Img_size);
 void SwitchEventer(X11_PARAM *X11_Param);
-bool TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample);
-bool TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVector<XPLOT> *Img_plot);
-bool TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, COORDINATE_3D GaraxyCenter, ImgVector<XPLOT> *Img_plot);
-bool TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, ImgVector<XPLOT> *Img_plot);
-bool Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index);
-bool Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index);
-bool Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments);
-void PlotParameters(X11_PARAM X11_Param);
-bool Set_Pixmap2Window(void);
-bool reset_index(int *Img_index, int N);
-bool sort_index(ImgVector<XPLOT> *Img_plot, int *Index, int *Index_tmp, int N);
+
+void TransRotate_3DSegment(const X11_PARAM& X11_Param, const SEGMENT* segments, SEGMENT_X11* segments_plot, const unsigned int Num_Segments, const SIZE& Img_size, const SIZE& Img_size_resample);
+void TransRotate_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, const int MaxInt, ImgVector<XPLOT>* Img_plot);
+void TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<COORDINATE_3D>* Img_coord, ImgVector<COORDINATE_3D>* Img_vel, const COORDINATE_3D& GaraxyCenter, ImgVector<XPLOT>* Img_plot);
+void TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<COORDINATE_3D>* Img_coord, ImgVector<COORDINATE_3D>* Img_vel, ImgVector<XPLOT>* Img_plot);
+
+void Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, int* Img_index);
+void Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, int* Img_index);
+void Plot_3DSegment(const X11_PARAM& X11_Param, const SEGMENT_X11* segments_plot, const unsigned int Num_Segments);
+void PlotParameters(const X11_PARAM& X11_Param);
+
+void Set_Pixmap2Window(void);
+void reset_index(int* Img_index, const int N);
+void sort_index(const ImgVector<XPLOT>* Img_plot, int* Index, int* Index_tmp, const int N);
 

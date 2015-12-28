@@ -48,8 +48,26 @@ static const char* Plot_Mode[NUMBER_OF_MODE] = {
 
 
 
-bool
-ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SEGMENT *segments, unsigned int Num_Segments)
+void
+freeXWindow(void)
+{
+	if (disp == nullptr) {
+		return;
+	}
+	XFreeGC(disp, GCmono);
+	for (int k = 0; k < RGB_COLOR; k++) {
+		XFreeGC(disp, GCcol[k]);
+		XFreeGC(disp, GCcol_dark[k]);
+	}
+	XFreePixmap(disp, pix);
+	XFreeColormap(disp, cmap);
+	XDestroyWindow(disp, win);
+	XCloseDisplay(disp);
+}
+
+
+void
+ShowSegments_X11(const ImgVector<pnm_img>* Img, const SIZE& Img_size_resample, const int MaxInt, const SEGMENT* segments, const unsigned int Num_Segments)
 {
 	ERROR Error("ShowBounds_X11");
 
@@ -75,78 +93,105 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 	if (MaxInt < 1) {
 		Error.Value("MaxInt");
 		Error.ValueIncorrect();
-		goto ExitError;
+		freeXWindow();
+		throw std::invalid_argument("const int MaxInt");
 	}
 	Img_size.width = Img->width();
 	Img_size.height = Img->height();
 
 	// Initialize X11 Window
-	if (Init_X11(&X11_Param, Img_size) == MEANINGFUL_FAILURE) {
+	try {
+		Init_X11(&X11_Param, Img_size);
+	}
+	catch (const std::invalid_argument& arg) {
+		std::cerr << arg.what() << std::endl;
 		Error.Function("Init_X11");
 		Error.FunctionFail();
-		goto ExitError;
+		freeXWindow();
+		throw std::invalid_argument("const int MaxInt");
 	}
 
 	// Memory Allocation
 	try {
 		Img_plot = new ImgVector<XPLOT>(Img->width(), Img->height());
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_plot");
 		Error.Malloc();
-		goto ExitError;
+		freeXWindow();
+		throw;
 	}
 	try {
 		segments_plot = new SEGMENT_X11[Num_Segments];
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("segments_plot");
 		Error.Malloc();
-		goto ExitError;
+		delete Img_plot;
+		freeXWindow();
+		throw;
 	}
 	try {
 		Img_coord = new ImgVector<COORDINATE_3D>(Img->width(), Img->height());
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_coord");
 		Error.Malloc();
-		goto ExitError;
+		delete Img_plot;
+		delete[] segments_plot;
+		freeXWindow();
+		throw;
 	}
 	try {
 		Img_vel = new ImgVector<COORDINATE_3D>(Img->width(), Img->height());
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_vel");
 		Error.Malloc();
-		goto ExitError;
+		delete Img_plot;
+		delete[] segments_plot;
+		delete Img_coord;
+		freeXWindow();
+		throw;
 	}
 	try {
 		Img_index = new int[Img->size()];
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_index");
 		Error.Malloc();
-		goto ExitError;
+		delete Img_plot;
+		delete[] segments_plot;
+		delete Img_coord;
+		delete Img_vel;
+		freeXWindow();
+		throw;
 	}
 	try {
 		Img_index_tmp = new int[Img->size()];
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Function("new");
 		Error.Value("Img_index_tmp");
 		Error.Malloc();
-		goto ExitError;
+		delete Img_plot;
+		delete[] segments_plot;
+		delete Img_coord;
+		delete Img_vel;
+		delete[] Img_index;
+		freeXWindow();
+		throw;
 	}
 
 	GaraxyCenter.set(X11_Param.Center_x, X11_Param.Center_y, X11_Param.Center_z);
@@ -209,77 +254,59 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 					}
 			}
 		}
-		switch (X11_Param.ModeSwitch) {
-			case X11_Plot_Points: // Plot Image Intensity with Points
-				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
-				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
-					Error.Function("reset_index");
-					Error.Value("Img_index");
-					Error.FunctionFail();
-					goto ExitError;
-				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
-				break;
-			case X11_Plot_Points_And_Segments: // Plot Image Intensity with Points
-				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
-				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
-					Error.Function("reset_index");
-					Error.Value("Img_index");
-					Error.FunctionFail();
-					goto ExitError;
-				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
-				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
-				break;
-			case X11_Plot_Grid: // Plot Image Intensity on Grid
-				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
-					Error.Function("reset_index");
-					Error.Value("Img_index");
-					Error.FunctionFail();
-					goto ExitError;
-				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index);
-				break;
-			case X11_Plot_Grid_And_Segments: // Plot Image Intensity on Grid
-				TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
-				TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
-				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
-					Error.Function("reset_index");
-					Error.Value("Img_index");
-					Error.FunctionFail();
-					goto ExitError;
-				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DGrid(X11_Param, Img, Img_plot, Img_index);
-				Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
-				break;
-			case X11_Plot_Garaxy: // Plot Image Gravity Motion (Garaxy)
-				TransGaraxy_3DPoint(X11_Param, Img, Img_coord, Img_vel, GaraxyCenter, Img_plot);
-				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
-					Error.Function("reset_index");
-					Error.Value("Img_index");
-					Error.FunctionFail();
-					goto ExitError;
-				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
-				break;
-			case X11_Plot_GravityCorrupt: // Plot Image Gravity Motion
-				TransGravity_3DPoint(X11_Param, Img, Img_coord, Img_vel, Img_plot);
-				if (reset_index(Img_index, Img->size()) == MEANINGFUL_FAILURE) {
-					Error.Function("reset_index");
-					Error.Value("Img_index");
-					Error.FunctionFail();
-					goto ExitError;
-				}
-				sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
-				Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
+		try {
+			switch (X11_Param.ModeSwitch) {
+				case X11_Plot_Points: // Plot Image Intensity with Points
+					TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
+					TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+					reset_index(Img_index, Img->size());
+					sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+					Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
+					break;
+				case X11_Plot_Points_And_Segments: // Plot Image Intensity with Points
+					TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
+					TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+					reset_index(Img_index, Img->size());
+					sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+					Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
+					Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
+					break;
+				case X11_Plot_Grid: // Plot Image Intensity on Grid
+					TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+					reset_index(Img_index, Img->size());
+					sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+					Plot_3DGrid(X11_Param, Img, Img_plot, Img_index);
+					break;
+				case X11_Plot_Grid_And_Segments: // Plot Image Intensity on Grid
+					TransRotate_3DSegment(X11_Param, segments, segments_plot, Num_Segments, Img_size, Img_size_resample);
+					TransRotate_3DPoint(X11_Param, Img, MaxInt, Img_plot);
+					reset_index(Img_index, Img->size());
+					sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+					Plot_3DGrid(X11_Param, Img, Img_plot, Img_index);
+					Plot_3DSegment(X11_Param, segments_plot, Num_Segments);
+					break;
+				case X11_Plot_Garaxy: // Plot Image Gravity Motion (Garaxy)
+					TransGaraxy_3DPoint(X11_Param, Img, Img_coord, Img_vel, GaraxyCenter, Img_plot);
+					reset_index(Img_index, Img->size());
+					sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+					Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
+					break;
+				case X11_Plot_GravityCorrupt: // Plot Image Gravity Motion
+					TransGravity_3DPoint(X11_Param, Img, Img_coord, Img_vel, Img_plot);
+					reset_index(Img_index, Img->size());
+					sort_index(Img_plot, Img_index, Img_index_tmp, Img->size());
+					Plot_3DPoints(X11_Param, Img, Img_plot, Img_index);
+			}
+		}
+		catch (const std::invalid_argument& arg) {
+			std::cerr << arg.what() << std::endl;
+			delete Img_plot;
+			delete[] segments_plot;
+			delete Img_coord;
+			delete Img_vel;
+			delete[] Img_index;
+			delete[] Img_index_tmp;
+			throw;
 		}
 		PlotParameters(X11_Param);
 		Set_Pixmap2Window();
@@ -302,37 +329,15 @@ ShowSegments_X11(ImgVector<pnm_img> *Img, SIZE Img_size_resample, int MaxInt, SE
 	delete Img_coord;
 	delete Img_plot;
 	delete[] segments_plot;
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	if (disp != nullptr) {
-		XFreeGC(disp, GCmono);
-		for (k = 0; k < RGB_COLOR; k++) {
-			XFreeGC(disp, GCcol[k]);
-			XFreeGC(disp, GCcol_dark[k]);
-		}
-		XFreePixmap(disp, pix);
-		XFreeColormap(disp, cmap);
-		XDestroyWindow(disp, win);
-		XCloseDisplay(disp);
-	}
-	delete[] Img_index_tmp;
-	delete[] Img_index;
-	delete Img_vel;
-	delete Img_coord;
-	delete Img_plot;
-	delete[] segments_plot;
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
+void
 Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 {
 	ERROR Error("Init_X11()");
 	XColor col, exact;
 	XEvent noev;
-	int i;
 
 	X11_Param->Int_interval = DEFAULT_INTENSITY_INTERVAL;
 	X11_Param->Latitude = 0;
@@ -346,9 +351,9 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	X11_Param->ModeSwitch = 0;
 	X11_Param->FillSwitch = 0;
 
-	if ((disp = XOpenDisplay(NULL)) == nullptr) {
+	if ((disp = XOpenDisplay(nullptr)) == nullptr) {
 		Error.Others("Cannot open display. Abort X11 Plotting");
-		return MEANINGFUL_FAILURE;
+		throw std::runtime_error("XOpenDisplay(nullptr)");
 	}
 	win = XCreateSimpleWindow(disp, RootWindow(disp, 0), 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height), 0, BlackPixel(disp, 0), WhitePixel(disp, 0));
 	XSelectInput(disp, win, ExposureMask | StructureNotifyMask | KeyPressMask | ButtonPressMask | ButtonMotionMask);
@@ -362,7 +367,7 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 
 	// Graphic Context
 	GCmono = XCreateGC(disp, win, 0, 0);
-	for (i = 0; i < RGB_COLOR; i++) {
+	for (int i = 0; i < RGB_COLOR; i++) {
 		GCcol[i] = XCreateGC(disp, win, 0, 0);
 		GCcol_dark[i] = XCreateGC(disp, win, 0, 0);
 	}
@@ -375,21 +380,21 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 		Error.Function("XAllocNamedColor");
 		Error.Value("cmap (Red)");
 		Error.FunctionFail();
-		goto ExitError;
+		throw std::runtime_error("XAllocNamedColor(disp, cmap, \"Red\", &col, &exact)");
 	}
 	XSetForeground(disp, GCcol[0], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Green", &col, &exact))) {
 		Error.Function("XAllocNamedColor");
 		Error.Value("cmap (Green)");
 		Error.FunctionFail();
-		goto ExitError;
+		throw std::runtime_error("XAllocNamedColor(disp, cmap, \"Green\", &col, &exact)");
 	}
 	XSetForeground(disp, GCcol[1], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Blue", &col, &exact))) {
 		Error.Function("XAllocNamedColor");
 		Error.Value("cmap (Blue)");
 		Error.FunctionFail();
-		goto ExitError;
+		throw std::runtime_error("XAllocNamedColor(disp, cmap, \"Blue\", &col, &exact)");
 	}
 	XSetForeground(disp, GCcol[2], col.pixel);
 	// set GC color dark
@@ -397,21 +402,21 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 		Error.Function("XAllocNamedColor");
 		Error.Value("cmap (Red)");
 		Error.FunctionFail();
-		goto ExitError;
+		throw std::runtime_error("XAllocNamedColor(disp, cmap, \"Red\", &col, &exact)");
 	}
 	XSetForeground(disp, GCcol_dark[0], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Green", &col, &exact))) {
 		Error.Function("XAllocNamedColor");
 		Error.Value("cmap (Green)");
 		Error.FunctionFail();
-		goto ExitError;
+		throw std::runtime_error("XAllocNamedColor(disp, cmap, \"Green\", &col, &exact)");
 	}
 	XSetForeground(disp, GCcol_dark[1], col.pixel);
 	if (!(XAllocNamedColor(disp, cmap, "Blue", &col, &exact))) {
 		Error.Function("XAllocNamedColor");
 		Error.Value("cmap (Blue)");
 		Error.FunctionFail();
-		goto ExitError;
+		throw std::runtime_error("XAllocNamedColor(disp, cmap, \"Blue\", &col, &exact)");
 	}
 	XSetForeground(disp, GCcol_dark[2], col.pixel);
 	// Pixmap
@@ -419,16 +424,11 @@ Init_X11(X11_PARAM *X11_Param, SIZE Img_size)
 	// Pass through XMapWindow() event
 	XMaskEvent(disp, ExposureMask, &noev);
 	// Initialize cos_a[] and sin_a[]
-	for (i = 0; i < ROTATE_ANGLE_MAX; i++) {
+	for (int i = 0; i < ROTATE_ANGLE_MAX; i++) {
 		cos_a[i] = cos(2.0 * M_PI * double(i) / double(ROTATE_ANGLE_MAX));
 		sin_a[i] = sin(2.0 * M_PI * double(i) / double(ROTATE_ANGLE_MAX));
 	}
 	X11_Param->RotateSwitch = 0;
-
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
@@ -565,23 +565,21 @@ SwitchEventer(X11_PARAM *X11_Param)
 }
 
 
-bool
-TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segments_plot, unsigned int Num_Segments, SIZE Img_size, SIZE Img_size_resample)
+void
+TransRotate_3DSegment(const X11_PARAM& X11_Param, const SEGMENT* segments, SEGMENT_X11* segments_plot, const unsigned int Num_Segments, const SIZE& Img_size, const SIZE& Img_size_resample)
 {
 	ERROR Error("TransRotate_3DSegment");
-	unsigned int n;
-	double x, y, z;
 	double Scale_x = 1.0;
 	double Scale_y = 1.0;
 
 	if (Num_Segments < 1) {
 		// Do NOT anything
 		segments_plot = nullptr;
-		return MEANINGFUL_SUCCESS;
+		return;
 	} else if (segments_plot == nullptr) {
 		Error.Value("segments_plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : TransRotate_3DSegment(const X11_PARAM&, const SEGMENT*, SEGMENT_X11*, const unsigned int, const SIZE&, const SIZE&) : SEGMENT_X11* segments_plot");
 	}
 
 	if (Img_size_resample.width > 0) {
@@ -591,29 +589,29 @@ TransRotate_3DSegment(X11_PARAM X11_Param, SEGMENT *segments, SEGMENT_X11 *segme
 		Scale_y = Img_size.height / Img_size_resample.height;
 	}
 	// Pixel Coordinate
-	for (n = 0; n < Num_Segments; n++) {
+	for (unsigned int n = 0; n < Num_Segments; n++) {
 		// Start
-		x = (Scale_x * segments[n].n - X11_Param.Center_x) * X11_Param.Scale;
-		y = (Scale_y * segments[n].m - X11_Param.Center_y) * X11_Param.Scale;
-		z = 0.0;
-		segments_plot[n].start.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
-		segments_plot[n].start.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
+		{
+			double x = (Scale_x * segments[n].n - X11_Param.Center_x) * X11_Param.Scale;
+			double y = (Scale_y * segments[n].m - X11_Param.Center_y) * X11_Param.Scale;
+			double z = 0.0;
+			segments_plot[n].start.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+			segments_plot[n].start.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
+		}
 		// End
-		x = (Scale_x * segments[n].x - X11_Param.Center_x) * X11_Param.Scale;
-		y = (Scale_y * segments[n].y - X11_Param.Center_y) * X11_Param.Scale;
-		z = 0.0;
-		segments_plot[n].end.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
-		segments_plot[n].end.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
+		{
+			double x = (Scale_x * segments[n].x - X11_Param.Center_x) * X11_Param.Scale;
+			double y = (Scale_y * segments[n].y - X11_Param.Center_y) * X11_Param.Scale;
+			double z = 0.0;
+			segments_plot[n].end.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+			segments_plot[n].end.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
+		}
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVector<XPLOT> *Img_plot)
+void
+TransRotate_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, const int MaxInt, ImgVector<XPLOT>* Img_plot)
 {
 	ERROR Error("TransRotate_3DPoint");
 	int m;
@@ -621,11 +619,11 @@ TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVec
 	if (Img == nullptr) {
 		Error.Value("Img");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransRotate_3DPoint(const X11_PARAM&, const ImgVector<int>*, const int, ImgVector<XPLOT>*) : ImgVector<int>* Img");
 	} else if (Img_plot == nullptr) {
 		Error.Value("Img_plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransRotate_3DPoint(const X11_PARAM&, const ImgVector<int>*, const int, ImgVector<XPLOT>*) : ImgVector<XPLOT>* Img_plot");
 	}
 	// Pixel Coordinate
 #pragma omp parallel for num_threads(8)
@@ -639,185 +637,174 @@ TransRotate_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, int MaxInt, ImgVec
 			Img_plot->at(n, m).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 		}
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-TransGaraxy_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, COORDINATE_3D GaraxyCenter, ImgVector<XPLOT> *Img_plot)
+void
+TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<COORDINATE_3D>* Img_coord, ImgVector<COORDINATE_3D>* Img_vel, const COORDINATE_3D& GaraxyCenter, ImgVector<XPLOT>* Img_plot)
 {
 	ERROR Error("TransGaraxy_3DPoint");
 	const double Radius_Minimum = 0.01;
 	const double dt = 0.5;
-	double r;
-	double x, y, z;
-	int i;
 
 	if (Img == nullptr) {
 		Error.Value("Img");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGaraxy_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, COORDINATE_3D&, ImgVector<XPLOT>*) : ImgVector<int>* Img");
 	} else if (Img_coord == nullptr) {
 		Error.Value("Img_coord");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGaraxy_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, COORDINATE_3D&, ImgVector<XPLOT>*) : ImgVector<COORDINATE_3D>* Img_coord");
 	} else if (Img_vel == nullptr) {
 		Error.Value("Img_vel");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGaraxy_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, COORDINATE_3D&, ImgVector<XPLOT>*) : ImgVector<COORDINATE_3D>* Img_vel");
 	} else if (Img_plot == nullptr) {
 		Error.Value("Img_plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGaraxy_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, COORDINATE_3D&, ImgVector<XPLOT>*) : ImgVector<COORDINATE_3D>* Img_plot");
 	}
 	// Gravity Motion
-#pragma omp parallel for private(r)
-	for (i = 0; i < Img->size(); i++) {
-		r = sqrt(POW2(GaraxyCenter.x - (*Img_coord)[i].x)
+#pragma omp parallel for
+	for (int i = 0; i < Img->size(); i++) {
+		double r = sqrt(POW2(GaraxyCenter.x - (*Img_coord)[i].x)
 		    + POW2(GaraxyCenter.y - (*Img_coord)[i].y)
 		    + POW2(GaraxyCenter.z - (*Img_coord)[i].z));
 		if (r < Radius_Minimum) {
 			r = Radius_Minimum;
 		}
-		(*Img_vel)[i].x += dt * (GaraxyCenter.x - Img_coord->get(i).x) / pow_int(r, 3);
-		(*Img_vel)[i].y += dt * (GaraxyCenter.y - Img_coord->get(i).y) / pow_int(r, 3);
-		(*Img_vel)[i].z += dt * (GaraxyCenter.z - Img_coord->get(i).z) / pow_int(r, 3);
-		(*Img_coord)[i].x += Img_vel->get(i).x * dt;
-		(*Img_coord)[i].y += Img_vel->get(i).y * dt;
-		(*Img_coord)[i].z += Img_vel->get(i).z * dt;
+		Img_vel->at(i).x += dt * (GaraxyCenter.x - Img_coord->get(i).x) / pow_int(r, 3);
+		Img_vel->at(i).y += dt * (GaraxyCenter.y - Img_coord->get(i).y) / pow_int(r, 3);
+		Img_vel->at(i).z += dt * (GaraxyCenter.z - Img_coord->get(i).z) / pow_int(r, 3);
+		Img_coord->at(i).x += Img_vel->get(i).x * dt;
+		Img_coord->at(i).y += Img_vel->get(i).y * dt;
+		Img_coord->at(i).z += Img_vel->get(i).z * dt;
 	}
 	// Pixel Coordinate
-#pragma omp parallel for private(x, y, z) num_threads(8)
-	for (i = 0; i < Img->size(); i++) {
-		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
-		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
-		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
-		(*Img_plot)[i].point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
-		(*Img_plot)[i].point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
-		(*Img_plot)[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+#pragma omp parallel for num_threads(8)
+	for (int i = 0; i < Img->size(); i++) {
+		double x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
+		double y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
+		double z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
+		Img_plot->at(i).point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+		Img_plot->at(i).point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
+		Img_plot->at(i).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-TransGravity_3DPoint(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<COORDINATE_3D> *Img_coord, ImgVector<COORDINATE_3D> *Img_vel, ImgVector<XPLOT> *Img_plot)
+void
+TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<COORDINATE_3D>* Img_coord, ImgVector<COORDINATE_3D>* Img_vel, ImgVector<XPLOT>* Img_plot)
 {
 	ERROR Error("TransGravity_3DPoint");
 	const double Radius_Minimum = 0.01;
 	const double dt = 0.5;
 	int *core = nullptr;
 	int Num_Cores = 0;
-	double M, r;
 	int maxint = 0;
-	double x, y, z;
-	int i, j;
 
 	if (Img == nullptr) {
 		Error.Value("Img");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGravity_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, ImgVector<XPLOT>*) : ImgVector<int>* Img");
 	} else if (Img_coord == nullptr) {
 		Error.Value("Img_coord");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGravity_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, ImgVector<XPLOT>*) : ImgVector<COORDINATE_3D>* Img_coord");
 	} else if (Img_vel == nullptr) {
 		Error.Value("Img_vel");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGravity_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, ImgVector<XPLOT>*) : ImgVector<COORDINATE_3D>* Img_vel");
 	} else if (Img_plot == nullptr) {
 		Error.Value("Img_plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("error : void TransGravity_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, ImgVector<XPLOT>*) : ImgVector<XPLOT>* Img_plot");
 	}
 	try {
 		core = new int[Img->size()];
 	}
-	catch (const std::bad_alloc &bad) {
+	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
 		Error.Value("core");
 		Error.Malloc();
 	}
 	// List Cores
-	for (i = 0; i < Img->size(); i++) {
+	for (int i = 0; i < Img->size(); i++) {
 		if (maxint < Img->get(i)) {
 			maxint = Img->get(i);
 		}
 	}
-	for (i = 0; i < Img->size(); i++) {
+	for (int i = 0; i < Img->size(); i++) {
 		if (Img->get(i) > maxint * 0.95) {
 			core[Num_Cores] = i;
 			Num_Cores++;
 		}
 	}
 	// Gravity Motion
-#pragma omp parallel for private(j, M, r)
-	for (i = 0; i < Img->size(); i++) {
-		for (j = 0; j < Num_Cores; j++) {
-			M = double(Img->get(core[j])) / double(maxint);
-			r = sqrt(POW2(Img_coord->get(core[j]).x - Img_coord->get(i).x)
-			    + POW2(Img_coord->get(core[j]).y - Img_coord->get(i).y)
-			    + POW2(Img_coord->get(core[j]).z - Img_coord->get(i).z));
-			if (r < Radius_Minimum) {
-				r = Radius_Minimum;
+	{
+		int i;
+#pragma omp parallel for
+		for (i = 0; i < Img->size(); i++) {
+			for (int j = 0; j < Num_Cores; j++) {
+				double M = double(Img->get(core[j])) / double(maxint);
+				double r = sqrt(POW2(Img_coord->get(core[j]).x - Img_coord->get(i).x)
+				    + POW2(Img_coord->get(core[j]).y - Img_coord->get(i).y)
+				    + POW2(Img_coord->get(core[j]).z - Img_coord->get(i).z));
+				if (r < Radius_Minimum) {
+					r = Radius_Minimum;
+				}
+				Img_vel->at(i).x += dt * M * (Img_coord->get(core[j]).x - Img_coord->get(i).x) / pow_int(r, 3);
+				Img_vel->at(i).y += dt * M * (Img_coord->get(core[j]).y - Img_coord->get(i).y) / pow_int(r, 3);
+				Img_vel->at(i).z += dt * M * (Img_coord->get(core[j]).z - Img_coord->get(i).z) / pow_int(r, 3);
 			}
-			(*Img_vel)[i].x += dt * M * (Img_coord->get(core[j]).x - Img_coord->get(i).x) / pow_int(r, 3);
-			(*Img_vel)[i].y += dt * M * (Img_coord->get(core[j]).y - Img_coord->get(i).y) / pow_int(r, 3);
-			(*Img_vel)[i].z += dt * M * (Img_coord->get(core[j]).z - Img_coord->get(i).z) / pow_int(r, 3);
+			Img_coord->at(i).x += Img_vel->get(i).x * dt;
+			Img_coord->at(i).y += Img_vel->get(i).y * dt;
+			Img_coord->at(i).z += Img_vel->get(i).z * dt;
 		}
-		(*Img_coord)[i].x += Img_vel->get(i).x * dt;
-		(*Img_coord)[i].y += Img_vel->get(i).y * dt;
-		(*Img_coord)[i].z += Img_vel->get(i).z * dt;
 	}
+	delete[] core;
 	// Pixel Coordinate
-#pragma omp parallel for private(x, y, z) num_threads(8)
-	for (i = 0; i < Img->size(); i++) {
-		x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
-		y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
-		z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
-		(*Img_plot)[i].point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
-		(*Img_plot)[i].point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
-		(*Img_plot)[i].z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+	{
+		int i;
+#pragma omp parallel for num_threads(8)
+		for (i = 0; i < Img->size(); i++) {
+			double x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
+			double y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
+			double z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
+			Img_plot->at(i).point.x = short(Window_size.width / 2.0 + round(x * cos_a[X11_Param.Longitude] - y * sin_a[X11_Param.Longitude]));
+			Img_plot->at(i).point.y = short(Window_size.height / 2.0 + round((y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * cos_a[X11_Param.Latitude] - z * sin_a[X11_Param.Latitude]));
+			Img_plot->at(i).z = round(z * cos_a[X11_Param.Latitude] + (y * cos_a[X11_Param.Longitude] + x * sin_a[X11_Param.Longitude]) * sin_a[X11_Param.Latitude]);
+		}
 	}
-	delete[] core;
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	delete[] core;
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index)
+void
+Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, int* Img_index)
 {
 	ERROR Error("Plot_3DPoint");
 	int Min_Intensity, Max_Intensity;
 	SIZE rectsize;
-	int index;
-	int i;
 
 	if (Img == nullptr) {
 		Error.Value("Img");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Plot_3DPoints(const X11_PARAM&, const ImgVector<int>*, ImgVector<XPLOT>*, int*) : ImgVector<int>* Img");
 	} else if (Img_plot == nullptr) {
 		Error.Value("Img_plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Plot_3DPoints(const X11_PARAM&, const ImgVector<int>*, ImgVector<XPLOT>*, int*) : ImgVector<XPLOT>* Img_plot");
+	} else if (Img_index == nullptr) {
+		Error.Value("Img_index");
+		Error.PointerNull();
+		throw std::invalid_argument("void Plot_3DPoints(const X11_PARAM&, const ImgVector<int>*, ImgVector<XPLOT>*, int*) : int* Img_index");
 	}
 
 	rectsize.width = MAX(1, int(round(X11_Param.Scale * 0.25)));
 	rectsize.height = MAX(1, int(floor(X11_Param.Scale * 0.25)));
 	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img->get(0);
-	for (i = 1; i < Img->size(); i++) {
+	for (int i = 1; i < Img->size(); i++) {
 		if (Img->get(i) < Min_Intensity) {
 			Min_Intensity = Img->get(i);
 		} else if (Img->get(i) > Max_Intensity) {
@@ -828,8 +815,8 @@ Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_pl
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Points
-	for (i = 0; i < Img->size(); i++) {
-		index = Img_index[i];
+	for (int i = 0; i < Img->size(); i++) {
+		int index = Img_index[i];
 		if (0 <= Img_plot->get(index).point.x && Img_plot->get(index).point.x < Window_size.width
 		    && 0 <= Img_plot->get(index).point.y && Img_plot->get(index).point.y < Window_size.height) {
 			if (Img->get(index) > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
@@ -853,42 +840,36 @@ Plot_3DPoints(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_pl
 			}
 		}
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot, int *Img_index)
+void
+Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, int* Img_index)
 {
 	ERROR Error("Plot_3DGridANDSegment");
 	XPoint Triplet[8];
 	int Min_Intensity, Max_Intensity;
 	int local_Min, local_Max;
 	int local_Min2, local_Max2;
-	short x, y;
-	int n, i;
 	int count1, count2;
 
 	if (Img == nullptr) {
 		Error.Value("Img");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Plot_3DGrid(const X11_PARAM&, const ImgVector<int>*, ImgVector<XPLOT>*, int*) : ImgVector<int>* Img");
 	} else if (Img_plot == nullptr) {
 		Error.Value("Img_plot");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Plot_3DGrid(const X11_PARAM&, const ImgVector<int>*, ImgVector<XPLOT>*, int*) : ImgVector<XPLOT>* Img_plot");
 	} else if (Img_index == nullptr) {
 		Error.Value("Img_index");
 		Error.PointerNull();
-		goto ExitError;
+		throw std::invalid_argument("void Plot_3DGrid(const X11_PARAM&, const ImgVector<int>*, ImgVector<XPLOT>*, int*) : int* Img_index");
 	}
 
 	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img->get(0);
-	for (n = 1; n < Img->size(); n++) {
+	for (int n = 1; n < Img->size(); n++) {
 		if (Img->get(n) < Min_Intensity) {
 			Min_Intensity = Img->get(n);
 		} else if (Img->get(n) > Max_Intensity) {
@@ -899,9 +880,9 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Grid
-	for (n = 0; n < Img->size(); n++) {
-		x = short(Img_index[n] % Img->width());
-		y = short(Img_index[n] / Img->width());
+	for (int n = 0; n < Img->size(); n++) {
+		short x = short(Img_index[n] % Img->width());
+		short y = short(Img_index[n] / Img->width());
 		if (x == Img->width() - 1 || y == Img->height() - 1) {
 			continue;
 		}
@@ -967,7 +948,7 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 		}
 		// Convert Triplet coordinate to Real point coordinate
 		count1 = count2 = 0;
-		for (i = 0; i < 4; i++) {
+		for (int i = 0; i < 4; i++) {
 			Triplet[i] = Img_plot->get(Triplet[i].x, Triplet[i].y).point;
 			if (Triplet[i].x < 0 || Window_size.width <= Triplet[i].x
 			    || Triplet[i].y < 0 || Window_size.height <= Triplet[i].y) {
@@ -1006,20 +987,16 @@ Plot_3DGrid(X11_PARAM X11_Param, ImgVector<int> *Img, ImgVector<XPLOT> *Img_plot
 			}
 		}
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num_Segments)
+void
+Plot_3DSegment(const X11_PARAM& X11_Param, const SEGMENT_X11* segments_plot, const unsigned int Num_Segments)
 {
 	unsigned int num;
 
 	if (Num_Segments < 1) {
-		return MEANINGFUL_SUCCESS;
+		return;
 	}
 	// Draw The Segments
 	// * Set Line width
@@ -1029,12 +1006,11 @@ Plot_3DSegment(X11_PARAM X11_Param, SEGMENT_X11 *segments_plot, unsigned int Num
 	}
 	// * Reset Line width
 	XSetLineAttributes(disp, GCcol[0], 0, LineSolid, CapNotLast, JoinMiter);
-	return MEANINGFUL_SUCCESS;
 }
 
 
 void
-PlotParameters(X11_PARAM X11_Param)
+PlotParameters(const X11_PARAM& X11_Param)
 {
 #define X_STRING_LENGTH 256
 	char Str[X_STRING_LENGTH];
@@ -1080,73 +1056,56 @@ PlotParameters(X11_PARAM X11_Param)
 }
 
 
-bool
+void
 Set_Pixmap2Window(void)
 {
 	XEvent noev;
 	// Copy pixmap to the window
 	XCopyArea(disp, pix, win, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height), 0, 0);
 	XMaskEvent(disp, ExposureMask, &noev);
-	return MEANINGFUL_SUCCESS;
 }
 
 
-bool
-reset_index(int *Img_index, int N)
+void
+reset_index(int* Img_index, const int N)
 {
-	ERROR Error("reset_index");
 	int n;
 
 	if (Img_index == nullptr) {
-		Error.Value("Img_index");
-		Error.PointerNull();
-		goto ExitError;
+		std::cerr << "error : void reset_index(int*, const int) : int* Img_index" << std::endl;
+		throw std::invalid_argument("int* Img_index");
 	}
 	for (n = 0; n < N; n++) {
 		Img_index[n] = n;
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 
 
-bool
-sort_index(ImgVector<XPLOT> *Img_plot, int *Index, int *Index_tmp, int N)
+void
+sort_index(const ImgVector<XPLOT>* Img_plot, int* Index, int* Index_tmp, const int N)
 {
-	ERROR Error("sort_index");
-	int div;
-	int step;
-	int n, k;
-	int l, r;
-
 	if (Img_plot == nullptr) {
-		Error.Value("Img_plot");
-		Error.PointerNull();
-		goto ExitError;
+		std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : const ImgVector<XPLOT>* Img_plot" << std::endl;
+		throw std::invalid_argument("const ImgVector<XPLOT>* Img_plot");
 	} else if (Index == nullptr) {
-		Error.Value("Index");
-		Error.PointerNull();
-		goto ExitError;
+		std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : int* index" << std::endl;
+		throw std::invalid_argument("int* Index");
 	} else if (Index_tmp == nullptr) {
-		Error.Value("Index_tmp");
-		Error.PointerNull();
-		goto ExitError;
+		std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : int* Index_tmp" << std::endl;
+		throw std::invalid_argument("int* Index_tmp");
 	}
-	for (n = 0; n < N; n++) {
+	for (int n = 0; n < N; n++) {
 		if (Index[n] < 0 || Index[n] >= N) {
-			Error.Value("Index[]");
-			Error.ValueIncorrect();
-			goto ExitError;
+			std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : int* Index[n] out of range" << std::endl;
+			throw std::out_of_range("int* Index[n] out of range");
 		}
 	}
-	step = 2;
-	for (div = 0; div < ceil(log(N) / log(2.0)); div++) {
-		for (n = 0; n < N; n += step) {
-			l = 0;
-			r = step / 2;
-			for (k = n; k < n + step && k < N; k++) {
+	int step = 2;
+	for (int div = 0; div < ceil(log(N) / log(2.0)); div++) {
+		for (int n = 0; n < N; n += step) {
+			int l = 0;
+			int r = step / 2;
+			for (int k = n; k < n + step && k < N; k++) {
 				if (l < step / 2 && n + l < N
 				    && ((r >= step || n + r >= N) || Img_plot->get(Index[n + l]).z > Img_plot->get(Index[n + r]).z)) {
 					Index_tmp[k] = Index[n + l];
@@ -1157,14 +1116,10 @@ sort_index(ImgVector<XPLOT> *Img_plot, int *Index, int *Index_tmp, int N)
 				}
 			}
 		}
-		for (n = 0; n < N; n++) {
+		for (int n = 0; n < N; n++) {
 			Index[n] = Index_tmp[n];
 		}
 		step *= 2;
 	}
-	return MEANINGFUL_SUCCESS;
-// Error
-ExitError:
-	return MEANINGFUL_FAILURE;
 }
 

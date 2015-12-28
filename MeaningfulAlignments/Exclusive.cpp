@@ -118,7 +118,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 				if ((d < Exclusive_max_radius)
 				    && (d_triangle <= d_max)
 				    && (MaximalSegments[n_seg].Pr < Pr_min)) {
-					line_index = n_seg;
+					line_index = static_cast<int>(n_seg);
 					Pr_min = MaximalSegments[n_seg].Pr;
 				}
 			}

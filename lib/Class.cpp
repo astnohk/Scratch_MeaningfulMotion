@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 
 #include "Class.h"
 
@@ -107,7 +108,6 @@ ATAN2_DIV_PI::ATAN2_DIV_PI(void)
 
 ATAN2_DIV_PI::ATAN2_DIV_PI(const ATAN2_DIV_PI &copy)
 {
-	const char *FunctionName = "ATAN2_DIV_PI(const ATAN2_DIV_PI &)";
 	const double *data = nullptr;
 
 	width = copy.Width();
@@ -115,8 +115,10 @@ ATAN2_DIV_PI::ATAN2_DIV_PI(const ATAN2_DIV_PI &copy)
 	try {
 		table = new double[width * height];
 	}
-	catch (const std::bad_alloc &bad) {
-		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*table) ***\n", FunctionName);
+	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl
+		    << "error : ATAN2_DIV_PI::ATAN2_DIV_PI(const ATAN2_DIV_PI&) : Cannot allocate memory" << std::endl;
+		throw;
 	}
 	data = copy.Data();
 	for (int n = 0; n < width * height; n++) {
@@ -126,20 +128,19 @@ ATAN2_DIV_PI::ATAN2_DIV_PI(const ATAN2_DIV_PI &copy)
 
 ATAN2_DIV_PI::ATAN2_DIV_PI(int W, int H)
 {
-	const char *FunctionName = "ATAN2_DIV_PI(int, int)";
-	int m, n;
-
 	width = W;
 	height = H;
 	try {
 		table = new double[width * height];
 	}
-	catch (const std::bad_alloc &bad) {
-		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*table) ***\n", FunctionName);
+	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl
+		    << "ATAN2_DIV_PI::ATAN2_DIV_PI(int, int) : Cannot allocate memory" << std::endl;
+		throw;
 	}
-	for (m = 0; m < height; m++) {
-		for (n = 0; n < width; n++) {
-			table[width * m + n] = atan2((double)m, (double)n) / M_PI;
+	for (int m = 0; m < height; m++) {
+		for (int n = 0; n < width; n++) {
+			table[width * m + n] = atan2(double(m), double(n)) / M_PI;
 		}
 	}
 }
@@ -170,10 +171,9 @@ ATAN2_DIV_PI::Data(void) const
 	return table;
 }
 
-bool
+void
 ATAN2_DIV_PI::reset(int W, int H)
 {
-	const char *FunctionName = "ATAN2_DIV_PI::reset";
 	width = W;
 	height = H;
 	if (table != nullptr) {
@@ -182,30 +182,29 @@ ATAN2_DIV_PI::reset(int W, int H)
 	try {
 		table = new double[width * height];
 	}
-	catch (const std::bad_alloc &bad) {
-		fprintf(stderr, "*** %s() error - Cannot allocate memory for (*table) ***\n", FunctionName);
-		return false;
+	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl
+		    << "error : void ATAN2_DIV_PI::reset(int, int) : Cannot allocate memory" << std::endl;
+		throw;
 	}
 	for (int m = 0; m < height; m++) {
 		for (int n = 0; n < width; n++) {
-			table[width * m + n] = atan2((double)m, (double)n) / M_PI;
+			table[width * m + n] = atan2(double(m), double(n)) / M_PI;
 		}
 	}
-	return true;
 }
 
 double
 ATAN2_DIV_PI::val(int y, int x) const
 {
-	const char *FunctionName = "ATAN2_DIV_PI.val";
-	double angle;
-
 	if (table == nullptr) {
-		fprintf(stderr, "*** %s() error - NOT initialized ***\n", FunctionName);
+		std::cerr << "error : double ATAN2_DIV_PI::val(int, int) : table is NULL" << std::endl;
 		return 0.0;
 	}
+
+	double angle;
 	if (abs(x) > width || abs(y) > height) {
-		angle = atan2((double)y, (double)x) / M_PI;
+		angle = atan2(double(y), double(x)) / M_PI;
 	} else if (x == 0 && y == 0) {
 		angle = 0.0;
 	} else if (x == 0) {

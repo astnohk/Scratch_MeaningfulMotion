@@ -438,18 +438,26 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 				if (Options.Superimpose != 0) {
 					printf("* Superimpose plot image on original image\n");
 					if ((Options.PlotOptions & PLOT_AS_RESAMPLED) != 0) {
-						if (Superimposer(&pnm_out, pnm_res, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
+						try {
+							Superimposer(&pnm_out, pnm_res, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE);
+						}
+						catch (const std::invalid_argument& arg) {
+							std::cerr << arg.what() << std::endl;
 							Error.Function("Superimposer");
 							Error.Value("pnm_out");
 							Error.FunctionFail();
-							goto ExitError;
+							throw;
 						}
 					} else {
-						if (Superimposer(&pnm_out, pnm_orig, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE) != MEANINGFUL_SUCCESS) {
+						try {
+							Superimposer(&pnm_out, pnm_orig, segments, size_out, Options.Superimpose, Options.PlotOptions & PLOT_NEGATE);
+						}
+						catch (const std::invalid_argument& arg) {
+							std::cerr << arg.what() << std::endl;
 							Error.Function("Superimposer");
 							Error.Value("pnm_out");
 							Error.FunctionFail();
-							goto ExitError;
+							throw;
 						}
 					}
 				} else {

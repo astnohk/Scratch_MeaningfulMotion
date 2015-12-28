@@ -122,10 +122,6 @@ ComputeHistogramsOfOrientedGradients(HOG* hog, const double* magnitude, const in
 {
 	ERROR Error("ComputeHistogramsOfOrientedGradients");
 	SIZE Cells;
-	int dir;
-	int X, Y;
-	int x, y;
-	int m, n;
 
 	if (denseHOG == false) {
 		Cells.width = int(ceil(size.width / cell.width));
@@ -139,9 +135,11 @@ ComputeHistogramsOfOrientedGradients(HOG* hog, const double* magnitude, const in
 		Error.Malloc();
 		goto ExitError;
 	}
-#pragma omp parallel for private(Y, x, X, m, n, dir)
+	int y;
+#pragma omp parallel for
 	for (y = 0; y < Cells.height; y++) {
-		for (x = 0; x < Cells.width; x++) {
+		for (int x = 0; x < Cells.width; x++) {
+			int X, Y;
 			if (denseHOG == false) {
 				X = cell.width * x;
 				Y = cell.height * y;
@@ -149,9 +147,9 @@ ComputeHistogramsOfOrientedGradients(HOG* hog, const double* magnitude, const in
 				X = x;
 				Y = y;
 			}
-			for (m = 0; m < cell.height; m++) {
-				for (n = 0; n < cell.width; n++) {
-					dir = orient[size.width * (Y + m) + X + n];
+			for (int m = 0; m < cell.height; m++) {
+				for (int n = 0; n < cell.width; n++) {
+					int dir = orient[size.width * (Y + m) + X + n];
 					if (hog->AddHist(x, y, dir, magnitude[size.width * (Y + m) + X + n]) == false) {
 						Error.OthersWarning("The bin is out of bounds");
 						printf("orient = %.0f, bin = %d\n", double(orient[size.width * (Y + m) + X + n]) / bins * 360.0, dir);
@@ -168,7 +166,7 @@ ExitError:
 }
 
 bool
-HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE blocksize)
+HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE& blocksize)
 {
 	ERROR Error("HOG_BlockNormalize");
 	SIZE size;

@@ -55,9 +55,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	int BM_Search_Range = 41; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
-	int level;
-	int i;
-
 	FILE *fp;
 	std::string::size_type found;
 
@@ -78,7 +75,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// Image Normalization
 	It_normalize = It;
 	Itp1_normalize = Itp1;
-	for (i = 0; i < It_normalize.size(); i++) {
+	for (int i = 0; i < It_normalize.size(); i++) {
 		// sRGB
 		It_sRGB_normalize[i] /= MaxInt;
 		Itp1_sRGB_normalize[i] /= MaxInt;
@@ -89,7 +86,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// Convert sRGB to CIE Lab
 	It_Lab_normalize.reset(It_sRGB_normalize.width(), It_sRGB_normalize.height());
 	Itp1_Lab_normalize.reset(It_sRGB_normalize.width(), It_sRGB_normalize.height());
-	for (i = 0; i < It_sRGB_normalize.size(); i++) {
+	for (int i = 0; i < It_sRGB_normalize.size(); i++) {
 		It_Lab_normalize[i].set(It_sRGB_normalize[i]);
 		Itp1_Lab_normalize[i].set(Itp1_sRGB_normalize[i]);
 	}
@@ -142,7 +139,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 		ImgVector<int> quantized(segmentations[0].width(), segmentations[0].height());
 		for (int i = 0; i < segmentations[0].ref_color_quantized_image().size(); i++) {
-			quantized.at(i) = double(segmentations[0].ref_color_quantized_image().get(i)) / 100.0;
+			quantized.at(i) = int(round(double(segmentations[0].ref_color_quantized_image().get(i)) / 100.0));
 			if (quantized.get(i) < 0) {
 				quantized.at(i) = 0;
 			}
@@ -235,11 +232,11 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 
 		// Initialize u_levels
-		for (level = 0; level <= MaxLevel; level++) {
+		for (int level = 0; level <= MaxLevel; level++) {
 			u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
 		}
 		// Multi-Resolution IRLS Optical Flow estimation
-		for (level = MaxLevel; level >= 0; level--) {
+		for (int level = MaxLevel; level >= 0; level--) {
 			if (MaxLevel > 0) {
 				sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / MaxLevel * (MaxLevel - level);
 				sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / MaxLevel * (MaxLevel - level);
@@ -247,7 +244,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 				sigmaD = sigmaD_l0;
 				sigmaS = sigmaS_l0;
 			}
-			printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, (int)pow_int(2.0, level), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
+			printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, int(pow_int(2.0, level)), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 			if (level >= MaxLevel) {
 				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
 				BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
@@ -274,7 +271,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	}
 	// Copy the lowest vector for output
 	if (u_levels != nullptr) {
-		for (i = 0; i < u->size(); i++) {
+		for (int i = 0; i < u->size(); i++) {
 			(*u)[i].x = u_levels[0][i].x;
 			(*u)[i].y = u_levels[0][i].y;
 		}
