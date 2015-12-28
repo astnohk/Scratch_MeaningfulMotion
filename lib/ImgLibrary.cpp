@@ -94,7 +94,9 @@ EpsilonFilter(const ImgVector<double> *img, const FILTER_PARAM& Param)
 		goto ExitError;
 	}
 	int y;
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 	for (y = 0; y < img->height(); y++) {
 		for (int x = 0; x < img->width(); x++) {
 			double center = img->get(x, y);
@@ -128,7 +130,6 @@ Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 	ImgVector<double> *blurred = nullptr;
 	int filter_width_2 = 0;
 	int filter_height_2 = 0;
-	int m, n, y, x;
 	double sum = 0;
 	int norm = 0;
 	
@@ -158,11 +159,11 @@ Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 #endif
 	if (norm == 1) {
 		// Diamond
-		for (m = 0; m < Param->size.height; m++) {
+		for (int m = 0; m < Param->size.height; m++) {
 #if defined(SHOW_GAUSSIAN_FILTER)
 			printf("    |");
 #endif
-			for (n = 0; n < Param->size.width; n++) {
+			for (int n = 0; n < Param->size.width; n++) {
 				if (filter_width_2 * abs(m - filter_height_2) + filter_height_2 * abs(n - filter_width_2) <= filter_width_2 * filter_height_2) {
 					Gauss->at(n, m) =
 					    exp(
@@ -181,11 +182,11 @@ Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 		}
 	} else {
 		// Square
-		for (m = 0; m < Param->size.height; m++) {
+		for (int m = 0; m < Param->size.height; m++) {
 #if defined(SHOW_GAUSSIAN_FILTER)
 			printf("    |");
 #endif
-			for (n = 0; n < Param->size.width; n++) {
+			for (int n = 0; n < Param->size.width; n++) {
 				Gauss->at(n, m) =
 				    exp(
 				    -(POW2(m - filter_height_2) + POW2(n - filter_width_2))
@@ -204,7 +205,7 @@ Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 #if defined(SHOW_GAUSSIAN_FILTER)
 	printf("\n");
 #endif
-	for (m = 0; m < Param->size.width * Param->size.height; m++) {
+	for (int m = 0; m < Param->size.width * Param->size.height; m++) {
 		(*Gauss)[m] /= sum;
 	}
 	try {
@@ -217,12 +218,17 @@ Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 		Error.Malloc();
 		goto ExitError;
 	}
-#pragma omp parallel for private(n, x, y)
-	for (m = 0; m < blurred->height(); m++) {
-		for (n = 0; n < blurred->width(); n++) {
-			for (y = -filter_height_2; y <= filter_height_2; y++) {
-				for (x = -filter_width_2; x <= filter_width_2; x++) {
-					blurred->at(n, m) += img->get(n + x, m + y) * Gauss->get(x + filter_width_2, y + filter_height_2);
+	{
+		int m;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+		for (m = 0; m < blurred->height(); m++) {
+			for (int n = 0; n < blurred->width(); n++) {
+				for (int y = -filter_height_2; y <= filter_height_2; y++) {
+					for (int x = -filter_width_2; x <= filter_width_2; x++) {
+						blurred->at(n, m) += img->get(n + x, m + y) * Gauss->get(x + filter_width_2, y + filter_height_2);
+					}
 				}
 			}
 		}
@@ -439,7 +445,9 @@ Filterer(const ImgVector<double>* Image, const ImgVector<double>* Filter, const 
 	int center_x = Filter->width() / 2;
 	int center_y = Filter->height() / 2;
 	int y;
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 	for (y = 0; y < Image->height(); y++) {
 		for (int x = 0; x < Image->width(); x++) {
 			double sum = .0;

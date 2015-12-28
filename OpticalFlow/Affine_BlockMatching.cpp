@@ -60,7 +60,9 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 
 	// Set connected domain
 	printf("* Make connected_domains\n");
-	connected_domains.resize(block_matching.vector_field_width() * block_matching.vector_field_height());
+	connected_domains.resize(
+	    static_cast<size_t>(block_matching.vector_field_width())
+	    * static_cast<size_t>(block_matching.vector_field_height()));
 	for (unsigned int m = 0; m < static_cast<unsigned int>(block_matching.vector_field_height()); m++) {
 		unsigned int M = m * static_cast<unsigned int>(block_matching.block_size());
 		for (unsigned int n = 0; n < static_cast<unsigned int>(block_matching.vector_field_width()); n++) {
@@ -77,7 +79,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 					if (N + x >= static_cast<unsigned int>(It->width())) {
 						break;
 					}
-					connected_domains[m * static_cast<unsigned int>(block_matching.vector_field_width()) + n].push_back(VECTOR_2D<int>(N + x, M + y));
+					connected_domains[m * static_cast<unsigned int>(block_matching.vector_field_width()) + n].push_back(VECTOR_2D<int>(static_cast<int>(N + x), static_cast<int>(M + y)));
 				}
 			}
 		}
@@ -236,7 +238,9 @@ IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<V
 
 	printf("sigmaD = %e\n", sigmaD);
 	printf("size (%d, %d)\n", Img_g->width(), Img_g->height());
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
+#endif
 	for (unsigned int R = 0; R < connected_domains.size(); R++) {
 		for (int n = 0; n < IterMax; n++) {
 			VECTOR_AFFINE u_np1;

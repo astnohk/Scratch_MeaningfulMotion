@@ -626,7 +626,9 @@ TransRotate_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, const
 		throw std::invalid_argument("error : void TransRotate_3DPoint(const X11_PARAM&, const ImgVector<int>*, const int, ImgVector<XPLOT>*) : ImgVector<XPLOT>* Img_plot");
 	}
 	// Pixel Coordinate
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(8)
+#endif
 	for (m = 0; m < Img->height(); m++) {
 		double y = (m - X11_Param.Center_y) * X11_Param.Scale;
 		for (int n = 0; n < Img->width(); n++) {
@@ -665,7 +667,9 @@ TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVe
 		throw std::invalid_argument("error : void TransGaraxy_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, COORDINATE_3D&, ImgVector<XPLOT>*) : ImgVector<COORDINATE_3D>* Img_plot");
 	}
 	// Gravity Motion
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 	for (int i = 0; i < Img->size(); i++) {
 		double r = sqrt(POW2(GaraxyCenter.x - (*Img_coord)[i].x)
 		    + POW2(GaraxyCenter.y - (*Img_coord)[i].y)
@@ -681,7 +685,9 @@ TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVe
 		Img_coord->at(i).z += Img_vel->get(i).z * dt;
 	}
 	// Pixel Coordinate
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(8)
+#endif
 	for (int i = 0; i < Img->size(); i++) {
 		double x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
 		double y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
@@ -743,7 +749,9 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 	// Gravity Motion
 	{
 		int i;
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 		for (i = 0; i < Img->size(); i++) {
 			for (int j = 0; j < Num_Cores; j++) {
 				double M = double(Img->get(core[j])) / double(maxint);
@@ -766,7 +774,9 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 	// Pixel Coordinate
 	{
 		int i;
+#ifdef _OPENMP
 #pragma omp parallel for num_threads(8)
+#endif
 		for (i = 0; i < Img->size(); i++) {
 			double x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
 			double y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;

@@ -27,7 +27,9 @@ HOG_Matching(const HOG* hog_prv, const HOG* hog_cur)
 		Error.Malloc();
 		goto ExitError;
 	}
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 	for (y = 0; y < H; y++) {
 		for (int x = 0; x < W; x++) {
 			double d1 = 1.0E10;

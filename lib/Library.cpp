@@ -121,7 +121,9 @@ Calc_k_l(const SIZE& size, const double& p, const double& ep)
 	int count = 0;
 	double progress = 0.0;
 	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
+#endif
 	for (int l = 1; l <= L; l++) {
 		int k_start = int(floor(p * l + sqrt(C * l * (log(DIV_ANGLE) + log(size.height) + 2.0 * log(size.width) - log(ep)))));
 		if (k_start < 0) {
@@ -133,7 +135,9 @@ Calc_k_l(const SIZE& size, const double& p, const double& ep)
 				break;
 			}
 		}
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 		{
 			count++;
 			if (round(double(count) / L * 1000.0) > progress) {

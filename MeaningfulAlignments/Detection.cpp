@@ -92,7 +92,9 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 			Error.Malloc();
 			goto ExitError;
 		}
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 		for (int y = 0; y < img_filtered->height(); y++) {
 			for (int x = 0; x < img_filtered->width(); x++) {
 				double Im = HorizontalMedian(img_filtered, x, y, MEAN_WIDTH);
@@ -174,7 +176,9 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 	double progress = .0;
 	int current_count = 0;
 	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
+#endif
 	for (int n = 0; n < angles->width(); n++) {
 		for (int r = 0; r < DIV_ANGLE; r++) {
 			// Upper side to Other 3 sides (n, 0) -> (x, y)
@@ -233,7 +237,9 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 					list_fragment = nullptr;
 				}
 			}
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 			{
 				current_count++;
 				if (round(double(current_count) / (DIV_ANGLE * angles->width()) * 1000.0) > progress) {
@@ -417,7 +423,9 @@ MaximalMeaningfulness(std::list<SEGMENT>* list_segment, std::list<FRAGMENT>* lis
 		// If Max_Output_Length <= 0 then Do NOT Limit The Length of Segments
 		if (Max_Output_Length <= 0
 		    || (itr_fragment->end - itr_fragment->start + 1) <= Max_Output_Length) {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 			{
 				segment_data = SEGMENT(
 				    int(round(n + dx * itr_fragment->start)),

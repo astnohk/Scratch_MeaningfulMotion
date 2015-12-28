@@ -233,7 +233,9 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 	for (int n = 0; n < IterMax; n++) {
 		// Calc for all sites
 		int site;
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 		for (site = 0; site < u->size(); site++) {
 			VECTOR_2D<double> dE;
 			dE = Error_u(site, u, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
@@ -345,7 +347,9 @@ Error_MultipleMotion(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VEC
 	double E = 0.0;
 	int x, y;
 
+#ifdef _OPENMP
 #pragma omp parallel for private(x, us, Neighbor, Center) reduction(+:E)
+#endif
 	for (y = 0; y < u->height(); y++) {
 		for (x = 0; x < u->width(); x++) {
 			us = u->get(x, y);

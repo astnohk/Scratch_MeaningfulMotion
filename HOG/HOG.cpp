@@ -136,7 +136,9 @@ ComputeHistogramsOfOrientedGradients(HOG* hog, const double* magnitude, const in
 		goto ExitError;
 	}
 	int y;
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
 	for (y = 0; y < Cells.height; y++) {
 		for (int x = 0; x < Cells.width; x++) {
 			int X, Y;
@@ -172,11 +174,6 @@ HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE& blocksize)
 	SIZE size;
 	double *integral_hist_norm = nullptr;
 	const double ep = 1E-6;
-	double norm;
-	double coeff;
-	int x, y;
-	int m, n;
-	int bin;
 
 	size.width = hog->Width() - (blocksize.width - 1);
 	size.height = hog->Height() - (blocksize.height - 1);
@@ -196,26 +193,29 @@ HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE& blocksize)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (y = 0; y < size.height; y++) {
-		norm = 0.0;
-		for (x = 0; x < size.width; x++) {
-			for (bin = 0; bin < hog->Bins(); bin++) {
+	for (int y = 0; y < size.height; y++) {
+		double norm = 0.0;
+		for (int x = 0; x < size.width; x++) {
+			for (int bin = 0; bin < hog->Bins(); bin++) {
 				norm += POW2(hog->Hist(x, y, bin));
 			}
 			integral_hist_norm[size.width * (y + 1) + x + 1] = norm + integral_hist_norm[size.width * y + x + 1];
 		}
 	}
-#pragma omp parallel for private(x, norm, m, n, bin, coeff)
+	int y;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	for (y = 0; y < size.height; y++) {
-		for (x = 0; x < size.width; x++) {
-			norm = integral_hist_norm[size.width * (y + blocksize.height) + x + blocksize.width];
+		for (int x = 0; x < size.width; x++) {
+			double norm = integral_hist_norm[size.width * (y + blocksize.height) + x + blocksize.width];
 			norm -= integral_hist_norm[size.width * (y + blocksize.height) + x];
 			norm -= integral_hist_norm[size.width * y + x + blocksize.width];
 			norm += integral_hist_norm[size.width * y + x];
-			coeff = 1.0 / sqrt(norm + POW2(ep));
-			for (m = 0; m < blocksize.height; m++) {
-				for (n = 0; n < blocksize.width; n++) {
-					for (bin = 0; bin < hog->Bins(); bin++) {
+			double coeff = 1.0 / sqrt(norm + POW2(ep));
+			for (int m = 0; m < blocksize.height; m++) {
+				for (int n = 0; n < blocksize.width; n++) {
+					for (int bin = 0; bin < hog->Bins(); bin++) {
 						block->AddHist(x, y, (m * blocksize.width + n) * hog->Bins() + bin, hog->Hist(x + n, y + m, bin) * coeff);
 					}
 				}
@@ -257,7 +257,9 @@ HOG_BlockNormalize(HOG* block, const HOG* hog, const SIZE& blocksize, const SIZE
 		Error.FunctionFail();
 		goto ExitError;
 	}
+#ifdef _OPENMP
 #pragma omp parallel for private(x, norm, m, M, n, N, bin, coeff)
+#endif
 	for (y = 0; y < size.height; y++) {
 		for (x = 0; x < size.width; x++) {
 			norm = 0.0;

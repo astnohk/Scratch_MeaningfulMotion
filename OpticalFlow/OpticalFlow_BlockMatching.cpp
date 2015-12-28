@@ -119,7 +119,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least 3 histories
 			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity);
 		} else {
-			for (int i = Segmentations_History_Max - 1; i > 0; i--) {
+			for (size_t i = static_cast<size_t>(Segmentations_History_Max) - 1u; i > 0; i--) {
 				segmentations[i] = segmentations[i - 1];
 			}
 		}
@@ -364,12 +364,9 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 
 	ImgVector<VECTOR_2D<double> > u_np1;
 	VECTOR_2D<double> sup;
-	VECTOR_2D<double> dE;
 	double E = 0.0;
 	double E_prev = 0.0;
 	int ErrorIncrementCount = 0;
-	int site;
-	int n;
 
 	if (u == nullptr) {
 		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *u");
@@ -382,17 +379,21 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 	// Reset sup_Error_uu max Img_g
 	sup_Error_uu_Block(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
 	sup = sup_Error_uu_Block(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
-	for (n = 0; n < IterMax; n++) {
+	for (int n = 0; n < IterMax; n++) {
 		// Calc for all sites
-#pragma omp parallel for private(dE)
+		int site;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 		for (site = 0; site < u->size(); site++) {
+			VECTOR_2D<double> dE;
 			dE = Error_u_Block(site, u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u->get(site).x - dE.x / sup.x;
 			u_np1[site].y = u->get(site).y - dE.y / sup.y;
 		}
 		// Calc for all sites
 		for (site = 0; site < u->size(); site++) {
-			(*u)[site] = u_np1[site];
+			u->at(site) = u_np1.get(site);
 		}
 		if (level == 0) {
 			if ((n & 0x3F) == 0) {
@@ -491,19 +492,17 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
-	VECTOR_2D<double> us;
-	double Center;
-	VECTOR_2D<double> Neighbor;
 	double E = 0.0;
-	int x, y;
+	int y;
 
-#pragma omp parallel for private(x, us, Neighbor, Center) reduction(+:E)
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:E)
+#endif
 	for (y = 0; y < u->height(); y++) {
-		for (x = 0; x < u->width(); x++) {
+		for (int x = 0; x < u->width(); x++) {
 			int center_domain = domain_map.get(x, y);
-			us = u->get(x, y);
-			Neighbor.x = .0;
-			Neighbor.y = .0;
+			VECTOR_2D<double> us(u->get(x, y));
+			VECTOR_2D<double> Neighbor(0.0, 0.0);
 			if (x > 0 && domain_map.get(x - 1, y) == center_domain) {
 				Neighbor.x += (*rhoS)(us.x - u->get(x - 1, y).x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u->get(x - 1, y).y, sigmaS);
@@ -520,7 +519,7 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 				Neighbor.x += (*rhoS)(us.x - u->get(x, y + 1).x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u->get(x, y + 1).y, sigmaS);
 			}
-			Center = (*rhoD)(Img_g->get(x, y).x * us.x
+			double Center = (*rhoD)(Img_g->get(x, y).x * us.x
 			    + Img_g->get(x, y).y * us.y
 			    + Img_t->get(x, y),
 			    sigmaD);

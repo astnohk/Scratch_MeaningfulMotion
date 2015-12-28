@@ -101,7 +101,9 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 	unsigned int progress_count = 0;
 	unsigned int present_count = 0;
 	int x;
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
+#endif
 	for (x = 0; x < size.width; x++) {
 		for (int y = 0; y < size.height; y++) {
 			double Pr_min = 1.0; // Reset
@@ -124,12 +126,14 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 			}
 			IndexMap->at(x, y) = line_index;
 		}
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 		{
 			present_count++;
-			if (NUM_PROGRESS * present_count / size.width > progress_count) {
-				progress_count = NUM_PROGRESS * (present_count - 1) / size.width; // Take account of Overflow
-				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / size.width, Progress[progress_count].c_str());
+			if (NUM_PROGRESS * present_count / static_cast<unsigned int>(size.width) > progress_count) {
+				progress_count = NUM_PROGRESS * (present_count - 1) / static_cast<unsigned int>(size.width); // Take account of Overflow
+				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / static_cast<unsigned int>(size.width), Progress[progress_count].c_str());
 			}
 		}
 	}
@@ -161,7 +165,9 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 	unsigned int progress_count = 0;
 	unsigned int present_count = 0;
 	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
+#ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic) reduction(+:Num_EPSegments)
+#endif
 	for (int n_seg = 0; n_seg < static_cast<int>(*Num_Segments); n_seg++) {
 		// Re-meaningful segments
 		int n = MaximalSegments[n_seg].n;
@@ -195,12 +201,16 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 				}
 			}
 		}
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 		if (k >= k_list[L]) {
 			Num_EPSegments++;
 			EPSegments_Pr[n_seg] = Pr_table->get(k, L);
 		}
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 		{
 			present_count++;
 			if (NUM_PROGRESS * present_count / (*Num_Segments) > progress_count) {
