@@ -52,6 +52,9 @@
 #include <X11/keysym.h>
 #include <unistd.h>
 
+// For turn on the ImgClass output switch
+#define OUTPUT_IMG_CLASS
+
 #include "lib/Class.h"
 #include "lib/ImgStruct.h"
 #include "lib/Struct.h"
