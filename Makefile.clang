@@ -1,7 +1,7 @@
 CC = clang++ -std=c++11
 WARNING = -Weverything -Wno-c++98-compat -Wno-padded
 LIBES = -lm -lX11
-OPTION = -fopenmp
+OPTION = -O2 -fopenmp
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp
@@ -31,7 +31,7 @@ OUTNAME = Scratch_MeaningfulMotion
 
 
 Scratch_MeaningfulMotion: $(OFILES)
-	$(CC) $(WARNING) $(LIBES) $(OPTION) -O2 -o $(OUTNAME) $^
+	$(CC) $(WARNING) $(LIBES) $(OPTION) -o $(OUTNAME) $^
 
 
 main.o: main.cpp

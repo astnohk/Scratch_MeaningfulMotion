@@ -2,7 +2,7 @@
 CC = g++ -std=c++11
 WARNING = -Wall -Wextra
 LIBES = -lm -lX11
-OPTION = -fopenmp
+OPTION = -O2 -fopenmp
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp
@@ -32,7 +32,7 @@ OUTNAME = Scratch_MeaningfulMotion
 
 
 Scratch_MeaningfulMotion: $(OFILES)
-	$(CC) $(WARNING) $(LIBES) $(OPTION) -O2 -o $(OUTNAME) $^
+	$(CC) $(WARNING) $(LIBES) $(OPTION) -o $(OUTNAME) $^
 
 
 main.o: main.cpp
