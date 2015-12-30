@@ -2,6 +2,7 @@ CC = clang++ -std=c++11
 WARNING = -Weverything -Wno-c++98-compat -Wno-padded
 LIBES = -lm -lX11
 OPTION = -O2 -fopenmp
+MACROS =
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp
@@ -35,107 +36,107 @@ Scratch_MeaningfulMotion: $(OFILES)
 
 
 main.o: main.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Class.o: lib/Class.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Struct.o: lib/Struct.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 BlockMatching.o: ImgClass/BlockMatching.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 CrossCorrelation.o: ImgClass/CrossCorrelation.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 ImgLibrary.o: lib/ImgLibrary.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 ImgStatistics.o: ImgClass/ImgStatistics.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Lab.o: ImgClass/Lab.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 RGB.o: ImgClass/RGB.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 ImgStruct.o: lib/ImgStruct.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Library.o: lib/Library.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 ExtVector.o: lib/ExtVector.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Scratch_Struct.o: Scratch_Struct.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Scratch_MeaningfulMotion.o: Scratch_MeaningfulMotion.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Detection.o: MeaningfulAlignments/Detection.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Exclusive.o: MeaningfulAlignments/Exclusive.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 
 MultiResolution.o: OpticalFlow/MultiResolution.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 MEstimator.o: OpticalFlow/MEstimator.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Affine_MultipleMotion.o: OpticalFlow/Affine_MultipleMotion.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Affine_BlockMatching.o: OpticalFlow/Affine_BlockMatching.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 OpticalFlow.o: OpticalFlow/OpticalFlow.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 OpticalFlow_BlockMatching.o: OpticalFlow/OpticalFlow_BlockMatching.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 HOG.o: HOG/HOG.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 HOG_match.o: HOG/HOG_match.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 HOG_struct.o: HOG/HOG_struct.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Plotting.o: Plot/Plotting.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Plot_X11.o: Plot/Plot_X11.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 Plot_X11_Struct.o: Plot/Plot_X11_Struct.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 pnm.o: PNM/pnm.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 pnm_double.o: PNM/pnm_double.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 pnm_library.o: PNM/pnm_library.cpp
-	$(CC) $(WARNING) $(OPTION) -c $^
+	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 
 
 
 debug: $(CFILES)
-	$(CC) $(WARNING) $(LIBES) -g -O2 -o $(OUTNAME) $^
+	$(CC) $(WARNING) $(LIBES) -g -O2 $(MACROS) -o $(OUTNAME) $^
 
 debugmp: $(CFILES)
-	$(CC) $(WARNING) $(LIBES) $(OPTION) -g -O2 -o $(OUTNAME) $^
+	$(CC) $(WARNING) $(LIBES) $(OPTION) $(MACROS) -g -O2 -o $(OUTNAME) $^
 
 clean:
 	rm -f $(OFILES)
