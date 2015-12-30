@@ -18,7 +18,7 @@
 ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
-	const int Segmentations_History_Max = 3;
+	const size_t Segmentations_History_Max = 4;
 	static std::vector<Segmentation<ImgClass::Lab> > segmentations;
 
 	std::bad_alloc except_bad_alloc;
@@ -107,7 +107,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			domain_map.at(x, y) = (int)(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
 		}
 	}
-	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize);
+	block_matching.reset(MotionParam.BlockMatching_BlockSize, *It, *Itp1);
 #endif
 #if 1
 	{
@@ -115,17 +115,17 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		printf("* * Compute Segmentation by Mean Shift\n");
 
 #ifdef MEANSHIFT_KERNEL_SPATIAL
-		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 12.0 / 255.0; // for images under about HD resolution
 #else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
 		double kernel_spatial = 8.0, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
 #endif
 
 		if (segmentations.empty()) {
-			segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least 3 histories
+			segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least History_Max
 			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity);
 		} else {
-			for (size_t i = static_cast<size_t>(Segmentations_History_Max) - 1u; i > 0; i--) {
+			for (size_t i = Segmentations_History_Max - 1u; i > 0; i--) {
 				segmentations[i] = segmentations[i - 1];
 			}
 		}
@@ -171,21 +171,13 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		fclose(fp);
 		// Arbitrary shaped Block Matching
 		printf("* * Compute Block Matching\n");
-		//block_matching.reset(It, Itp1, segmentations.begin()->ref_segmentation_map());
-		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, segmentations[1].ref_segmentation_map(), segmentations[0].ref_segmentation_map());
+		//block_matching.reset(segmentations.begin()->ref_segmentation_map(), It, Itp1);
+		block_matching.reset(It_Lab_normalize, segmentations[1].ref_segmentation_map(), Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
 		block_matching.block_matching(BM_Search_Range);
 		if (MaxLevel > 0) {
 			MaxLevel = 0;
 		}
 	}
-#endif
-#if 0
-	// Dense Block Matching
-	printf("* * Compute Block Matching\n");
-	int BlockSize = MotionParam.BlockMatching_BlockSize;
-	domain_map.reset(It->width(), It->height(), 1);
-	block_matching.reset(*It, *Itp1, MotionParam.BlockMatching_BlockSize, true);
-	MaxLevel = -1; // Do NOT need to do gradient method
 #endif
 
 	// ----- Optical Flow -----
