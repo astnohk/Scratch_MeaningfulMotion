@@ -113,8 +113,14 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	{
 		// Segmentation
 		printf("* * Compute Segmentation by Mean Shift\n");
+
+#ifdef MEANSHIFT_KERNEL_SPATIAL
+		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
+#else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
 		double kernel_spatial = 8.0, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
+#endif
+
 		if (segmentations.empty()) {
 			segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least 3 histories
 			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity);
