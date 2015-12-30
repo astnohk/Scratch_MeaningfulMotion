@@ -1,8 +1,8 @@
-CC = clang++ -std=c++11
-WARNING = -Weverything -Wno-c++98-compat -Wno-padded
-LIBES = -lm -lX11
-OPTION = -O2 -fopenmp
-MACROS =
+CC=clang++ -std=c++11
+WARNING=-Weverything -Wno-c++98-compat -Wno-padded
+LIBES=-lm -lX11
+OPTION=-O2 -fopenmp
+MACROS=
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp

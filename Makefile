@@ -1,9 +1,9 @@
-#CC = g++
-CC = g++ -std=c++11
-WARNING = -Wall -Wextra
-LIBES = -lm -lX11
-OPTION = -O2 -fopenmp
-MACROS =
+#CC=g++
+CC=g++ -std=c++11
+WARNING=-Wall -Wextra
+LIBES=-lm -lX11
+OPTION=-O2 -fopenmp
+MACROS=
 
 
 LIBRARY_CFILES = lib/Class.cpp lib/ImgLibrary.cpp lib/ImgStruct.cpp lib/Library.cpp lib/Struct.cpp lib/ExtVector.cpp
