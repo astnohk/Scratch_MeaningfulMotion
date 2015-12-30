@@ -19,7 +19,8 @@ ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
 	const size_t History_Max = 4;
-	static std::vector<ImgVector<ImgClass::Lab> > sequence;
+	static std::vector<ImgVector<double> > sequence_Grayscale;
+	static std::vector<ImgVector<ImgClass::Lab> > sequence_Lab;
 	static std::vector<Segmentation<ImgClass::Lab> > segmentations;
 
 	std::bad_alloc except_bad_alloc;
@@ -93,20 +94,26 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	}
 
 	// Shift image sequence by 1 and assign current image
-	if (sequence.empty()) {
-		sequence.resize(2);
-		sequence[1] = It_Lab_normalize;
-	} else if (sequence.size() < History_Max) {
-		sequence.resize(sequence.size() + 1);
-		for (size_t i = sequence.size() - 1u; i > 0; i--) {
-			sequence[i] = sequence[i - 1];
+	if (sequence_Lab.empty()) {
+		sequence_Lab.resize(2);
+		sequence_Grayscale.resize(2);
+		sequence_Lab[1] = It_Lab_normalize;
+		sequence_Grayscale[1] = It_normalize;
+	} else if (sequence_Lab.size() < History_Max) {
+		sequence_Lab.resize(sequence_Lab.size() + 1);
+		sequence_Grayscale.resize(sequence_Grayscale.size() + 1);
+		for (size_t i = sequence_Lab.size() - 1u; i > 0; i--) {
+			sequence_Lab[i] = sequence_Lab[i - 1];
+			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
 		}
 	} else {
 		for (size_t i = History_Max - 1u; i > 0; i--) {
-			sequence[i] = sequence[i - 1];
+			sequence_Lab[i] = sequence_Lab[i - 1];
+			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
 		}
 	}
-	sequence[0] = Itp1_Lab_normalize;
+	sequence_Lab[0] = Itp1_Lab_normalize;
+	sequence_Grayscale[0] = Itp1_normalize;
 
 	// Adjust max level to use the Block Matching efficiently
 	if (MaxLevel > floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0))) {
@@ -198,13 +205,11 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			block_matching.reset(It_Lab_normalize, segmentations[1].ref_segmentation_map(), Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
 		} else {
 			block_matching.reset(
-			    sequence[2], segmentations[2].ref_segmentation_map(),
-			    It_Lab_normalize, segmentations[1].ref_segmentation_map(),
-			    Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
+			    sequence_Lab[2], segmentations[2].ref_segmentation_map(),
+			    sequence_Lab[1], segmentations[1].ref_segmentation_map(),
+			    sequence_Lab[0], segmentations[0].ref_segmentation_map());
 		}
 		block_matching.block_matching(BM_Search_Range);
-		std::cout << "previous : " << block_matching.ref_motion_vector().get(230, 30) << std::endl;
-		std::cout << "next     : " << block_matching.ref_motion_vector_next().get_zeropad(230, 30) << std::endl;
 		if (MaxLevel > 0) {
 			MaxLevel = 0;
 		}
@@ -216,50 +221,46 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		u = new ImgVector<VECTOR_2D<double> >(It.width(), It.height());
 	}
 	catch (const std::bad_alloc &bad) {
-		except_bad_alloc = bad;
-		goto ExitError;
+		std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
+		    << bad.what() << std::endl;
+		throw;
 	}
 	if (MaxLevel >= 0) {
 		try {
 			u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
 		}
 		catch (const std::bad_alloc &bad) {
-			except_bad_alloc = bad;
-			goto ExitError;
+			std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
+			    << bad.what() << std::endl;
+			delete[] u;
+			throw;
 		}
 		// Make Pyramid
 		try {
-			It_levels = Pyramider(&It_normalize, MaxLevel);
-		}
-		catch (const std::bad_alloc &bad) {
-			except_bad_alloc = bad;
-			goto ExitError;
-		}
-		try {
-			Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel);
-		}
-		catch (const std::bad_alloc &bad) {
-			except_bad_alloc = bad;
-			goto ExitError;
-		}
-		// Derivative about time
-		try {
-			// The order reversed along with Block Matching (ordinary It -> Itp1)
+			if (sequence_Grayscale.size() >= 3) {
+				It_levels = Pyramider(&(sequence_Grayscale[2]), MaxLevel);
+				Itp1_levels = Pyramider(&(sequence_Grayscale[1]), MaxLevel);
+			} else {
+				It_levels = Pyramider(&It_normalize, MaxLevel);
+				Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel);
+			}
+			// The order reversed along with Block Matching (ordinary (It, Itp1))
+			// Derivative about time
 			I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MaxLevel);
-		}
-		catch (const std::bad_alloc &bad) {
-			except_bad_alloc = bad;
-			goto ExitError;
-		}
-		// Derivative about space
-		try {
+			// Derivative about space
 			grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MaxLevel);
 		}
-		catch (const std::bad_alloc &bad) {
-			except_bad_alloc = bad;
-			goto ExitError;
+		catch (const std::bad_alloc& bad) {
+			std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
+			    << bad.what() << std::endl;
+			delete[] grad_It_levels;
+			delete[] I_dt_levels;
+			delete[] Itp1_levels;
+			delete[] It_levels;
+			delete[] u_levels;
+			delete[] u;
+			throw;
 		}
-
 		// Initialize u_levels
 		for (int level = 0; level <= MaxLevel; level++) {
 			u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
@@ -297,6 +298,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			    level);
 			Add_VectorOffset(u_levels, level, MaxLevel, &block_matching);
 		}
+		delete[] grad_It_levels;
+		delete[] I_dt_levels;
+		delete[] Itp1_levels;
+		delete[] It_levels;
 	}
 	// Copy the lowest vector for output
 	if (u_levels != nullptr) {
@@ -312,20 +317,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 	}
 	delete[] u_levels;
-	delete[] grad_It_levels;
-	delete[] I_dt_levels;
-	delete[] Itp1_levels;
-	delete[] It_levels;
 	return u;
-// Error
-ExitError:
-	delete[] grad_It_levels;
-	delete[] I_dt_levels;
-	delete[] Itp1_levels;
-	delete[] It_levels;
-	delete[] u_levels;
-	delete[] u;
-	throw except_bad_alloc;
 }
 
 
