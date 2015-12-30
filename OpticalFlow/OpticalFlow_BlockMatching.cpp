@@ -18,7 +18,8 @@
 ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
-	const size_t Segmentations_History_Max = 4;
+	const size_t History_Max = 4;
+	static std::vector<ImgVector<ImgClass::Lab> > sequence;
 	static std::vector<Segmentation<ImgClass::Lab> > segmentations;
 
 	std::bad_alloc except_bad_alloc;
@@ -91,6 +92,22 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		Itp1_Lab_normalize[i].set(Itp1_sRGB_normalize[i]);
 	}
 
+	// Shift image sequence by 1 and assign current image
+	if (sequence.empty()) {
+		sequence.resize(2);
+		sequence[1] = It_Lab_normalize;
+	} else if (sequence.size() < History_Max) {
+		sequence.resize(sequence.size() + 1);
+		for (size_t i = sequence.size() - 1u; i > 0; i--) {
+			sequence[i] = sequence[i - 1];
+		}
+	} else {
+		for (size_t i = History_Max - 1u; i > 0; i--) {
+			sequence[i] = sequence[i - 1];
+		}
+	}
+	sequence[0] = Itp1_Lab_normalize;
+
 	// Adjust max level to use the Block Matching efficiently
 	if (MaxLevel > floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0))) {
 		MaxLevel = int(floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0)));
@@ -122,10 +139,15 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #endif
 
 		if (segmentations.empty()) {
-			segmentations.resize(Segmentations_History_Max); // Reserve vector size to store at least History_Max
+			segmentations.resize(2);
 			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity);
+		} else if (segmentations.size() < History_Max) {
+			segmentations.resize(segmentations.size() + 1);
+			for (size_t i = segmentations.size() - 1u; i > 0; i--) {
+				segmentations[i] = segmentations[i - 1];
+			}
 		} else {
-			for (size_t i = Segmentations_History_Max - 1u; i > 0; i--) {
+			for (size_t i = History_Max - 1u; i > 0; i--) {
 				segmentations[i] = segmentations[i - 1];
 			}
 		}
@@ -172,8 +194,17 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		// Arbitrary shaped Block Matching
 		printf("* * Compute Block Matching\n");
 		//block_matching.reset(segmentations.begin()->ref_segmentation_map(), It, Itp1);
-		block_matching.reset(It_Lab_normalize, segmentations[1].ref_segmentation_map(), Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
+		if (segmentations.size() <= 2) {
+			block_matching.reset(It_Lab_normalize, segmentations[1].ref_segmentation_map(), Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
+		} else {
+			block_matching.reset(
+			    sequence[2], segmentations[2].ref_segmentation_map(),
+			    It_Lab_normalize, segmentations[1].ref_segmentation_map(),
+			    Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
+		}
 		block_matching.block_matching(BM_Search_Range);
+		std::cout << "previous : " << block_matching.ref_motion_vector().get(230, 30) << std::endl;
+		std::cout << "next     : " << block_matching.ref_motion_vector_next().get_zeropad(230, 30) << std::endl;
 		if (MaxLevel > 0) {
 			MaxLevel = 0;
 		}
