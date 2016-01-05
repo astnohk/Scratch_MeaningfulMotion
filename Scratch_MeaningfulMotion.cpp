@@ -21,6 +21,10 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	char *char_tmp = nullptr;
 	int CurrentFileNum;
 
+	const int History_Max = 4;
+	std::vector<ImgVector<ImgClass::RGB> > sequence_RGB(History_Max);
+	std::vector<ImgVector<ImgClass::RGB> > sequence_Grayscale(History_Max);
+
 	PNM pnm_in;
 	PNM pnm_out;
 	PNM pnm_orig;
@@ -183,11 +187,17 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 			goto Write;
 		}
 		// Copy color image to ImgVector<ImgClass::RGB> imgd_in
+		for (int i = History_Max - 1; i > 0; i--) {
+			sequence_RGB[i] = sequence_RGB[i - 1];
+		}
+		sequence_RGB[0].reset(pnm_in.Width(), pnm_in.Height());
 		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
 		for (int i = 0; i < imgd_in.size(); i++) {
 			if (pnm_in.isRGB()) {
+				sequence_RGB[0][i] = ImgClass::RGB(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
 				imgd_in[i] = ImgClass::RGB(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
 			} else {
+				sequence_RGB[0][i] = ImgClass::RGB(pnm_in[i], pnm_in[i], pnm_in[i]);
 				imgd_in[i] = ImgClass::RGB(pnm_in[i], pnm_in[i], pnm_in[i]);
 			}
 		}
@@ -221,8 +231,13 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 			pnmd_out.free();
 			printf("Finished\n\n");
 		}
+		for (int i = History_Max - 1; i > 0; i--) {
+			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
+		}
+		sequence_Grayscale[0].reset(pnm_in.Width(), pnm_in.Height());
 		imgd_in_gray.reset(pnm_in.Width(), pnm_in.Height());
 		for (int i = 0; i < imgd_in_gray.size(); i++) {
+			sequence_Grayscale[0][i] = double(pnm_in[i]);
 			imgd_in_gray[i] = double(pnm_in[i]);
 		}
 
@@ -307,7 +322,6 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Optical Flow by method of Michael J. Black\n");
-				//MultipleMotion_u = OpticalFlow_Pyramid(&imgd_prev_gray, &imgd_in_gray, pnm_in.MaxInt(), Options.MultipleMotion_Param);
 				MultipleMotion_u = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
@@ -508,9 +522,17 @@ Write:
 			if (imgd_prev_gray.isNULL() == false) {
 				MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums);
 			}
-		} else if ((Options.mode & (MODE_OUTPUT_OPTICALFLOW | MODE_OUTPUT_AFFINE_BLOCKMATCHING)) != 0) {
+		} else if ((Options.mode & MODE_OUTPUT_AFFINE_BLOCKMATCHING) != 0) {
 			if (imgd_prev_gray.isNULL() == false) {
 				MultipleMotion_write(imgd_prev, imgd_in, *MultipleMotion_u, OutputNameNums);
+			}
+		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
+			if (imgd_prev.isNULL() == false) {
+				if (sequence_RGB[2].isNULL()) {
+					MultipleMotion_write(imgd_prev, imgd_in, *MultipleMotion_u, OutputNameNums);
+				} else {
+					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], *MultipleMotion_u, OutputNameNums);
+				}
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
 			if (HOG_write(hog_raw, OutputNameNums) == false) {

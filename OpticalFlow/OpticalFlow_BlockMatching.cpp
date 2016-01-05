@@ -19,6 +19,7 @@ ImgVector<VECTOR_2D<double> > *
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
 	const size_t History_Max = 4;
+	static std::vector<ImgVector<ImgClass::RGB> > sequence_sRGB;
 	static std::vector<ImgVector<double> > sequence_Grayscale;
 	static std::vector<ImgVector<ImgClass::Lab> > sequence_Lab;
 	static std::vector<Segmentation<ImgClass::Lab> > segmentations;
@@ -27,7 +28,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	ImgVector<VECTOR_2D<double> >* u = nullptr; // For RETURN value
 	ImgVector<int> domain_map;
-	//BlockMatching<double> block_matching;
+	//BlockMatching<ImgClass::RGB> block_matching;
 	BlockMatching<ImgClass::Lab> block_matching;
 
 	ImgVector<double> It;
@@ -57,7 +58,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	int BM_Search_Range = 41; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
-	FILE *fp;
 	std::string::size_type found;
 
 	if (It_color.isNULL()) {
@@ -94,26 +94,32 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	}
 
 	// Shift image sequence by 1 and assign current image
-	if (sequence_Lab.empty()) {
-		sequence_Lab.resize(2);
+	if (sequence_sRGB.empty()) {
+		sequence_sRGB.resize(2);
 		sequence_Grayscale.resize(2);
-		sequence_Lab[1] = It_Lab_normalize;
+		sequence_Lab.resize(2);
+		sequence_sRGB[1] = It_sRGB_normalize;
 		sequence_Grayscale[1] = It_normalize;
-	} else if (sequence_Lab.size() < History_Max) {
-		sequence_Lab.resize(sequence_Lab.size() + 1);
+		sequence_Lab[1] = It_Lab_normalize;
+	} else if (sequence_sRGB.size() < History_Max) {
+		sequence_sRGB.resize(sequence_sRGB.size() + 1);
 		sequence_Grayscale.resize(sequence_Grayscale.size() + 1);
+		sequence_Lab.resize(sequence_Lab.size() + 1);
 		for (size_t i = sequence_Lab.size() - 1u; i > 0; i--) {
-			sequence_Lab[i] = sequence_Lab[i - 1];
+			sequence_sRGB[i] = sequence_sRGB[i - 1];
 			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
+			sequence_Lab[i] = sequence_Lab[i - 1];
 		}
 	} else {
 		for (size_t i = History_Max - 1u; i > 0; i--) {
-			sequence_Lab[i] = sequence_Lab[i - 1];
+			sequence_sRGB[i] = sequence_sRGB[i - 1];
 			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
+			sequence_Lab[i] = sequence_Lab[i - 1];
 		}
 	}
-	sequence_Lab[0] = Itp1_Lab_normalize;
+	sequence_sRGB[0] = Itp1_sRGB_normalize;
 	sequence_Grayscale[0] = Itp1_normalize;
+	sequence_Lab[0] = Itp1_Lab_normalize;
 
 	// Adjust max level to use the Block Matching efficiently
 	if (MaxLevel > floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0))) {
@@ -125,21 +131,30 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// Normal Block Matching
 	printf("* * Compute Block Matching\n");
 	int BlockSize = MotionParam.BlockMatching_BlockSize;
-	domain_map.reset(It->width(), It->height());
-	for (int y = 0; y < It->height(); y++) {
-		for (int x = 0; x < It->width(); x++) {
-			domain_map.at(x, y) = (int)(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
+	domain_map.reset(It.width(), It.height());
+	for (int y = 0; y < It.height(); y++) {
+		for (int x = 0; x < It.width(); x++) {
+			domain_map.at(x, y) = int(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
 		}
 	}
-	block_matching.reset(MotionParam.BlockMatching_BlockSize, *It, *Itp1);
-#endif
-#if 1
+	int BlockMatching_BlockSize = 16;
+	if (segmentations.size() <= 2) {
+		//block_matching.reset(It_sRGB_normalize, Itp1_sRGB_normalize, MotionParam.BlockMatching_BlockSize);
+		//block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, MotionParam.BlockMatching_BlockSize);
+		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, BlockMatching_BlockSize);
+	} else {
+		//block_matching.reset(sequence_sRGB[2], sequence_sRGB[1], sequence_sRGB[0], MotionParam.BlockMatching_BlockSize);
+		//block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], MotionParam.BlockMatching_BlockSize);
+		block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize);
+	}
+	block_matching.block_matching(BM_Search_Range);
+#else
 	{
 		// Segmentation
 		printf("* * Compute Segmentation by Mean Shift\n");
 
 #ifdef MEANSHIFT_KERNEL_SPATIAL
-		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 12.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
 #else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
 		double kernel_spatial = 8.0, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
@@ -159,9 +174,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			}
 		}
 		segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity);
-		printf("The number of regions : %d\n", segmentations[0].ref_segmentation_map().max());
-		PNM pnm;
 
+		PNM pnm;
 		found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));
 		if (found == std::string::npos) {
 			found = ofilename.find_last_of(".");
@@ -186,6 +200,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		pnm.free();
 		// Output vectors
 		std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector" + ofilename.substr(found);
+		FILE *fp;
 		fp = fopen(ofilename_vector.c_str(), "w");
 		fprintf(fp, "%d %d\n", segmentations[0].width(), segmentations[0].height());
 		for (int y = 0; y < segmentations[0].height(); y++) {
