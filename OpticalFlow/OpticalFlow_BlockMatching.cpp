@@ -28,7 +28,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	ImgVector<VECTOR_2D<double> >* u = nullptr; // For RETURN value
 	ImgVector<int> domain_map;
-	//BlockMatching<ImgClass::RGB> block_matching;
+	const double coeff_MAD = 1.0;
+	const double coeff_ZNCC = 0.0;
 	BlockMatching<ImgClass::Lab> block_matching;
 
 	ImgVector<double> It;
@@ -147,7 +148,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		//block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], MotionParam.BlockMatching_BlockSize);
 		block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize);
 	}
-	block_matching.block_matching(BM_Search_Range);
+	block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
 #else
 	{
 		// Segmentation
@@ -224,7 +225,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			    sequence_Lab[1], segmentations[1].ref_segmentation_map(),
 			    sequence_Lab[0], segmentations[0].ref_segmentation_map());
 		}
-		block_matching.block_matching(BM_Search_Range);
+		block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
 		if (MaxLevel > 0) {
 			MaxLevel = 0;
 		}
