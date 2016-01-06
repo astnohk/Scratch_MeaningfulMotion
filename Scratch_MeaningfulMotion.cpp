@@ -18,6 +18,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	const std::string FilterNames[] = {"undefined", "Epsilon", "Gaussian"};
 	std::string InputNameNums;
 	std::string OutputNameNums;
+	std::string OutputNameNums_prev;
 	char *char_tmp = nullptr;
 	int CurrentFileNum;
 
@@ -72,7 +73,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	int count;
 
 	for (CurrentFileNum = Start; CurrentFileNum <= End; CurrentFileNum++) {
-		// Read PNM Files
+		// Substitute number to filename
 		if (strchr(InputName, '%') == nullptr) {
 			InputNameNums = InputName;
 		} else {
@@ -90,6 +91,27 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 			delete[] char_tmp;
 			char_tmp = nullptr;
 		}
+		if (strchr(OutputName, '%') == nullptr) {
+			OutputNameNums = OutputName;
+			OutputNameNums_prev = OutputName;
+		} else {
+			try {
+				char_tmp = new char[OutputNameLength + 1];
+			}
+			catch (const std::bad_alloc &bad) {
+				std::cerr << bad.what() << std::endl;
+				Error.Value("char_tmp");
+				Error.Malloc();
+				goto ExitError;
+			}
+			sprintf(char_tmp, OutputName, CurrentFileNum);
+			OutputNameNums = char_tmp;
+			sprintf(char_tmp, OutputName, CurrentFileNum - 1);
+			OutputNameNums_prev = char_tmp;
+			delete[] char_tmp;
+			char_tmp = nullptr;
+		}
+		// Read PNM Files
 		if (pnm_orig.read(InputNameNums.c_str()) == PNM_FUNCTION_ERROR) {
 			Error.Function("pnm_orig.read");
 			Error.File(InputNameNums.c_str());
@@ -501,23 +523,6 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 		MaximalSegments = nullptr;
 
 Write:
-		if (strchr(OutputName, '%') == nullptr) {
-			OutputNameNums = OutputName;
-		} else {
-			try {
-				char_tmp = new char[OutputNameLength + 1];
-			}
-			catch (const std::bad_alloc &bad) {
-				std::cerr << bad.what() << std::endl;
-				Error.Value("char_tmp");
-				Error.Malloc();
-				goto ExitError;
-			}
-			sprintf(char_tmp, OutputName, CurrentFileNum);
-			OutputNameNums = char_tmp;
-			delete[] char_tmp;
-			char_tmp = nullptr;
-		}
 		if ((Options.mode & MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE) != 0) {
 			if (imgd_prev_gray.isNULL() == false) {
 				MultipleMotion_Affine_write(MultipleMotion_AffineCoeff, OutputNameNums);
@@ -531,7 +536,7 @@ Write:
 				if (sequence_RGB[2].isNULL()) {
 					MultipleMotion_write(imgd_prev, imgd_in, *MultipleMotion_u, OutputNameNums);
 				} else {
-					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], *MultipleMotion_u, OutputNameNums);
+					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], *MultipleMotion_u, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
 				}
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
