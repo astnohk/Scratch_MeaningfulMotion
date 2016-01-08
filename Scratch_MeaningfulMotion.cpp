@@ -41,6 +41,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	// Optical Flow
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	ImgVector<VECTOR_2D<double> > *MultipleMotion_u = nullptr;
+	std::vector<ImgVector<VECTOR_2D<double> > > MotionVectors;
 	// HOG
 	HOG hog_raw;
 	HOG hog;
@@ -344,7 +345,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Optical Flow by method of Michael J. Black\n");
-				MultipleMotion_u = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums);
+				MotionVectors = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0
@@ -534,9 +535,9 @@ Write:
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			if (imgd_prev.isNULL() == false) {
 				if (sequence_RGB[2].isNULL()) {
-					MultipleMotion_write(imgd_prev, imgd_in, *MultipleMotion_u, OutputNameNums);
+					MultipleMotion_write(imgd_prev, imgd_in, MotionVectors, OutputNameNums);
 				} else {
-					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], *MultipleMotion_u, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
+					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], sequence_RGB[0], MotionVectors, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
 				}
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
