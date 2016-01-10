@@ -150,7 +150,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 				r.x = connected_domains[R][n].x >> level;
 				r.y = connected_domains[R][n].y >> level;
 				if (level == 0) {
-					VECTOR_2D<double> v = block_matching.get(connected_domains[R][n].x, connected_domains[R][n].y);
+					VECTOR_2D<double> v = block_matching.get_prev(connected_domains[R][n].x, connected_domains[R][n].y);
 					int x_ref = int(connected_domains[R][n].x + v.x) >> level;
 					int y_ref = int(connected_domains[R][n].y + v.y) >> level;
 					I_dt_levels[level].at(r.x, r.y) =
@@ -168,7 +168,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 						}
 					}
 					if (k >= connected_domains_resize[R].size()) {
-						VECTOR_2D<double> v = block_matching.get(connected_domains[R][n].x, connected_domains[R][n].y);
+						VECTOR_2D<double> v = block_matching.get_prev(connected_domains[R][n].x, connected_domains[R][n].y);
 						int x_ref = int(connected_domains[R][n].x + v.x) >> level;
 						int y_ref = int(connected_domains[R][n].y + v.y) >> level;
 						I_dt_levels[level].at(r.x, r.y) =
@@ -208,7 +208,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	}
 	for(unsigned int R = 0; R < connected_domains.size(); R++) {
 		for (unsigned int n = 0; n < connected_domains[R].size(); n++) {
-			VECTOR_2D<double> v = block_matching.get(connected_domains[R][n].x, connected_domains[R][n].y);
+			VECTOR_2D<double> v = block_matching.get_prev(connected_domains[R][n].x, connected_domains[R][n].y);
 			int x = connected_domains[R][n].x;
 			int y = connected_domains[R][n].y;
 			u->at(x, y).x = v.x + u_affine[R].a[0] + u_affine[R].a[1] * x + u_affine[R].a[2] * y;

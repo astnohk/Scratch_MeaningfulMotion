@@ -15,7 +15,7 @@
 
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
-ImgVector<VECTOR_2D<double> > *
+std::vector<ImgVector<VECTOR_2D<double> > >
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
 	const size_t History_Max = 4;
@@ -26,7 +26,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	std::bad_alloc except_bad_alloc;
 
-	ImgVector<VECTOR_2D<double> >* u = nullptr; // For RETURN value
+	std::vector<ImgVector<VECTOR_2D<double> > > u; // For RETURN value
+
 	ImgVector<int> domain_map;
 	const double coeff_MAD = 1.0;
 	const double coeff_ZNCC = 0.0;
@@ -34,7 +35,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
-
 	ImgVector<ImgClass::RGB> It_sRGB_normalize;
 	ImgVector<ImgClass::RGB> Itp1_sRGB_normalize;
 	ImgVector<ImgClass::Lab> It_Lab_normalize;
@@ -229,14 +229,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #endif
 
 	// ----- Optical Flow -----
-	try {
-		u = new ImgVector<VECTOR_2D<double> >(It.width(), It.height());
-	}
-	catch (const std::bad_alloc &bad) {
-		std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
-		    << bad.what() << std::endl;
-		throw;
-	}
 	if (MaxLevel >= 0) {
 		try {
 			u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
@@ -244,7 +236,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		catch (const std::bad_alloc &bad) {
 			std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
 			    << bad.what() << std::endl;
-			delete[] u;
 			throw;
 		}
 		// Make Pyramid
@@ -270,7 +261,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			delete[] Itp1_levels;
 			delete[] It_levels;
 			delete[] u_levels;
-			delete[] u;
 			throw;
 		}
 		// Initialize u_levels
@@ -315,16 +305,38 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		delete[] Itp1_levels;
 		delete[] It_levels;
 	}
+	// Initialize u for return value
+	if (sequence_sRGB.size() < History_Max) {
+		u.resize(1);
+		u[0].reset(It.width(), It.height());
+	} else {
+		u.resize(2);
+		u[0].reset(It.width(), It.height());
+		u[1].reset(It.width(), It.height());
+	}
+	/*
+	try {
+		u = new ImgVector<VECTOR_2D<double> >(It.width(), It.height());
+	}
+	catch (const std::bad_alloc &bad) {
+		std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
+		    << bad.what() << std::endl;
+		throw;
+	}
+	*/
 	// Copy the lowest vector for output
 	if (u_levels != nullptr) {
-		for (int i = 0; i < u->size(); i++) {
-			(*u)[i].x = u_levels[0][i].x;
-			(*u)[i].y = u_levels[0][i].y;
+		for (int i = 0; i < u[0].size(); i++) {
+			u[0][i].x = u_levels[0][i].x;
+			u[0][i].y = u_levels[0][i].y;
 		}
 	} else {
 		for (int y = 0; y < block_matching.height(); y++) {
 			for (int x = 0; x < block_matching.width(); x++) {
-				u->at(x, y) = block_matching.get(x, y);
+				u[0].at(x, y) = block_matching.get_prev(x, y);
+				if (u.size() > 1) {
+					u[1].at(x, y) = block_matching.get_next(x, y);
+				}
 			}
 		}
 	}
@@ -341,7 +353,7 @@ BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_
 
 	for (int y = 0; y < u_levels[level].height(); y++) {
 		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching->get(int(round(x * Scale)), int(round(y * Scale)));
+			VECTOR_2D<double> u_offset = block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale)));
 			u_offset /= Scale;
 
 			I_dt_levels[level].at(x, y) =
@@ -371,10 +383,10 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLeve
 		for (int y = 0; y < u_levels[level].height(); y++) {
 			for (int x = 0; x < u_levels[level].width(); x++) {
 				u_levels[level].at(x, y).x +=
-				    block_matching->get(int(round(x * Scale)), int(round(y * Scale))).x
+				    block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale))).x
 				    / Scale;
 				u_levels[level].at(x, y).y +=
-				    block_matching->get(int(round(x * Scale)), int(round(y * Scale))).y
+				    block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale))).y
 				    / Scale;
 			}
 		}
