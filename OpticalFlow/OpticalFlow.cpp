@@ -45,7 +45,6 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
 	int level;
-	int i;
 
 	if (It == nullptr) {
 		Error.Value("It");
@@ -60,7 +59,7 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 	// Image Normalization
 	It_normalize = *It;
 	Itp1_normalize = *Itp1;
-	for (i = 0; i < It_normalize.size(); i++) {
+	for (size_t i = 0; i < It_normalize.size(); i++) {
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
 	}
@@ -145,9 +144,9 @@ OpticalFlow_Pyramid(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxIn
 		Add_VectorOffset(u_levels, level, MaxLevel);
 	}
 	// Copy the lowest vector for output
-	for (i = 0; i < u->size(); i++) {
-		(*u)[i].x = u_levels[0][i].x;
-		(*u)[i].y = u_levels[0][i].y;
+	for (size_t i = 0; i < u->size(); i++) {
+		u->at(i).x = u_levels[0][i].x;
+		u->at(i).y = u_levels[0][i].y;
 	}
 	delete[] u_levels;
 	delete[] grad_It_levels;
@@ -232,7 +231,7 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 	int ErrorIncrementCount = 0;
 	for (int n = 0; n < IterMax; n++) {
 		// Calc for all sites
-		int site;
+		size_t site;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -244,7 +243,7 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 		}
 		// Calc for all sites
 		for (site = 0; site < u->size(); site++) {
-			(*u)[site] = u_np1[site];
+			u->at(site) = u_np1[site];
 		}
 		if (level == 0) {
 			if ((n & 0x3F) == 0) {
@@ -321,7 +320,7 @@ sup_Error_uu(const ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, 
 
 	if (Img_g != nullptr) {
 		Img_g_max.reset();
-		for (int i = 0; i < Img_g->size(); i++) {
+		for (size_t i = 0; i < Img_g->size(); i++) {
 			if (Img_g_max.x < POW2(Img_g->get(i).x)) {
 				Img_g_max.x = POW2(Img_g->get(i).x);
 			}

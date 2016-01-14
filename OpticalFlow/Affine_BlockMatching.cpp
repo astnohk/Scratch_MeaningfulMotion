@@ -49,7 +49,7 @@ OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1,
 	// Image Normalization
 	It_normalize = *It;
 	Itp1_normalize = *Itp1;
-	for (int i = 0; i < It_normalize.size(); i++) {
+	for (size_t i = 0; i < It_normalize.size(); i++) {
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
 	}

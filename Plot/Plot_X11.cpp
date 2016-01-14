@@ -670,10 +670,10 @@ TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVe
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (int i = 0; i < Img->size(); i++) {
-		double r = sqrt(POW2(GaraxyCenter.x - (*Img_coord)[i].x)
-		    + POW2(GaraxyCenter.y - (*Img_coord)[i].y)
-		    + POW2(GaraxyCenter.z - (*Img_coord)[i].z));
+	for (size_t i = 0; i < Img->size(); i++) {
+		double r = sqrt(POW2(GaraxyCenter.x - Img_coord->at(i).x)
+		    + POW2(GaraxyCenter.y - Img_coord->at(i).y)
+		    + POW2(GaraxyCenter.z - Img_coord->at(i).z));
 		if (r < Radius_Minimum) {
 			r = Radius_Minimum;
 		}
@@ -688,7 +688,7 @@ TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVe
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(8)
 #endif
-	for (int i = 0; i < Img->size(); i++) {
+	for (size_t i = 0; i < Img->size(); i++) {
 		double x = (Img_coord->get(i).x - X11_Param.Center_x) * X11_Param.Scale;
 		double y = (Img_coord->get(i).y - X11_Param.Center_y) * X11_Param.Scale;
 		double z = (-Img_coord->get(i).z - X11_Param.Center_z) * X11_Param.Scale;
@@ -735,12 +735,12 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 		Error.Malloc();
 	}
 	// List Cores
-	for (int i = 0; i < Img->size(); i++) {
+	for (size_t i = 0; i < Img->size(); i++) {
 		if (maxint < Img->get(i)) {
 			maxint = Img->get(i);
 		}
 	}
-	for (int i = 0; i < Img->size(); i++) {
+	for (size_t i = 0; i < Img->size(); i++) {
 		if (Img->get(i) > maxint * 0.95) {
 			core[Num_Cores] = i;
 			Num_Cores++;
@@ -748,7 +748,7 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 	}
 	// Gravity Motion
 	{
-		int i;
+		size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -773,7 +773,7 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 	delete[] core;
 	// Pixel Coordinate
 	{
-		int i;
+		size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(8)
 #endif
@@ -814,7 +814,7 @@ Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<X
 	rectsize.height = MAX(1, int(floor(X11_Param.Scale * 0.25)));
 	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img->get(0);
-	for (int i = 1; i < Img->size(); i++) {
+	for (size_t i = 1; i < Img->size(); i++) {
 		if (Img->get(i) < Min_Intensity) {
 			Min_Intensity = Img->get(i);
 		} else if (Img->get(i) > Max_Intensity) {
@@ -825,7 +825,7 @@ Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<X
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Points
-	for (int i = 0; i < Img->size(); i++) {
+	for (size_t i = 0; i < Img->size(); i++) {
 		int index = Img_index[i];
 		if (0 <= Img_plot->get(index).point.x && Img_plot->get(index).point.x < Window_size.width
 		    && 0 <= Img_plot->get(index).point.y && Img_plot->get(index).point.y < Window_size.height) {
@@ -879,7 +879,7 @@ Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPL
 
 	// Scan Intensity MIN and MAX
 	Min_Intensity = Max_Intensity = Img->get(0);
-	for (int n = 1; n < Img->size(); n++) {
+	for (size_t n = 1; n < Img->size(); n++) {
 		if (Img->get(n) < Min_Intensity) {
 			Min_Intensity = Img->get(n);
 		} else if (Img->get(n) > Max_Intensity) {
@@ -890,7 +890,7 @@ Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPL
 	XSetForeground(disp, GCmono, BlackPixel(disp, 0));
 	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Grid
-	for (int n = 0; n < Img->size(); n++) {
+	for (size_t n = 0; n < Img->size(); n++) {
 		short x = short(Img_index[n] % Img->width());
 		short y = short(Img_index[n] / Img->width());
 		if (x == Img->width() - 1 || y == Img->height() - 1) {

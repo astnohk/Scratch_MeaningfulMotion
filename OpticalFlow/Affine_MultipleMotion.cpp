@@ -40,7 +40,7 @@ MultipleMotion_Affine(ImgVector<double> *It, ImgVector<double> *Itp1, double Max
 	// Image Normalization
 	It_normalize = *It;
 	Itp1_normalize = *Itp1;
-	for (int i = 0; i < It_normalize.size(); i++) {
+	for (size_t i = 0; i < It_normalize.size(); i++) {
 		It_normalize[i] /= MaxInt;
 		Itp1_normalize[i] /= MaxInt;
 	}
@@ -155,7 +155,7 @@ Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double
 	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		E_a.a[i] = .0;
 	}
-	for (int site = 0; site < Img_g->size(); site++) {
+	for (size_t site = 0; site < Img_g->size(); site++) {
 		int x, y;
 		x = site % Img_g->width();
 		y = site / Img_g->width();
@@ -179,9 +179,8 @@ sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 
 	VECTOR_AFFINE sup;
 	VECTOR_AFFINE u_aa_max;
-	int i;
 
-	for (i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+	for (size_t i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u_aa_max.a[i] = .0;
 	}
 	if (Img_g == nullptr) {
@@ -189,7 +188,7 @@ sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 		Error.PointerNull();
 		return u_aa_max;
 	}
-	for (i = 0; i < Img_g->size(); i++) {
+	for (size_t i = 0; i < Img_g->size(); i++) {
 		int x, y;
 		x = i % Img_g->width();
 		y = i / Img_g->width();
@@ -232,7 +231,7 @@ Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVe
 	VECTOR_2D<double> u_a;
 	int x, y;
 
-	for (int site = 0; site < Img_g->size(); site++) {
+	for (size_t site = 0; site < Img_g->size(); site++) {
 		x = site % Img_g->width();
 		y = site / Img_g->width();
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;

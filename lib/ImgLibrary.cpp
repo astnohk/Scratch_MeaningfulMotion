@@ -251,7 +251,6 @@ DerivativeAngler(const ImgVector<double>* img)
 
 	ImgVector<VECTOR_2D<double> > *Derivative = nullptr;
 	ImgVector<double> *angles = nullptr;
-	int n;
 	double dx, dy;
  
 	if (img == nullptr) {
@@ -280,17 +279,17 @@ DerivativeAngler(const ImgVector<double>* img)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (n = 0; n < img->size(); n++) {
-		dx = (*Derivative)[n].x;
-		dy = (*Derivative)[n].y;
+	for (size_t n = 0; n < img->size(); n++) {
+		dx = Derivative->at(n).x;
+		dy = Derivative->at(n).y;
 		if (fabs(dx) <= DERIVATIVE_MINIMUM && fabs(dy) <= DERIVATIVE_MINIMUM) {
-			(*angles)[n] = -2.0 * ANGLE_MAX;
+			angles->at(n) = -2.0 * ANGLE_MAX;
 		} else {
-			(*angles)[n] = atan2(dy, dx) / M_PI + 0.5; // Add 0.5 for pi/2 rotation
-			if ((*angles)[n] > ANGLE_MAX) {
-				(*angles)[n] -= ANGLE_MAX;
-			} else if ((*angles)[n] < 0.0) {
-				(*angles)[n] += ANGLE_MAX;
+			angles->at(n) = atan2(dy, dx) / M_PI + 0.5; // Add 0.5 for pi/2 rotation
+			if (angles->at(n) > ANGLE_MAX) {
+				angles->at(n) -= ANGLE_MAX;
+			} else if (angles->at(n) < 0.0) {
+				angles->at(n) += ANGLE_MAX;
 			}
 		}
 	}
@@ -359,9 +358,9 @@ Derivator(const ImgVector<double>* Image, const char* Type)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (int x = 0; x < Derivative->size(); x++) {
-		(*Derivative)[x].x = Image_dx->get(x);
-		(*Derivative)[x].y = Image_dy->get(x);
+	for (size_t x = 0; x < Derivative->size(); x++) {
+		Derivative->at(x).x = Image_dx->get(x);
+		Derivative->at(x).y = Image_dy->get(x);
 	}
 	delete Image_dx;
 	delete Image_dy;
@@ -379,9 +378,7 @@ ImgVector<double> *
 Derivation_abs(const ImgVector<VECTOR_2D<double> >* Derivative_2D)
 {
 	ERROR Error("Derivation_abs");
-
 	ImgVector<double> *Derivative = nullptr;
-	int n;
 
 	if (Derivative_2D == nullptr) {
 		Error.Value("Derivative_2D");
@@ -398,7 +395,7 @@ Derivation_abs(const ImgVector<VECTOR_2D<double> >* Derivative_2D)
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (n = 0; n < Derivative_2D->size(); n++) {
+	for (size_t n = 0; n < Derivative_2D->size(); n++) {
 		Derivative->at(n) = sqrt(POW2(Derivative_2D->get(n).x) + POW2(Derivative_2D->get(n).y));
 	}
 	return Derivative;

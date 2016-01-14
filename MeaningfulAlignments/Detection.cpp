@@ -30,8 +30,8 @@ DetectScratch(const PNM &pnm, double s_med, double s_avg, FILTER_PARAM FilterPar
 		Error.Malloc();
 		goto ExitError;
 	}
-	for (int i = 0; i < img->size(); i++) {
-		(*img)[i] = double(pnm[i]);
+	for (size_t i = 0; i < img->size(); i++) {
+		img->at(i) = double(pnm[i]);
 	}
 	switch (FilterParam.type) {
 		case FILTER_ID_EPSILON: // Epsilon Filter
