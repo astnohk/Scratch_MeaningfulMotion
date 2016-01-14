@@ -23,8 +23,8 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	int CurrentFileNum;
 
 	const int History_Max = 4;
-	std::vector<ImgVector<ImgClass::RGB> > sequence_RGB(History_Max);
-	std::vector<ImgVector<ImgClass::RGB> > sequence_Grayscale(History_Max);
+	std::deque<ImgVector<ImgClass::RGB> > sequence_RGB(History_Max);
+	std::deque<ImgVector<double> > sequence_Grayscale(History_Max);
 
 	PNM pnm_in;
 	PNM pnm_out;
@@ -210,10 +210,10 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 			goto Write;
 		}
 		// Copy color image to ImgVector<ImgClass::RGB> imgd_in
-		for (int i = History_Max - 1; i > 0; i--) {
-			sequence_RGB[i] = sequence_RGB[i - 1];
+		sequence_RGB.push_front(ImgVector<ImgClass::RGB>(pnm_in.Width(), pnm_in.Height()));
+		if (sequence_RGB.size() >= History_Max) {
+			sequence_RGB.pop_back();
 		}
-		sequence_RGB[0].reset(pnm_in.Width(), pnm_in.Height());
 		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
 		for (int i = 0; i < imgd_in.size(); i++) {
 			if (pnm_in.isRGB()) {
@@ -254,10 +254,10 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 			pnmd_out.free();
 			printf("Finished\n\n");
 		}
-		for (int i = History_Max - 1; i > 0; i--) {
-			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
+		sequence_Grayscale.push_front(ImgVector<double>(pnm_in.Width(), pnm_in.Height()));
+		if (sequence_Grayscale.size() >= History_Max) {
+			sequence_Grayscale.pop_back();
 		}
-		sequence_Grayscale[0].reset(pnm_in.Width(), pnm_in.Height());
 		imgd_in_gray.reset(pnm_in.Width(), pnm_in.Height());
 		for (int i = 0; i < imgd_in_gray.size(); i++) {
 			sequence_Grayscale[0][i] = double(pnm_in[i]);

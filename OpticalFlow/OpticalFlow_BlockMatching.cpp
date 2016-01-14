@@ -4,7 +4,9 @@
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
 
+#include <deque>
 #include <string>
+#include <vector>
 
 #include "OpticalFlow.h"
 #include "OpticalFlow_BlockMatching.h"
@@ -19,10 +21,10 @@ std::vector<ImgVector<VECTOR_2D<double> > >
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
 	const size_t History_Max = 4;
-	static std::vector<ImgVector<ImgClass::RGB> > sequence_sRGB;
-	static std::vector<ImgVector<double> > sequence_Grayscale;
-	static std::vector<ImgVector<ImgClass::Lab> > sequence_Lab;
-	static std::vector<Segmentation<ImgClass::Lab> > segmentations;
+	static std::deque<ImgVector<ImgClass::RGB> > sequence_sRGB;
+	static std::deque<ImgVector<double> > sequence_Grayscale;
+	static std::deque<ImgVector<ImgClass::Lab> > sequence_Lab;
+	static std::deque<Segmentation<ImgClass::Lab> > segmentations;
 
 	std::bad_alloc except_bad_alloc;
 
@@ -96,31 +98,18 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	// Shift image sequence by 1 and assign current image
 	if (sequence_sRGB.empty()) {
-		sequence_sRGB.resize(2);
-		sequence_Grayscale.resize(2);
-		sequence_Lab.resize(2);
-		sequence_sRGB[1] = It_sRGB_normalize;
-		sequence_Grayscale[1] = It_normalize;
-		sequence_Lab[1] = It_Lab_normalize;
-	} else if (sequence_sRGB.size() < History_Max) {
-		sequence_sRGB.resize(sequence_sRGB.size() + 1);
-		sequence_Grayscale.resize(sequence_Grayscale.size() + 1);
-		sequence_Lab.resize(sequence_Lab.size() + 1);
-		for (size_t i = sequence_Lab.size() - 1u; i > 0; i--) {
-			sequence_sRGB[i] = sequence_sRGB[i - 1];
-			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
-			sequence_Lab[i] = sequence_Lab[i - 1];
-		}
-	} else {
-		for (size_t i = History_Max - 1u; i > 0; i--) {
-			sequence_sRGB[i] = sequence_sRGB[i - 1];
-			sequence_Grayscale[i] = sequence_Grayscale[i - 1];
-			sequence_Lab[i] = sequence_Lab[i - 1];
-		}
+		sequence_sRGB.push_front(It_sRGB_normalize);
+		sequence_Grayscale.push_front(It_normalize);
+		sequence_Lab.push_front(It_Lab_normalize);
 	}
-	sequence_sRGB[0] = Itp1_sRGB_normalize;
-	sequence_Grayscale[0] = Itp1_normalize;
-	sequence_Lab[0] = Itp1_Lab_normalize;
+	sequence_sRGB.push_front(Itp1_sRGB_normalize);
+	sequence_Grayscale.push_front(Itp1_normalize);
+	sequence_Lab.push_front(Itp1_Lab_normalize);
+	if (sequence_sRGB.size() >= History_Max) {
+		sequence_sRGB.pop_back();
+		sequence_Grayscale.pop_back();
+		sequence_Lab.pop_back();
+	}
 
 	// Adjust max level to use the Block Matching efficiently
 	if (MaxLevel > floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0))) {
@@ -158,19 +147,12 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #endif
 
 		if (segmentations.empty()) {
-			segmentations.resize(2);
-			segmentations[1] = Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity);
-		} else if (segmentations.size() < History_Max) {
-			segmentations.resize(segmentations.size() + 1);
-			for (size_t i = segmentations.size() - 1u; i > 0; i--) {
-				segmentations[i] = segmentations[i - 1];
-			}
-		} else {
-			for (size_t i = History_Max - 1u; i > 0; i--) {
-				segmentations[i] = segmentations[i - 1];
-			}
+			segmentations.push_front(Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity));
 		}
-		segmentations[0] = Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity);
+		segmentations.push_front(Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity));
+		if (segmentations.size() >= History_Max) {
+			segmentations.pop_back();
+		}
 
 		PNM pnm;
 		found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));

@@ -42,6 +42,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <deque>
 #include <iostream>
 #include <list>
 #include <string>
@@ -51,6 +52,7 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <unistd.h>
+#include <vector>
 
 // For turn on the ImgClass output switch
 #define OUTPUT_IMG_CLASS
