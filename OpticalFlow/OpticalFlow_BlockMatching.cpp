@@ -78,7 +78,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// Image Normalization
 	It_normalize = It;
 	Itp1_normalize = Itp1;
-	for (int i = 0; i < It_normalize.size(); i++) {
+	for (size_t i = 0; i < It_normalize.size(); i++) {
 		// sRGB
 		It_sRGB_normalize[i] /= MaxInt;
 		Itp1_sRGB_normalize[i] /= MaxInt;
@@ -89,7 +89,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// Convert sRGB to CIE Lab
 	It_Lab_normalize.reset(It_sRGB_normalize.width(), It_sRGB_normalize.height());
 	Itp1_Lab_normalize.reset(It_sRGB_normalize.width(), It_sRGB_normalize.height());
-	for (int i = 0; i < It_sRGB_normalize.size(); i++) {
+	for (size_t i = 0; i < It_sRGB_normalize.size(); i++) {
 		It_Lab_normalize[i].set(It_sRGB_normalize[i]);
 		Itp1_Lab_normalize[i].set(Itp1_sRGB_normalize[i]);
 	}
@@ -184,7 +184,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		pnm.free();
 
 		ImgVector<int> quantized(segmentations[0].width(), segmentations[0].height());
-		for (int i = 0; i < segmentations[0].ref_color_quantized_image().size(); i++) {
+		for (size_t i = 0; i < segmentations[0].ref_color_quantized_image().size(); i++) {
 			quantized.at(i) = int(round(double(segmentations[0].ref_color_quantized_image().get(i)) / 100.0));
 			if (quantized.get(i) < 0) {
 				quantized.at(i) = 0;
@@ -326,7 +326,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	*/
 	// Copy the lowest vector for output
 	if (u_levels != nullptr) {
-		for (int i = 0; i < u[0].size(); i++) {
+		for (size_t i = 0; i < u[0].size(); i++) {
 			u[0][i].x = u_levels[0][i].x;
 			u[0][i].y = u_levels[0][i].y;
 		}
@@ -426,7 +426,7 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 	sup = sup_Error_uu_Block(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
 	for (int n = 0; n < IterMax; n++) {
 		// Calc for all sites
-		int site;
+		size_t site;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -517,7 +517,7 @@ sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> >* Img_g, const double& lam
 
 	if (Img_g != nullptr) {
 		Img_g_max.reset();
-		for (int i = 0; i < Img_g->size(); i++) {
+		for (size_t i = 0; i < Img_g->size(); i++) {
 			if (Img_g_max.x < POW2(Img_g->get(i).x)) {
 				Img_g_max.x = POW2(Img_g->get(i).x);
 			}

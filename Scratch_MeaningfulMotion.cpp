@@ -215,7 +215,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 		}
 		sequence_RGB[0].reset(pnm_in.Width(), pnm_in.Height());
 		imgd_in.reset(pnm_in.Width(), pnm_in.Height());
-		for (int i = 0; i < imgd_in.size(); i++) {
+		for (size_t i = 0; i < imgd_in.size(); i++) {
 			if (pnm_in.isRGB()) {
 				sequence_RGB[0][i] = ImgClass::RGB(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
 				imgd_in[i] = ImgClass::RGB(pnm_in[i], pnm_in[i + pnm_in.Size()], pnm_in[i + 2 * pnm_in.Size()]);
@@ -259,7 +259,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 		}
 		sequence_Grayscale[0].reset(pnm_in.Width(), pnm_in.Height());
 		imgd_in_gray.reset(pnm_in.Width(), pnm_in.Height());
-		for (int i = 0; i < imgd_in_gray.size(); i++) {
+		for (size_t i = 0; i < imgd_in_gray.size(); i++) {
 			sequence_Grayscale[0][i] = double(pnm_in[i]);
 			imgd_in_gray[i] = double(pnm_in[i]);
 		}
@@ -515,7 +515,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 		// X11 Plotting
 		if (Options.x11_plot) {
 			img_orig.reset(pnm_orig.Width(), pnm_orig.Height());
-			for (int i = 0; i < img_orig.size(); i++) {
+			for (size_t i = 0; i < img_orig.size(); i++) {
 				img_orig[i] = int(pnm_orig[i]);
 			}
 			ShowSegments_X11(&img_orig, size, pnm_orig.MaxInt(), MaximalSegments, Num_Segments);
