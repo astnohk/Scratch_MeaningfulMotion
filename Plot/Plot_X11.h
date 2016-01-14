@@ -38,5 +38,27 @@ extern Colormap cmap;
 extern double cos_a[ROTATE_ANGLE_MAX];
 extern double sin_a[ROTATE_ANGLE_MAX];
 
+
+
+
+void freeXWindow(void);
+void Init_X11(X11_PARAM* X11_Param, SIZE Img_size);
+int XEventor(X11_PARAM* X11_Param, SIZE Img_size);
+void SwitchEventer(X11_PARAM *X11_Param);
+
+void TransRotate_3DSegment(const X11_PARAM& X11_Param, const SEGMENT* segments, SEGMENT_X11* segments_plot, const unsigned int Num_Segments, const SIZE& Img_size, const SIZE& Img_size_resample);
+void TransRotate_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, const int MaxInt, ImgVector<XPLOT>* Img_plot);
+void TransGaraxy_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<COORDINATE_3D>* Img_coord, ImgVector<COORDINATE_3D>* Img_vel, const COORDINATE_3D& GaraxyCenter, ImgVector<XPLOT>* Img_plot);
+void TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<COORDINATE_3D>* Img_coord, ImgVector<COORDINATE_3D>* Img_vel, ImgVector<XPLOT>* Img_plot);
+
+void Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, size_t* Img_index);
+void Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, size_t* Img_index);
+void Plot_3DSegment(const X11_PARAM& X11_Param, const SEGMENT_X11* segments_plot, const unsigned int Num_Segments);
+void PlotParameters(const X11_PARAM& X11_Param);
+
+void Set_Pixmap2Window(void);
+void reset_index(size_t* Img_index, const size_t N);
+void sort_index(const ImgVector<XPLOT>* Img_plot, size_t* Index, size_t* Index_tmp, const size_t N);
+
 #endif
 

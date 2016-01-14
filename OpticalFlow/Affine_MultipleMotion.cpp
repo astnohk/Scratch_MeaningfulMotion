@@ -146,7 +146,7 @@ IRLS_MultipleMotion_Affine(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_
 
 
 VECTOR_AFFINE
-Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_a(const VECTOR_AFFINE* u, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& sigmaD)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_AFFINE E_a;
@@ -156,9 +156,9 @@ Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double
 		E_a.a[i] = .0;
 	}
 	for (size_t site = 0; site < Img_g->size(); site++) {
-		int x, y;
-		x = site % Img_g->width();
-		y = site / Img_g->width();
+		int x = static_cast<int>(site % size_t(Img_g->width()));
+		int y = static_cast<int>(site / size_t(Img_g->width()));
+
 		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
 		u_a.y = u->a[3] + u->a[4] * x + u->a[5] * y;
 		E_a.a[0] += Img_g->get(site).x * (*psiD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
@@ -173,7 +173,7 @@ Error_a(VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double
 
 
 VECTOR_AFFINE
-sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
+sup_Error_aa(const ImgVector<VECTOR_2D<double> >* Img_g, const double& sigmaD)
 {
 	ERROR Error("sup_Error_aa");
 
@@ -189,10 +189,9 @@ sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 		return u_aa_max;
 	}
 	for (size_t i = 0; i < Img_g->size(); i++) {
-		int x, y;
-		x = i % Img_g->width();
-		y = i / Img_g->width();
-		/* u = a0 + a1 * x + a2 * y */
+		int x = static_cast<int>(i % size_t(Img_g->width()));
+		int y = static_cast<int>(i / size_t(Img_g->width()));
+		// u = a0 + a1 * x + a2 * y
 		if (u_aa_max.a[0] < POW2(Img_g->get(i).x)) {
 			u_aa_max.a[0] = POW2(Img_g->get(i).x);
 		}
@@ -202,7 +201,7 @@ sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 		if (u_aa_max.a[2] < POW2(Img_g->get(i).x * y)) {
 			u_aa_max.a[2] = POW2(Img_g->get(i).x * y);
 		}
-		/* v = a3 + a4 * x + a5 * y */
+		// v = a3 + a4 * x + a5 * y
 		if (u_aa_max.a[3] < POW2(Img_g->get(i).y)) {
 			u_aa_max.a[3] = POW2(Img_g->get(i).y);
 		}
@@ -224,18 +223,17 @@ sup_Error_aa(ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD)
 
 
 double
-Error_Affine(const VECTOR_AFFINE *u, ImgVector<VECTOR_2D<double> > *Img_g, ImgVector<double> *Img_t, double sigmaD)
+Error_Affine(const VECTOR_AFFINE* u, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& sigmaD)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double E = 0.0;
-	VECTOR_2D<double> u_a;
-	int x, y;
 
 	for (size_t site = 0; site < Img_g->size(); site++) {
-		x = site % Img_g->width();
-		y = site / Img_g->width();
-		u_a.x = u->a[0] + u->a[1] * x + u->a[2] * y;
-		u_a.y = u->a[3] + u->a[4] * x + u->a[5] * y;
+		int x = static_cast<int>(site % size_t(Img_g->width()));
+		int y = static_cast<int>(site / size_t(Img_g->width()));
+		VECTOR_2D<double> u_a(
+		    u->a[0] + u->a[1] * x + u->a[2] * y,
+		    u->a[3] + u->a[4] * x + u->a[5] * y);
 		E += (*rhoD)(Img_g->get(site).x * u_a.x + Img_g->get(site).y * u_a.y + Img_t->get(site), sigmaD);
 	}
 	return E;

@@ -377,7 +377,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 					Error.FunctionFail();
 					goto ExitError;
 				}
-				for (int i = 0; i < pnm_out.Width() * pnm_out.Height(); i++) {
+				for (size_t i = 0; i < pnm_out.Size(); i++) {
 					pnm_out[i] = int(round(scratches->get(i)));
 				}
 			} else {
@@ -387,7 +387,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 					try {
 						Pr_table = new ImgVector<double>(maxMN_res + 1, maxMN_res + 1);
 					}
-					catch (const std::bad_alloc &bad) {
+					catch (const std::bad_alloc& bad) {
 						std::cerr << bad.what() << std::endl;
 						Error.Function("new");
 						Error.Value("Pr_table");

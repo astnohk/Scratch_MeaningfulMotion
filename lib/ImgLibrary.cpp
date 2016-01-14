@@ -205,8 +205,8 @@ Gaussian(const ImgVector<double>* img, FILTER_PARAM* Param)
 #if defined(SHOW_GAUSSIAN_FILTER)
 	printf("\n");
 #endif
-	for (int m = 0; m < Param->size.width * Param->size.height; m++) {
-		(*Gauss)[m] /= sum;
+	for (size_t m = 0; m < size_t(Param->size.width) * size_t(Param->size.height); m++) {
+		Gauss->at(m) /= sum;
 	}
 	try {
 		blurred = new ImgVector<double>(img->width(), img->height());

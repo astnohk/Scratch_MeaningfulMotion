@@ -25,7 +25,7 @@ void Add_VectorOffset(ImgVector<VECTOR_2D<double> > *u_levels, int level, int Ma
 
 void IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level);
 
-VECTOR_2D<double> Error_u(int site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
+VECTOR_2D<double> Error_u(const size_t& site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
 VECTOR_2D<double> sup_Error_uu(const ImgVector<VECTOR_2D<double> > *Img_g, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);
 
 double Error_MultipleMotion(const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS);

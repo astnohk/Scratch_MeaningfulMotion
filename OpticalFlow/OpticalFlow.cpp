@@ -271,24 +271,21 @@ IRLS_OpticalFlow_Pyramid(ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTO
 
 
 VECTOR_2D<double>
-Error_u(int site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
+Error_u(const size_t& site, const ImgVector<VECTOR_2D<double> > *u, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, const double &lambdaD, const double &lambdaS, const double &sigmaD, const double &sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
 	VECTOR_2D<double> us;
 	double Center;
-	VECTOR_2D<double> Neighbor;
 	VECTOR_2D<double> E_u;
-	int x, y;
 
-	x = site % u->width();
-	y = site / u->width();
+	int x = static_cast<int>(site % size_t(u->width()));
+	int y = static_cast<int>(site / size_t(u->width()));
 
 	us = u->get(site);
 	Center = (*psiD)(Img_g->get(site).x * us.x + Img_g->get(site).y * us.y + Img_t->get(site), sigmaD);
 
-	Neighbor.x = .0;
-	Neighbor.y = .0;
+	VECTOR_2D<double> Neighbor(0.0, 0.0);
 	if (x > 0) {
 		Neighbor.x += (*psiS)(us.x - u->get(x - 1, y).x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u->get(x - 1, y).y, sigmaS);
@@ -470,7 +467,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 
 	compensated.create_image_compensated(); // Make compensated image
 	int* compensated_image = nullptr;
-	int size = compensated.ref_image_compensated().size();
+	size_t size = compensated.ref_image_compensated().size();
 	std::string::size_type found = filename.find_last_of("/\\");
 	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
@@ -482,7 +479,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
 		throw;
 	}
-	for (int n = 0; n < size; n++) {
+	for (size_t n = 0; n < size; n++) {
 		compensated_image[n] = int(compensated.ref_image_compensated().get(n).R);
 		compensated_image[n + size] = int(compensated.ref_image_compensated().get(n).G);
 		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);

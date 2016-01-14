@@ -76,8 +76,8 @@ ShowSegments_X11(const ImgVector<pnm_img>* Img, const SIZE& Img_size_resample, c
 	ImgVector<COORDINATE_3D> *Img_vel = nullptr;
 	ImgVector<XPLOT> *Img_plot = nullptr;
 	SEGMENT_X11 *segments_plot = nullptr;
-	int *Img_index = nullptr;
-	int *Img_index_tmp = nullptr;
+	size_t *Img_index = nullptr;
+	size_t *Img_index_tmp = nullptr;
 	SIZE Img_size;
 
 	COORDINATE_3D GaraxyCenter;
@@ -163,7 +163,7 @@ ShowSegments_X11(const ImgVector<pnm_img>* Img, const SIZE& Img_size_resample, c
 		throw;
 	}
 	try {
-		Img_index = new int[Img->size()];
+		Img_index = new size_t[Img->size()];
 	}
 	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
@@ -178,7 +178,7 @@ ShowSegments_X11(const ImgVector<pnm_img>* Img, const SIZE& Img_size_resample, c
 		throw;
 	}
 	try {
-		Img_index_tmp = new int[Img->size()];
+		Img_index_tmp = new size_t[Img->size()];
 	}
 	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
@@ -705,8 +705,8 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 	ERROR Error("TransGravity_3DPoint");
 	const double Radius_Minimum = 0.01;
 	const double dt = 0.5;
-	int *core = nullptr;
-	int Num_Cores = 0;
+	size_t *core = nullptr;
+	size_t Num_Cores = 0;
 	int maxint = 0;
 
 	if (Img == nullptr) {
@@ -727,7 +727,7 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 		throw std::invalid_argument("error : void TransGravity_3DPoint(X11_PARAM&, ImgVector<int>*, ImgVector<COORDINATE_3D>*, ImgVector<COORDINATE_3D>*, ImgVector<XPLOT>*) : ImgVector<XPLOT>* Img_plot");
 	}
 	try {
-		core = new int[Img->size()];
+		core = new size_t[Img->size()];
 	}
 	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
@@ -753,7 +753,7 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 #pragma omp parallel for
 #endif
 		for (i = 0; i < Img->size(); i++) {
-			for (int j = 0; j < Num_Cores; j++) {
+			for (size_t j = 0; j < Num_Cores; j++) {
 				double M = double(Img->get(core[j])) / double(maxint);
 				double r = sqrt(POW2(Img_coord->get(core[j]).x - Img_coord->get(i).x)
 				    + POW2(Img_coord->get(core[j]).y - Img_coord->get(i).y)
@@ -790,7 +790,7 @@ TransGravity_3DPoint(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgV
 
 
 void
-Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, int* Img_index)
+Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, size_t* Img_index)
 {
 	ERROR Error("Plot_3DPoint");
 	int Min_Intensity, Max_Intensity;
@@ -826,7 +826,7 @@ Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<X
 	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Points
 	for (size_t i = 0; i < Img->size(); i++) {
-		int index = Img_index[i];
+		size_t index = Img_index[i];
 		if (0 <= Img_plot->get(index).point.x && Img_plot->get(index).point.x < Window_size.width
 		    && 0 <= Img_plot->get(index).point.y && Img_plot->get(index).point.y < Window_size.height) {
 			if (Img->get(index) > (Max_Intensity - Min_Intensity) * 0.75 + Min_Intensity) {
@@ -854,7 +854,7 @@ Plot_3DPoints(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<X
 
 
 void
-Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, int* Img_index)
+Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPLOT>* Img_plot, size_t* Img_index)
 {
 	ERROR Error("Plot_3DGridANDSegment");
 	XPoint Triplet[8];
@@ -891,8 +891,8 @@ Plot_3DGrid(const X11_PARAM& X11_Param, const ImgVector<int>* Img, ImgVector<XPL
 	XFillRectangle(disp, pix, GCmono, 0, 0, static_cast<unsigned int>(Window_size.width), static_cast<unsigned int>(Window_size.height));
 	// Draw The Grid
 	for (size_t n = 0; n < Img->size(); n++) {
-		short x = short(Img_index[n] % Img->width());
-		short y = short(Img_index[n] / Img->width());
+		short x = short(Img_index[n] % size_t(Img->width()));
+		short y = short(Img_index[n] / size_t(Img->width()));
 		if (x == Img->width() - 1 || y == Img->height() - 1) {
 			continue;
 		}
@@ -1077,22 +1077,20 @@ Set_Pixmap2Window(void)
 
 
 void
-reset_index(int* Img_index, const int N)
+reset_index(size_t* Img_index, const size_t N)
 {
-	int n;
-
 	if (Img_index == nullptr) {
 		std::cerr << "error : void reset_index(int*, const int) : int* Img_index" << std::endl;
 		throw std::invalid_argument("int* Img_index");
 	}
-	for (n = 0; n < N; n++) {
+	for (size_t n = 0; n < N; n++) {
 		Img_index[n] = n;
 	}
 }
 
 
 void
-sort_index(const ImgVector<XPLOT>* Img_plot, int* Index, int* Index_tmp, const int N)
+sort_index(const ImgVector<XPLOT>* Img_plot, size_t* Index, size_t* Index_tmp, const size_t N)
 {
 	if (Img_plot == nullptr) {
 		std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : const ImgVector<XPLOT>* Img_plot" << std::endl;
@@ -1104,18 +1102,18 @@ sort_index(const ImgVector<XPLOT>* Img_plot, int* Index, int* Index_tmp, const i
 		std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : int* Index_tmp" << std::endl;
 		throw std::invalid_argument("int* Index_tmp");
 	}
-	for (int n = 0; n < N; n++) {
-		if (Index[n] < 0 || Index[n] >= N) {
+	for (size_t n = 0; n < N; n++) {
+		if (Index[n] >= N) {
 			std::cerr << "error : void sort_index(const ImgVector<XPLOT>*, int*, int*, const int) : int* Index[n] out of range" << std::endl;
 			throw std::out_of_range("int* Index[n] out of range");
 		}
 	}
-	int step = 2;
+	size_t step = 2;
 	for (int div = 0; div < ceil(log(N) / log(2.0)); div++) {
-		for (int n = 0; n < N; n += step) {
-			int l = 0;
-			int r = step / 2;
-			for (int k = n; k < n + step && k < N; k++) {
+		for (size_t n = 0; n < N; n += step) {
+			size_t l = 0;
+			size_t r = step / 2;
+			for (size_t k = n; k < n + step && k < N; k++) {
 				if (l < step / 2 && n + l < N
 				    && ((r >= step || n + r >= N) || Img_plot->get(Index[n + l]).z > Img_plot->get(Index[n + r]).z)) {
 					Index_tmp[k] = Index[n + l];
@@ -1126,7 +1124,7 @@ sort_index(const ImgVector<XPLOT>* Img_plot, int* Index, int* Index_tmp, const i
 				}
 			}
 		}
-		for (int n = 0; n < N; n++) {
+		for (size_t n = 0; n < N; n++) {
 			Index[n] = Index_tmp[n];
 		}
 		step *= 2;

@@ -30,7 +30,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	std::vector<ImgVector<VECTOR_2D<double> > > u; // For RETURN value
 
-	ImgVector<int> domain_map;
+	ImgVector<size_t> domain_map;
 	const double coeff_MAD = 1.0;
 	const double coeff_ZNCC = 0.0;
 	BlockMatching<ImgClass::Lab> block_matching;
@@ -124,7 +124,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	domain_map.reset(It.width(), It.height());
 	for (int y = 0; y < It.height(); y++) {
 		for (int x = 0; x < It.width(); x++) {
-			domain_map.at(x, y) = int(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
+			domain_map.at(x, y) = size_t(BlockSize * floor(y / BlockSize) + floor(x / BlockSize));
 		}
 	}
 	int BlockMatching_BlockSize = 8;
@@ -161,9 +161,15 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 		std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation" + ofilename.substr(found);
 		printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
-		pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), segmentations[0].ref_segmentation_map().max(), segmentations[0].ref_segmentation_map().data());
-		pnm.write(ofilename_segmentation.c_str());
-		pnm.free();
+		{
+			ImgVector<int> tmp_vector(segmentations[0].width(), segmentations[0].height());
+			for (size_t i = 0; i < segmentations[0].size(); i++) {
+				tmp_vector[i] = static_cast<int>(segmentations[0][i]);
+			}
+			pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), int(tmp_vector.max()), tmp_vector.data());
+			pnm.write(ofilename_segmentation.c_str());
+			pnm.free();
+		}
 
 		ImgVector<int> quantized(segmentations[0].width(), segmentations[0].height());
 		for (size_t i = 0; i < segmentations[0].ref_color_quantized_image().size(); i++) {
@@ -385,7 +391,7 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLeve
 
 
 void
-IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVector<int>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
 {
 	ERROR Error("IRLS_OpticalFlow_Pyramid_Block");
 
@@ -448,7 +454,7 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 
 
 VECTOR_2D<double>
-Error_u_Block(int site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<int>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_u_Block(const size_t& site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
@@ -456,12 +462,10 @@ Error_u_Block(int site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<
 	double Center;
 	VECTOR_2D<double> Neighbor;
 	VECTOR_2D<double> E_u;
-	int center_domain;
-	int x, y;
 
-	x = site % u->width();
-	y = site / u->width();
-	center_domain = domain_map.get(x, y);
+	int x = static_cast<int>(site % size_t(u->width()));
+	int y = static_cast<int>(site / size_t(u->width()));
+	size_t center_domain = domain_map.get(x, y);
 
 	us = u->get(site);
 	Center = (*psiD)(Img_g->get(site).x * us.x + Img_g->get(site).y * us.y + Img_t->get(site), sigmaD);
@@ -515,7 +519,7 @@ sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> >* Img_g, const double& lam
 
 
 double
-Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<int>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
@@ -527,7 +531,7 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 #endif
 	for (y = 0; y < u->height(); y++) {
 		for (int x = 0; x < u->width(); x++) {
-			int center_domain = domain_map.get(x, y);
+			size_t center_domain = domain_map.get(x, y);
 			VECTOR_2D<double> us(u->get(x, y));
 			VECTOR_2D<double> Neighbor(0.0, 0.0);
 			if (x > 0 && domain_map.get(x - 1, y) == center_domain) {
@@ -647,7 +651,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 
 	compensated.create_image_compensated(); // Make compensated image
 	int* compensated_image = nullptr;
-	int size = compensated.ref_image_compensated().size();
+	size_t size = compensated.ref_image_compensated().size();
 	std::string::size_type found = filename.find_last_of("/\\");
 	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
@@ -659,7 +663,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
 		throw;
 	}
-	for (int n = 0; n < size; n++) {
+	for (size_t n = 0; n < size; n++) {
 		compensated_image[n] = int(compensated.ref_image_compensated().get(n).R);
 		compensated_image[n + size] = int(compensated.ref_image_compensated().get(n).G);
 		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);

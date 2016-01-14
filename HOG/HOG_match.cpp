@@ -131,7 +131,7 @@ HOG_vector_compensated_write(const ImgVector<double>& img_prev, const ImgVector<
 	MotionCompensation<double> compensated;
 	PNM pnm;
 
-	for (int i = 0; i < width * height; i++) {
+	for (size_t i = 0; i < vector2d.size(); i++) {
 		vector2d[i].x = vector[i].x;
 		vector2d[i].y = vector[i].y;
 	}
