@@ -54,9 +54,6 @@
 #include <unistd.h>
 #include <vector>
 
-// For turn on the ImgClass output switch
-#define OUTPUT_IMG_CLASS
-
 #include "lib/Class.h"
 #include "lib/ImgStruct.h"
 #include "lib/Struct.h"

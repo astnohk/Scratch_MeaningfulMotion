@@ -3,7 +3,6 @@
  * This motion estimation based on
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
-
 #include <deque>
 #include <string>
 #include <vector>
@@ -294,13 +293,13 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		delete[] It_levels;
 	}
 	// Initialize u for return value
-	if (sequence_sRGB.size() < History_Max) {
-		u.resize(1);
-		u[0].reset(It.width(), It.height());
-	} else {
+	if (sequence_sRGB.size() > 2) {
 		u.resize(2);
 		u[0].reset(It.width(), It.height());
 		u[1].reset(It.width(), It.height());
+	} else {
+		u.resize(1);
+		u[0].reset(It.width(), It.height());
 	}
 	/*
 	try {
@@ -322,8 +321,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		for (int y = 0; y < block_matching.height(); y++) {
 			for (int x = 0; x < block_matching.width(); x++) {
 				u[0].at(x, y) = block_matching.get_prev(x, y);
-				if (u.size() > 1) {
-					u[1].at(x, y) = block_matching.get_next(x, y);
+				if (u.size() > 1) { // bi-directional
+					u.at(1).at(x, y) = block_matching.get_next(x, y);
 				}
 			}
 		}

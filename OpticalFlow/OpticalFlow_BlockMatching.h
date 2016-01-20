@@ -5,6 +5,8 @@
  */
 #include <string>
 
+#define OUTPUT_IMG_CLASS
+
 #include "../ImgClass/RGB.h"
 #include "../ImgClass/Lab.h"
 #include "../ImgClass/BlockMatching.h"
