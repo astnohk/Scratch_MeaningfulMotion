@@ -23,8 +23,8 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	int CurrentFileNum;
 
 	const int History_Max = 4;
-	std::deque<ImgVector<ImgClass::RGB> > sequence_RGB(History_Max);
-	std::deque<ImgVector<double> > sequence_Grayscale(History_Max);
+	std::deque<ImgVector<ImgClass::RGB> > sequence_RGB;
+	std::deque<ImgVector<double> > sequence_Grayscale;
 
 	PNM pnm_in;
 	PNM pnm_out;
@@ -41,7 +41,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	// Optical Flow
 	VECTOR_AFFINE MultipleMotion_AffineCoeff;
 	ImgVector<VECTOR_2D<double> > *MultipleMotion_u = nullptr;
-	std::vector<ImgVector<VECTOR_2D<double> > > MotionVectors;
+	std::vector<ImgVector<Vector_ST<double> > > MotionVectors;
 	// HOG
 	HOG hog_raw;
 	HOG hog;
@@ -534,8 +534,8 @@ Write:
 			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			if (imgd_prev.isNULL() == false) {
-				if (sequence_RGB[2].isNULL()) {
-					MultipleMotion_write(imgd_prev, imgd_in, MotionVectors[0], OutputNameNums);
+				if (sequence_RGB.size() == 2) {
+					MultipleMotion_write(imgd_prev, imgd_in, MotionVectors, OutputNameNums);
 				} else {
 					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], sequence_RGB[0], MotionVectors, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
 				}

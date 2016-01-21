@@ -16,9 +16,10 @@
 
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
-std::vector<ImgVector<VECTOR_2D<double> > >
+std::vector<ImgVector<Vector_ST<double> > >
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
 {
+	const bool Bidirectional_with_Time = true; // on almost all cases it is true
 	const size_t History_Max = 4;
 	static std::deque<ImgVector<ImgClass::RGB> > sequence_sRGB;
 	static std::deque<ImgVector<double> > sequence_Grayscale;
@@ -27,7 +28,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	std::bad_alloc except_bad_alloc;
 
-	std::vector<ImgVector<VECTOR_2D<double> > > u; // For RETURN value
+	std::vector<ImgVector<Vector_ST<double> > > u; // For RETURN value
 
 	ImgVector<size_t> domain_map;
 	const double coeff_MAD = 1.0;
@@ -57,7 +58,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
 	const double sigmaS_l0 = 0.03 / sqrt(2.0);
 
-	int BM_Search_Range = 101; // Block Matching search range
+	int BM_Search_Range = 61; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
 	std::string::size_type found;
@@ -292,37 +293,33 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		delete[] Itp1_levels;
 		delete[] It_levels;
 	}
-	// Initialize u for return value
-	if (sequence_sRGB.size() > 2) {
-		u.resize(2);
-		u[0].reset(It.width(), It.height());
-		u[1].reset(It.width(), It.height());
-	} else {
-		u.resize(1);
-		u[0].reset(It.width(), It.height());
-	}
-	/*
-	try {
-		u = new ImgVector<VECTOR_2D<double> >(It.width(), It.height());
-	}
-	catch (const std::bad_alloc &bad) {
-		std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
-		    << bad.what() << std::endl;
-		throw;
-	}
-	*/
 	// Copy the lowest vector for output
 	if (u_levels != nullptr) {
+		u.resize(1);
+		u[0].reset(It.width(), It.height());
 		for (size_t i = 0; i < u[0].size(); i++) {
 			u[0][i].x = u_levels[0][i].x;
 			u[0][i].y = u_levels[0][i].y;
 		}
+	} else if (Bidirectional_with_Time) {
+		u.resize(1);
+		u[0].reset(It.width(), It.height());
+		for (int y = 0; y < block_matching.height(); y++) {
+			for (int x = 0; x < block_matching.width(); x++) {
+				u[0].at(x, y) = block_matching.get(x, y);
+			}
+		}
 	} else {
+		u.resize(2);
+		u[0].reset(It.width(), It.height());
+		u[1].reset(It.width(), It.height());
 		for (int y = 0; y < block_matching.height(); y++) {
 			for (int x = 0; x < block_matching.width(); x++) {
 				u[0].at(x, y) = block_matching.get_prev(x, y);
+				u[0].at(x, y).t = -1;
 				if (u.size() > 1) { // bi-directional
-					u.at(1).at(x, y) = block_matching.get_next(x, y);
+					u[1].at(x, y) = block_matching.get_next(x, y);
+					u[1].at(x, y).t = 1;
 				}
 			}
 		}
@@ -563,13 +560,11 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 
 
 void
-MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const ImgVector<double>& img_next, const std::vector<ImgVector<VECTOR_2D<double> > >& u, const std::string& filename)
+MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename)
 {
 	ERROR Error("MultipleMotion_write");
-
 	FILE *fp = nullptr;
-	int x, y;
-	MotionCompensation<double> compensated(img_prev, img_current, img_next, u[0], u[1]);
+	MotionCompensation<double> compensated(img_prev, img_current, u[0]);
 	PNM pnm;
 	std::string filename_compensated;
 
@@ -581,9 +576,9 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 		throw std::logic_error("fopen");
 	}
 	fprintf(fp, "%d %d\n", u[0].width(), u[0].height());
-	for (y = 0; y < u[0].height(); y++) {
-		for (x = 0; x < u[0].width(); x++) {
-			VECTOR_2D<double> v = u[0].get(x, y);
+	for (int y = 0; y < u[0].height(); y++) {
+		for (int x = 0; x < u[0].width(); x++) {
+			Vector_ST<double> v = u[0].get(x, y);
 			if (fwrite(&v.x, sizeof(double), 1, fp) < 1) {
 				Error.Function("fwrite");
 				Error.Value("u(x, y).x");
@@ -610,17 +605,135 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 }
 
 void
-MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const std::vector<ImgVector<VECTOR_2D<double> > >& u, const std::string &filename)
+MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
+{
+	std::cout << u[0] << std::endl;
+	ERROR Error("MultipleMotion_write");
+	FILE *fp = nullptr;
+	MotionCompensation<ImgClass::RGB> compensated(img_prev, img_current, u[0]);
+	PNM pnm;
+	std::string filename_compensated;
+
+	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
+	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
+		Error.Function("fopen");
+		Error.File(filename.c_str());
+		Error.FileWrite();
+		throw std::logic_error("fopen");
+	}
+	fprintf(fp, "%d %d\n", u[0].width(), u[0].height());
+	for (int y = 0; y < u[0].height(); y++) {
+		for (int x = 0; x < u[0].width(); x++) {
+			Vector_ST<double> v = u[0].get(x, y);
+			if (fwrite(&v.x, sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("u(x, y).x");
+				Error.FunctionFail();
+				throw std::logic_error("fwrite");
+			}
+			if (fwrite(&v.y, sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("u(x, y).y");
+				Error.FunctionFail();
+				throw std::logic_error("fwrite");
+			}
+		}
+	}
+	fclose(fp);
+
+	compensated.create_image_compensated(); // Make compensated image
+	int* compensated_image = nullptr;
+	size_t size = compensated.ref_image_compensated().size();
+	std::string::size_type found = filename.find_last_of("/\\");
+	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
+	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
+	try {
+		compensated_image = new int[size * 3];
+	}
+	catch (const std::bad_alloc& bad) {
+		std::cerr << bad.what() << std::endl;
+		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
+		throw;
+	}
+	for (size_t n = 0; n < size; n++) {
+		compensated_image[n] = int(compensated.ref_image_compensated().get(n).R);
+		compensated_image[n + size] = int(compensated.ref_image_compensated().get(n).G);
+		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);
+	}
+	pnm.copy(PORTABLE_PIXMAP_BINARY, compensated.width(), compensated.height(), 255, compensated_image);
+	pnm.write(filename_compensated.c_str());
+	pnm.free();
+}
+
+void
+MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const ImgVector<double>& img_next, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename)
+{
+	ERROR Error("MultipleMotion_write");
+
+	FILE *fp = nullptr;
+	int x, y;
+	MotionCompensation<double> compensated;
+	PNM pnm;
+	std::string filename_compensated;
+
+	if (u.size() == 1) {
+		compensated.set(img_prev, img_current, img_next, u[0]);
+	} else {
+		compensated.set(img_prev, img_current, img_next, u);
+	}
+	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
+	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
+		Error.Function("fopen");
+		Error.File(filename.c_str());
+		Error.FileWrite();
+		throw std::logic_error("fopen");
+	}
+	fprintf(fp, "%d %d\n", u[0].width(), u[0].height());
+	for (y = 0; y < u[0].height(); y++) {
+		for (x = 0; x < u[0].width(); x++) {
+			Vector_ST<double> v = u[0].get(x, y);
+			if (fwrite(&v.x, sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("u(x, y).x");
+				Error.FunctionFail();
+				throw std::logic_error("fwrite");
+			}
+			if (fwrite(&v.y, sizeof(double), 1, fp) < 1) {
+				Error.Function("fwrite");
+				Error.Value("u(x, y).y");
+				Error.FunctionFail();
+				throw std::logic_error("fwrite");
+			}
+		}
+	}
+	fclose(fp);
+
+	compensated.create_image_compensated(); // Make compensated image
+	std::string::size_type found = filename.find_last_of("/\\");
+	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
+	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
+	pnm.write(filename_compensated.c_str());
+	pnm.free();
+}
+
+void
+MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 
 	FILE *fp = nullptr;
 	VECTOR_2D<double> v;
 	int x, y;
-	MotionCompensation<ImgClass::RGB> compensated(img_prev, img_current, img_next, u[0], u[1]);
+	MotionCompensation<ImgClass::RGB> compensated;
 	PNM pnm;
 	std::string filename_compensated;
 
+	if (u.size() == 1) {
+		compensated.set(img_prev, img_current, img_next, u[0]);
+	} else {
+		compensated.set(img_prev, img_current, img_next, u);
+	}
 	printf("\n* Output The Optical Flow to '%s'(binary)\n", filename.c_str());
 	if ((fp = fopen(filename.c_str(), "wb")) == nullptr) {
 		Error.Function("fopen");
