@@ -5,13 +5,17 @@
  */
 #include <string>
 
+#define OUTPUT_IMG_CLASS
+
+#include "../ImgClass/RGB.h"
+#include "../ImgClass/Lab.h"
+#include "../ImgClass/Vector.h"
+#include "../ImgClass/ImgClass.h"
+#include "../ImgClass/MotionCompensation.h"
+
 #include "MEstimator.h"
 #include "MultiResolution.h"
-
 #include "../lib/Struct.h"
-#include "../ImgClass/Vector.h"
-#include "../ImgClass/MotionCompensation.h"
-#include "../ImgClass/RGB.h"
 #include "../Scratch_MeaningfulMotion.h"
 
 

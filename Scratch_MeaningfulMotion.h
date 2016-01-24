@@ -54,12 +54,16 @@
 #include <unistd.h>
 #include <vector>
 
+#include "ImgClass/RGB.h"
+#include "ImgClass/Lab.h"
+#include "ImgClass/Vector.h"
+#include "ImgClass/ImgClass.h"
+#include "ImgClass/ImgStatistics.h"
+
 #include "lib/Class.h"
 #include "lib/ImgStruct.h"
 #include "lib/Struct.h"
 #include "lib/ExtVector.h"
-#include "ImgClass/ImgClass.h"
-#include "ImgClass/ImgStatistics.h"
 #include "Plot/Plot_X11_Struct.h"
 #include "HOG/HOG_struct.h"
 #include "Scratch_Struct.h"

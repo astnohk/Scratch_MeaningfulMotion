@@ -3,14 +3,7 @@
  * This motion estimation based on
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding, Vol.63, No.1, 1996, pp.75-104.
  */
-#include <deque>
-#include <string>
-#include <vector>
-
-#include "OpticalFlow.h"
 #include "OpticalFlow_BlockMatching.h"
-
-#include "../ImgClass/Segmentation.h"
 
 
 
@@ -267,7 +260,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, int(pow_int(2.0, level)), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
 			if (level >= MaxLevel) {
 				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
-				BM2OpticalFlow(I_dt_levels, u_levels, Itp1_levels, It_levels, level, &block_matching);
+				LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel, &block_matching);
 			} else {
 				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
 				LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
@@ -331,33 +324,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 template <class T>
 void
-BM2OpticalFlow(ImgVector<double>* I_dt_levels, ImgVector<VECTOR_2D<double> >* u_levels, const ImgVector<double>* It_levels, const ImgVector<double>* Itp1_levels, const int level, BlockMatching<T>* block_matching)
-{
-	double Scale = double(It_levels[0].width()) / It_levels[level].width();
-
-	for (int y = 0; y < u_levels[level].height(); y++) {
-		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset = block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale)));
-			u_offset /= Scale;
-
-			I_dt_levels[level].at(x, y) =
-			    (Itp1_levels[level].get_zeropad(x + int(floor(2.0 * u_offset.x)), y + int(floor(2.0 * u_offset.y)))
-			    - It_levels[level].get_zeropad(x, y)
-			    + Itp1_levels[level].get_zeropad(x + 1 + int(floor(2.0 * u_offset.x)), y + int(floor(2.0 * u_offset.y)))
-			    - It_levels[level].get_zeropad(x + 1, y)
-			    + Itp1_levels[level].get_zeropad(x + int(floor(2.0 * u_offset.x)), y + 1 + int(floor(2.0 * u_offset.y)))
-			    - It_levels[level].get_zeropad(x, y + 1)
-			    + Itp1_levels[level].get_zeropad(x + 1 + int(floor(2.0 * u_offset.x)), y + 1 + int(floor(2.0 * u_offset.y)))
-			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
-			u_levels[level].at(x, y).x = 0.0;
-			u_levels[level].at(x, y).y = 0.0;
-		}
-	}
-}
-
-
-template <class T>
-void
 Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLevel, BlockMatching<T>* block_matching)
 {
 	if (level == MaxLevel) {
@@ -384,6 +350,47 @@ Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLeve
 		}
 	}
 }
+
+template <class T>
+void
+LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_levels, const ImgVector<double> *It_levels, const ImgVector<double> *Itp1_levels, int level, int MaxLevel, BlockMatching<T>* block_matching)
+{
+	if (level == MaxLevel) {
+		// Do NOT need projection from higher level
+		return;
+	}
+	double Scale;
+	if (block_matching == nullptr) {
+		Scale = double(It_levels[0].width()) / double(It_levels[level].width());
+	} else {
+		Scale = 0.5;
+	}
+
+	for (int y = 0; y < u_levels[level].height(); y++) {
+		for (int x = 0; x < u_levels[level].width(); x++) {
+			VECTOR_2D<double> u_offset;
+			if (block_matching == nullptr) {
+				u_offset = u_levels[level + 1].get(int(round(x * Scale)), int(round(y * Scale)));
+			} else {
+				u_offset = block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale)));
+			}
+			u_offset /= Scale;
+
+			I_dt_levels[level].at(x, y) =
+			    (Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)), y + int(floor(u_offset.y)))
+			    - It_levels[level].get_zeropad(x, y)
+			    + Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)) + 1, y + int(floor(u_offset.y)))
+			    - It_levels[level].get_zeropad(x + 1, y)
+			    + Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)), y + int(floor(u_offset.y)) + 1)
+			    - It_levels[level].get_zeropad(x, y + 1)
+			    + Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)) + 1, y + int(floor(u_offset.y)) + 1)
+			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
+			u_levels[level].at(x, y).x = 0.0;
+			u_levels[level].at(x, y).y = 0.0;
+		}
+	}
+}
+
 
 
 void
