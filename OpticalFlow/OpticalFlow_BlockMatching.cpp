@@ -27,6 +27,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	const double coeff_MAD = 1.0;
 	const double coeff_ZNCC = 0.0;
 	BlockMatching<ImgClass::Lab> block_matching;
+	int BM_Search_Range = 61; // Block Matching search range
+	int Subpixel_Scale = 2;
 
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
@@ -51,10 +53,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
 	const double sigmaS_l0 = 0.03 / sqrt(2.0);
 
-	int BM_Search_Range = 61; // Block Matching search range
 	int IterMax_level = 0;
 	int MaxLevel = MotionParam.Level;
-	std::string::size_type found;
 
 	if (It_color.isNULL()) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* It");
@@ -122,9 +122,9 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	}
 	int BlockMatching_BlockSize = 8;
 	if (sequence_Lab.size() <= 2) {
-		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, BlockMatching_BlockSize);
+		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, BlockMatching_BlockSize, Subpixel_Scale);
 	} else {
-		block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize);
+		block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize, Subpixel_Scale);
 	}
 	block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
 #else
@@ -148,7 +148,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 
 		PNM pnm;
-		found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));
+		std::string::size_type found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));
 		if (found == std::string::npos) {
 			found = ofilename.find_last_of(".");
 		}
@@ -195,12 +195,16 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		printf("* * Compute Block Matching\n");
 		//block_matching.reset(segmentations.begin()->ref_segmentation_map(), It, Itp1);
 		if (sequence_Lab.size() <= 2) {
-			block_matching.reset(It_Lab_normalize, segmentations[1].ref_segmentation_map(), Itp1_Lab_normalize, segmentations[0].ref_segmentation_map());
+			block_matching.reset(
+			    It_Lab_normalize, segmentations[1].ref_segmentation_map(),
+			    Itp1_Lab_normalize, segmentations[0].ref_segmentation_map(),
+			    Subpixel_Scale);
 		} else {
 			block_matching.reset(
 			    sequence_Lab[2], segmentations[2].ref_segmentation_map(),
 			    sequence_Lab[1], segmentations[1].ref_segmentation_map(),
-			    sequence_Lab[0], segmentations[0].ref_segmentation_map());
+			    sequence_Lab[0], segmentations[0].ref_segmentation_map(),
+			    Subpixel_Scale);
 		}
 		block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
 		if (MaxLevel > 0) {
@@ -614,7 +618,6 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 void
 MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
 {
-	std::cout << u[0] << std::endl;
 	ERROR Error("MultipleMotion_write");
 	FILE *fp = nullptr;
 	MotionCompensation<ImgClass::RGB> compensated(img_prev, img_current, u[0]);
