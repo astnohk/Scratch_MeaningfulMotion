@@ -772,25 +772,33 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 	fclose(fp);
 
 	compensated.create_image_compensated(); // Make compensated image
-	int* compensated_image = nullptr;
-	size_t size = compensated.ref_image_compensated().size();
+	// Saturation
+	ImgVector<ImgClass::RGB> compensated_image(compensated.ref_image_compensated());
+	compensated_image.saturate(
+	    static_cast<ImgClass::RGB (*)(const ImgClass::RGB&, const double&, const double&)>(saturate),
+	    0.0, 255.0);
+	size_t size = compensated_image.size();
 	std::string::size_type found = filename.find_last_of("/\\");
 	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
-	try {
-		compensated_image = new int[size * 3];
+	{
+		int* image_tmp = nullptr;
+		try {
+			image_tmp = new int[size * 3];
+		}
+		catch (const std::bad_alloc& bad) {
+			std::cerr << bad.what() << std::endl;
+			fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
+			throw;
+		}
+		// Copy for output
+		for (size_t n = 0; n < size; n++) {
+			image_tmp[n] = int(compensated_image.get(n).R);
+			image_tmp[n + size] = int(compensated_image.get(n).G);
+			image_tmp[n + 2 * size] = int(compensated_image.get(n).B);
+		}
+		pnm.copy(PORTABLE_PIXMAP_BINARY, compensated_image.width(), compensated_image.height(), 255, image_tmp);
 	}
-	catch (const std::bad_alloc& bad) {
-		std::cerr << bad.what() << std::endl;
-		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
-		throw;
-	}
-	for (size_t n = 0; n < size; n++) {
-		compensated_image[n] = int(compensated.ref_image_compensated().get(n).R);
-		compensated_image[n + size] = int(compensated.ref_image_compensated().get(n).G);
-		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);
-	}
-	pnm.copy(PORTABLE_PIXMAP_BINARY, compensated.width(), compensated.height(), 255, compensated_image);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
 }
