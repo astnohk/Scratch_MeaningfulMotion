@@ -96,7 +96,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 		    MaximalSegments[n_seg].x * Lines[n_seg].cos
 		    + MaximalSegments[n_seg].y * Lines[n_seg].sin;
 	}
-	printf("* Add all pixels to the Segments Exclusively :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
+	printf("* Add all pixels to the Segments Exclusively :\n  0%% |%s\x1b[1A\n", Progress_End);
 	// Select the segments each Pixel exclusively belongs to
 	unsigned int progress_count = 0;
 	unsigned int present_count = 0;
@@ -133,7 +133,7 @@ ExclusiveIndexMap(SIZE size, SEGMENT *MaximalSegments, unsigned int *Num_Segment
 			present_count++;
 			if (NUM_PROGRESS * present_count / static_cast<unsigned int>(size.width) > progress_count) {
 				progress_count = NUM_PROGRESS * (present_count - 1) / static_cast<unsigned int>(size.width); // Take account of Overflow
-				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / static_cast<unsigned int>(size.width), Progress[progress_count].c_str());
+				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / static_cast<unsigned int>(size.width), Progress[progress_count]);
 			}
 		}
 	}
@@ -164,7 +164,7 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 	}
 	unsigned int progress_count = 0;
 	unsigned int present_count = 0;
-	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End.c_str());
+	printf("* Delete Redundant Segments by Exclusive Principle :\n  0%% |%s\x1b[1A\n", Progress_End);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic) reduction(+:Num_EPSegments)
 #endif
@@ -215,7 +215,7 @@ ExclusiveSegments(ImgVector<int> *IndexMap, ImgVector<double> *angles, SEGMENT *
 			present_count++;
 			if (NUM_PROGRESS * present_count / (*Num_Segments) > progress_count) {
 				progress_count = NUM_PROGRESS * (present_count - 1) / (*Num_Segments); // Take account of Overflow
-				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / (*Num_Segments), Progress[progress_count].c_str());
+				printf("\r%3d%% |%s#\x1b[1A\n", 100 * present_count / (*Num_Segments), Progress[progress_count]);
 			}
 		}
 	}

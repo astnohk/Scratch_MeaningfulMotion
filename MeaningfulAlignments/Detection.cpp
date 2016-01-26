@@ -175,7 +175,7 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 	}
 	double progress = .0;
 	int current_count = 0;
-	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
+	printf("* Search segments starts from Upper or Bottom edge :\n   0.0%% |%s\x1b[1A\n", Progress_End);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
 #endif
@@ -244,7 +244,7 @@ AlignedSegment_vertical(ImgVector<double> *angles, int *k_list, int l_min, ImgVe
 				current_count++;
 				if (round(double(current_count) / (DIV_ANGLE * angles->width()) * 1000.0) > progress) {
 					progress = round(double(current_count) / (DIV_ANGLE * angles->width()) * 1000.0); // Take account of Overflow
-					printf("\r %5.1f%% |%s#\x1b[1A\n", progress * 0.1, Progress[NUM_PROGRESS * current_count / (DIV_ANGLE * angles->width() + 1)].c_str());
+					printf("\r %5.1f%% |%s#\x1b[1A\n", progress * 0.1, Progress[NUM_PROGRESS * current_count / (DIV_ANGLE * angles->width() + 1)]);
 				}
 			}
 		}

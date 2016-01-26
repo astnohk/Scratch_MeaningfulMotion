@@ -10,16 +10,12 @@
 
 
 void
-Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const size_t OutputNameLength, const size_t InputNameLength, const int Start, const int End, const OPTIONS& Options, const FILTER_PARAM& FilterParam)
+Scratch_MeaningfulMotion(const std::string& OutputName, const std::string& InputName, const int Start, const int End, const OPTIONS& Options, const FILTER_PARAM& FilterParam)
 {
 	ERROR Error("Scratch_MeaningfulMotion");
 	const char *Bars = "------------------------------------------------";
 
 	const std::string FilterNames[] = {"undefined", "Epsilon", "Gaussian"};
-	std::string InputNameNums;
-	std::string OutputNameNums;
-	std::string OutputNameNums_prev;
-	char *char_tmp = nullptr;
 	int CurrentFileNum;
 
 	const int History_Max = 4;
@@ -73,41 +69,53 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 	double progress;
 	int count;
 
+	// Calculate at least filename length
+	size_t InputNameLength =
+	    InputName.length() + 1
+	    + std::max(count_format_length(InputName), size_t(ceil(log(End) / log(10.0))));
+	size_t OutputNameLength =
+	    OutputName.length() + 1
+	    + std::max(count_format_length(OutputName), size_t(ceil(log(End) / log(10.0))));
 	for (CurrentFileNum = Start; CurrentFileNum <= End; CurrentFileNum++) {
+		std::string InputNameNums;
+		std::string OutputNameNums;
+		std::string OutputNameNums_prev;
 		// Substitute number to filename
-		if (strchr(InputName, '%') == nullptr) {
+		if (InputName.find_first_of("%") == std::string::npos) {
 			InputNameNums = InputName;
 		} else {
+			char *char_tmp = nullptr;
 			try {
-				char_tmp = new char[InputNameLength + 1];
+				char_tmp = new char[InputNameLength];
 			}
-			catch (const std::bad_alloc &bad) {
+			catch (const std::bad_alloc& bad) {
 				std::cerr << bad.what() << std::endl;
 				Error.Value("char_tmp");
 				Error.Malloc();
 				goto ExitError;
 			}
-			sprintf(char_tmp, InputName, CurrentFileNum);
+			sprintf(char_tmp, InputName.c_str(), CurrentFileNum);
 			InputNameNums = char_tmp;
 			delete[] char_tmp;
 			char_tmp = nullptr;
 		}
-		if (strchr(OutputName, '%') == nullptr) {
+		if (OutputName.find_first_of("%") == std::string::npos) {
 			OutputNameNums = OutputName;
 			OutputNameNums_prev = OutputName;
 		} else {
+			char *char_tmp = nullptr;
 			try {
-				char_tmp = new char[OutputNameLength + 1];
+				char_tmp = new char[OutputNameLength];
 			}
-			catch (const std::bad_alloc &bad) {
+			catch (const std::bad_alloc& bad) {
 				std::cerr << bad.what() << std::endl;
 				Error.Value("char_tmp");
 				Error.Malloc();
 				goto ExitError;
 			}
-			sprintf(char_tmp, OutputName, CurrentFileNum);
+			sprintf(char_tmp, OutputName.c_str(), CurrentFileNum);
 			OutputNameNums = char_tmp;
-			sprintf(char_tmp, OutputName, CurrentFileNum - 1);
+			sprintf(char_tmp, OutputName.c_str(), CurrentFileNum - 1);
 			OutputNameNums_prev = char_tmp;
 			delete[] char_tmp;
 			char_tmp = nullptr;
@@ -394,7 +402,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 						Error.Malloc();
 						goto ExitError;
 					}
-					printf("* Calculate Pr(k, L) table :\n[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
+					printf("* Calculate Pr(k, L) table :\n[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End);
 					progress = 0;
 					count = 0;
 #ifdef _OPENMP
@@ -411,7 +419,7 @@ Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const si
 							count++;
 							if (round(double(count) / double(maxMN_res) * 1000.0) > progress) {
 								progress = round(double(count) / double(maxMN_res) * 1000.0);
-								printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + maxMN_res)].c_str());
+								printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + maxMN_res)]);
 							}
 						}
 					}

@@ -3,78 +3,22 @@
 
 
 
-// Strings Library
-char *
-regexp(const char* str)
+// String Library
+size_t
+count_format_length(const std::string& str)
 {
-	ERROR Error("regexp");
-
-	const char* s = str;
-	const char* start_after = nullptr;
-	char tmp[4 + REGEXP_MAX_DIGITS];
-	char* out = nullptr;
-	char* sout = nullptr;
-	size_t len_before = 0;
-	size_t len_after = 0;
-
-	s = str;
-	while (*s != '\0' && *s != '#') {
-		len_before++;
-		s++;
+	if (str.length() < 1) {
+		return 0;
 	}
-	if (*s == '\0') { // There are NO # in str
-		try {
-			out = new char[strlen(str) + 1u];
-		}
-		catch (const std::bad_alloc& bad) {
-			std::cerr << bad.what() << std::endl;
-			Error.Value("out");
-			Error.Malloc();
-			exit(EXIT_FAILURE);
-		}
-		strcpy(out, str);
-		return out;
+	std::string::size_type format_start = str.find_first_of("%%");
+	if (format_start == std::string::npos) {
+		return 0;
 	}
-	size_t num_sharp = 0;
-	while (*s != '\0' && *s == '#') {
-		num_sharp++;
-		s++;
-	}
-	start_after = s;
-	while (*s != '\0') {
-		len_after++;
-		s++;
-	}
-	if (num_sharp > REGEXP_MAX_DIGITS) {
-		Error.Others("Expression digits over REGEXP_MAX_DIGITS");
-		exit(EXIT_FAILURE);
-	}
-	sprintf(tmp, "%%0%lud", num_sharp);
-	size_t length = len_before + strlen(tmp) + len_after;
-	try {
-		out = new char[length + 1];
-	}
-	catch (const std::bad_alloc& bad) {
-		std::cerr << bad.what() << std::endl;
-		Error.Value("out");
-		Error.Malloc();
-		exit(EXIT_FAILURE);
-	}
-	sout = out;
-	for (size_t i = 0; i < len_before; i++) {
-		*sout = str[i];
-		sout++;
-	}
-	for (size_t i = 0; i < strlen(tmp); i++) {
-		*sout = tmp[i];
-		sout++;
-	}
-	for (size_t i = 0; i < len_after; i++) {
-		*sout = start_after[i];
-		sout++;
-	}
-	*sout = '\0';
-	return out;
+	std::string::size_type format_num_start = str.find_first_of("0123456789", format_start);
+	std::string::size_type format_num_end = str.find_first_not_of("0123456789", format_num_start) - 1;
+	std::string::size_type digits = format_num_end - format_num_start + 1;
+	std::string num = str.substr(format_num_start, digits);
+	return stoul(num);
 }
 
 
@@ -120,7 +64,7 @@ Calc_k_l(const SIZE& size, const double& p, const double& ep)
 
 	int count = 0;
 	double progress = 0.0;
-	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End.c_str());
+	printf("[L =     0]   0.0%% |%s\x1b[1A\n", Progress_End);
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic)
 #endif
@@ -142,7 +86,7 @@ Calc_k_l(const SIZE& size, const double& p, const double& ep)
 			count++;
 			if (round(double(count) / L * 1000.0) > progress) {
 				progress = round(double(count) / L * 1000.0); // Take account of Overflow
-				printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + L)].c_str());
+				printf("\r[L = %5d] %5.1f%% |%s#\x1b[1A\n", count, progress * 0.1, Progress[NUM_PROGRESS * count / (1 + L)]);
 			}
 		}
 	}

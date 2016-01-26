@@ -149,15 +149,20 @@
 
 
 
-
-extern const std::string Progress[NUM_PROGRESS];
-extern const std::string Progress_End;
+/* Escape sequence "\x1b[nC" moves cursor right.
+ * Its length is 2byte for '\x1b[', 1byte each for n digits and 1byte for 'C'.
+ * Hence here the maximum length is 5. */
+extern const char Progress[NUM_PROGRESS][6];
+extern const char Progress_End[];
 
 
 
 
 // Prototype of functions
-void Scratch_MeaningfulMotion(const char* OutputName, const char* InputName, const size_t OutputNameLength, const size_t InputNameLength, const int Start, const int End, const OPTIONS& Options, const FILTER_PARAM& FilterParam);
+void Scratch_MeaningfulMotion(const std::string& OutputName, const std::string& InputName, const int Start, const int End, const OPTIONS& Options, const FILTER_PARAM& FilterParam);
+
+// String Libraries
+size_t count_format_length(const std::string& str);
 
 // Mathematical Libraries
 double pow_int(double x, int a);

@@ -1,8 +1,8 @@
 #include "Scratch_MeaningfulMotion.h"
 
-const std::string Progress[NUM_PROGRESS] = {
-    "",        "\x1b[1C",  "\x1b[2C",  "\x1b[3C",  "\x1b[4C",
-    "\x1b[5C",  "\x1b[6C",  "\x1b[7C",  "\x1b[8C",  "\x1b[9C",
+const char Progress[NUM_PROGRESS][6] = {
+    "\0\0\0\0\0", "\x1b[1C\0", "\x1b[2C\0", "\x1b[3C\0", "\x1b[4C\0",
+    "\x1b[5C\0", "\x1b[6C\0", "\x1b[7C\0", "\x1b[8C\0", "\x1b[9C\0",
     "\x1b[10C", "\x1b[11C", "\x1b[12C", "\x1b[13C", "\x1b[14C",
     "\x1b[15C", "\x1b[16C", "\x1b[17C", "\x1b[18C", "\x1b[19C",
     "\x1b[20C", "\x1b[21C", "\x1b[22C", "\x1b[23C", "\x1b[24C",
@@ -14,7 +14,7 @@ const std::string Progress[NUM_PROGRESS] = {
     "\x1b[50C", "\x1b[51C", "\x1b[52C", "\x1b[53C", "\x1b[54C",
     "\x1b[55C", "\x1b[56C", "\x1b[57C", "\x1b[58C", "\x1b[59C",
     "\x1b[60C", "\x1b[61C", "\x1b[62C", "\x1b[63C"};
-const std::string Progress_End = "\x1b[64C|";
+const char Progress_End[] = "\x1b[64C|";
 
 
 
@@ -81,8 +81,8 @@ main(int argc, char *argv[])
 
 	char *delimiter = nullptr;
 	char c_tmp = 0;
-	char *InputName = nullptr;
-	char *OutputName = nullptr;
+	std::string InputName;
+	std::string OutputName;
 	int Start = 0;
 	int End = 0;
 	OPTIONS Options;
@@ -458,11 +458,11 @@ main(int argc, char *argv[])
 		printf("Output as %s line Superimpose on Original image\nChange output filename to \"%s\" due to --superimpose option\n", Superimpose_Color_List[(Options.Superimpose - 1) % OVERLAY_COLOR_PATTERNS].c_str(), argv[outf]);
 	}
 	// Regular expression
-	InputName = regexp(argv[inf]);
-	OutputName = regexp(argv[outf]);
+	InputName = argv[inf];
+	OutputName = argv[outf];
 	// main routine
 	try {
-		Scratch_MeaningfulMotion(OutputName, InputName, strlen(argv[outf]), strlen(argv[inf]), Start, End, Options, FilterParam);
+		Scratch_MeaningfulMotion(OutputName, InputName, Start, End, Options, FilterParam);
 	}
 	catch (const std::logic_error& logic) {
 		std::cerr << logic.what() << std::endl;
@@ -472,13 +472,10 @@ main(int argc, char *argv[])
 		std::cerr << runtime.what() << std::endl;
 		goto ExitError;
 	}
-	delete[] OutputName;
-	delete[] InputName;
 	return EXIT_SUCCESS;
 // Error
 ExitError:
-	fprintf(stderr, "\n        *** FATAL main error ***\n");
-	delete[] OutputName;
-	delete[] InputName;
+	std::cout << std::endl
+	    << "        *** FATAL main error ***" << std::endl;
 	return EXIT_FAILURE;
 }
