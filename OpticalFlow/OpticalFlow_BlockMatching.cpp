@@ -28,7 +28,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	const double coeff_ZNCC = 0.0;
 	BlockMatching<ImgClass::Lab> block_matching;
 	int BM_Search_Range = 61; // Block Matching search range
-	int Subpixel_Scale = 2;
+	int Subpixel_Scale = 1;
 
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
@@ -152,7 +152,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		if (found == std::string::npos) {
 			found = ofilename.find_last_of(".");
 		}
-		std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation" + ofilename.substr(found);
+		std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation_" + ofilename.substr(found);
 		printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
 		{
 			ImgVector<int> tmp_vector(segmentations[0].width(), segmentations[0].height());
@@ -177,7 +177,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		pnm.write(ofilename_quantized.c_str());
 		pnm.free();
 		// Output vectors
-		std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector" + ofilename.substr(found);
+		std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector_" + ofilename.substr(found);
 		FILE *fp;
 		fp = fopen(ofilename_vector.c_str(), "w");
 		fprintf(fp, "%d %d\n", segmentations[0].width(), segmentations[0].height());
