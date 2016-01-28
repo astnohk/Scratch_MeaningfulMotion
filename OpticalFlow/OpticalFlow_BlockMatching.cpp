@@ -38,23 +38,11 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	ImgVector<ImgClass::Lab> Itp1_Lab_normalize;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
-	ImgVector<VECTOR_2D<double> >* u_levels = nullptr;
-	ImgVector<double>* I_dt_levels = nullptr;
-	ImgVector<double>* It_levels = nullptr;
-	ImgVector<double>* Itp1_levels = nullptr;
-	ImgVector<VECTOR_2D<double> >* grad_It_levels = nullptr;
 	// M-estimator parameter
 	const double lambdaD = 5.0;
 	const double lambdaS = 1.0;
-	double sigmaD;
-	const double sigmaD_init = 0.8 / sqrt(2.0); //18.0 / sqrt(2.0);
-	const double sigmaD_l0 = 0.2 / sqrt(2.0); //4.0 / sqrt(2.0);
-	double sigmaS;
-	const double sigmaS_init = 0.3 / sqrt(2.0); //3.0 / sqrt(2.0);
-	const double sigmaS_l0 = 0.03 / sqrt(2.0);
-
-	int IterMax_level = 0;
-	int MaxLevel = MotionParam.Level;
+	const double sigmaD = 0.2 / sqrt(2.0); //4.0 / sqrt(2.0);
+	const double sigmaS = 0.03 / sqrt(2.0);
 
 	if (It_color.isNULL()) {
 		throw std::invalid_argument("OpticalFlow_BlockMatching(const ImgVector<double>*, const ImgVector<double>* double, MULTIPLE_MOTION_PARAM, int) : const ImgVector<double>* It");
@@ -104,11 +92,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		sequence_Lab.pop_back();
 	}
 
-	// Adjust max level to use the Block Matching efficiently
-	if (MaxLevel > floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0))) {
-		MaxLevel = int(floor(log(double(MotionParam.BlockMatching_BlockSize)) / log(2.0)));
-	}
-
 	// ----- Block Matching -----
 #if 0
 	// Normal Block Matching
@@ -133,10 +116,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		printf("* * Compute Segmentation by Mean Shift\n");
 
 #ifdef MEANSHIFT_KERNEL_SPATIAL
-		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 9.0 / 255.0; // for images under about HD resolution
 #else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
-		double kernel_spatial = 8.0, kernel_intensity = 8.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = 10.0, kernel_intensity = 9.0 / 255.0; // for images under about HD resolution
 #endif
 
 		if (segmentations.empty()) {
@@ -207,103 +190,62 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			    Subpixel_Scale);
 		}
 		block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
-		if (MaxLevel > 0) {
-			MaxLevel = 0;
-		}
 	}
 #endif
 
 	// ----- Optical Flow -----
-	if (MaxLevel >= 0) {
-		try {
-			u_levels = new ImgVector<VECTOR_2D<double> >[MaxLevel + 1];
+	std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
+	if (MotionParam.Level >= 0) {
+		std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
+		const ImgVector<ImgClass::Lab>* interest = nullptr;
+		const ImgVector<size_t>* region_map = nullptr;
+		std::vector<const ImgVector<ImgClass::Lab>*> references;
+		std::vector<const ImgVector<VECTOR_2D<double> >*> MVs;
+		if (sequence_Lab.size() <= 2) {
+			u_optical.resize(1);
+			u_optical[0].resize(It_color.width(), It_color.height());
+			interest = &Itp1_Lab_normalize;
+			region_map = &(segmentations[0].ref_segmentation_map());
+			references.push_back(&It_Lab_normalize);
+			MVs.push_back(&block_matching.ref_motion_vector_prev());
+		} else {
+			u_optical.resize(2);
+			u_optical[0].resize(It_color.width(), It_color.height());
+			u_optical[1].resize(It_color.width(), It_color.height());
+			interest = &sequence_Lab[1];
+			region_map = &(segmentations[1].ref_segmentation_map());
+			references.push_back(&sequence_Lab[2]);
+			references.push_back(&sequence_Lab[0]);
+			MVs.push_back(&block_matching.ref_motion_vector_prev());
+			MVs.push_back(&block_matching.ref_motion_vector_next());
 		}
-		catch (const std::bad_alloc &bad) {
-			std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
-			    << bad.what() << std::endl;
-			throw;
-		}
-		// Make Pyramid
-		try {
-			if (sequence_Grayscale.size() >= 3) {
-				It_levels = Pyramider(&(sequence_Grayscale[2]), MaxLevel);
-				Itp1_levels = Pyramider(&(sequence_Grayscale[1]), MaxLevel);
-			} else {
-				It_levels = Pyramider(&It_normalize, MaxLevel);
-				Itp1_levels = Pyramider(&Itp1_normalize, MaxLevel);
-			}
-			// The order reversed along with Block Matching (ordinary (It, Itp1))
-			// Derivative about time
-			I_dt_levels = dt_Pyramid(Itp1_levels, It_levels, MaxLevel);
-			// Derivative about space
-			grad_It_levels = grad_Pyramid(Itp1_levels, nullptr, MaxLevel);
-		}
-		catch (const std::bad_alloc& bad) {
-			std::cerr << "error : ImgVector<VECTOR_2D<double> >* OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>&, const ImgVector<ImgClass::RGB>&, double, const MULTIPLE_MOTION_PARAM&, const std::string, int)" << std::endl
-			    << bad.what() << std::endl;
-			delete[] grad_It_levels;
-			delete[] I_dt_levels;
-			delete[] Itp1_levels;
-			delete[] It_levels;
-			delete[] u_levels;
-			throw;
-		}
-		// Initialize u_levels
-		for (int level = 0; level <= MaxLevel; level++) {
-			u_levels[level].reset(It_levels[level].width(), It_levels[level].height());
-		}
-		// Multi-Resolution IRLS Optical Flow estimation
-		for (int level = MaxLevel; level >= 0; level--) {
-			if (MaxLevel > 0) {
-				sigmaD = sigmaD_init + (sigmaD_l0 - sigmaD_init) / MaxLevel * (MaxLevel - level);
-				sigmaS = sigmaS_init + (sigmaS_l0 - sigmaS_init) / MaxLevel * (MaxLevel - level);
-			} else {
-				sigmaD = sigmaD_l0;
-				sigmaS = sigmaS_l0;
-			}
-			printf("\nLevel %d : (1 / %d scaled, %dx%d)\n  sigmaD = %f\n  sigmaS = %f\n", level, int(pow_int(2.0, level)), u_levels[level].width(), u_levels[level].height(), sigmaD, sigmaS);
-			if (level >= MaxLevel) {
-				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
-				LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel, &block_matching);
-			} else {
-				// The order of It_levels and Itp1_levels are reversed (ordinary It -> Itp1)
-				LevelDown(I_dt_levels, u_levels, Itp1_levels, It_levels, level, MaxLevel);
-			}
-			IterMax_level = 4 * MAX(It.width(), It.height());
-			if (IterMax < 0 && IterMax_level >= IterMax) {
-				IterMax_level = IterMax;
-			}
-			printf("IterMax = %d\n", IterMax_level);
-			IRLS_OpticalFlow_Pyramid_Segment(
-			    (u_levels + level),
-			    segmentations.begin()->ref_segmentation_map(),
-			    (grad_It_levels + level),
-			    (I_dt_levels + level),
+		for (size_t ref = 0; ref < references.size(); ref++) {
+			u_optical[ref] = OpticalFlow_GradientMethod(
+			    references[ref],
+			    interest,
+			    MVs[ref],
+			    region_map,
 			    lambdaD, lambdaS, sigmaD, sigmaS,
-			    IterMax_level,
-			    MotionParam.Error_Min_Threshold,
-			    level);
-			Add_VectorOffset(u_levels, level, MaxLevel, &block_matching);
+			    IterMax,
+			    MotionParam.Error_Min_Threshold);
 		}
-		delete[] grad_It_levels;
-		delete[] I_dt_levels;
-		delete[] Itp1_levels;
-		delete[] It_levels;
 	}
 	// Copy the lowest vector for output
-	if (u_levels != nullptr) {
-		u.resize(1);
-		u[0].reset(It.width(), It.height());
-		for (size_t i = 0; i < u[0].size(); i++) {
-			u[0][i].x = u_levels[0][i].x;
-			u[0][i].y = u_levels[0][i].y;
-		}
-	} else if (Bidirectional_with_Time) {
+	if (Bidirectional_with_Time) {
 		u.resize(1);
 		u[0].reset(It.width(), It.height());
 		for (int y = 0; y < block_matching.height(); y++) {
 			for (int x = 0; x < block_matching.width(); x++) {
 				u[0].at(x, y) = block_matching.get(x, y);
+				if (u_optical.size() > 0) {
+					if (u[0].get(x, y).t < 0) {
+						u[0].at(x, y).x += u_optical[0].get(x, y).x;
+						u[0].at(x, y).y += u_optical[0].get(x, y).y;
+					} else {
+						u[0].at(x, y).x += u_optical[1].get(x, y).x;
+						u[0].at(x, y).y += u_optical[1].get(x, y).y;
+					}
+				}
 			}
 		}
 	} else {
@@ -314,91 +256,74 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			for (int x = 0; x < block_matching.width(); x++) {
 				u[0].at(x, y) = block_matching.get_prev(x, y);
 				u[0].at(x, y).t = -1;
+				if (u_optical.size() > 0) {
+					u[0].at(x, y).x += u_optical[0].get(x, y).x;
+					u[0].at(x, y).y += u_optical[0].get(x, y).y;
+				}
 				if (u.size() > 1) { // bi-directional
 					u[1].at(x, y) = block_matching.get_next(x, y);
 					u[1].at(x, y).t = 1;
+					if (u_optical.size() > 1) {
+						u[1].at(x, y).x += u_optical[1].get(x, y).x;
+						u[1].at(x, y).y += u_optical[1].get(x, y).y;
+					}
 				}
 			}
 		}
 	}
-	delete[] u_levels;
 	return u;
 }
 
 
-template <class T>
-void
-Add_VectorOffset(ImgVector<VECTOR_2D<double> >* u_levels, int level, int MaxLevel, BlockMatching<T>* block_matching)
+
+
+ImgVector<VECTOR_2D<double> >
+OpticalFlow_GradientMethod(const ImgVector<ImgClass::Lab>* reference, const ImgVector<ImgClass::Lab>* interest, const ImgVector<VECTOR_2D<double> >* MV, const ImgVector<size_t>* region_map, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS, const int IterMax, const double& Error_Min_Threshold)
 {
-	if (level == MaxLevel) {
-		// Add offset calculated by using the motion vector by Block Matching
-		double Scale = double(u_levels[0].width()) / u_levels[level].width();
-
-		for (int y = 0; y < u_levels[level].height(); y++) {
-			for (int x = 0; x < u_levels[level].width(); x++) {
-				u_levels[level].at(x, y).x +=
-				    block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale))).x
-				    / Scale;
-				u_levels[level].at(x, y).y +=
-				    block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale))).y
-				    / Scale;
-			}
-		}
-	} else {
-		// Add offset calculated by using the higher level's motion vector
-		for (int y = 0; y < u_levels[level].height(); y++) {
-			for (int x = 0; x < u_levels[level].width(); x++) {
-				u_levels[level].at(x, y).x += u_levels[level + 1].get(x / 2, y / 2).x * 2.0;
-				u_levels[level].at(x, y).y += u_levels[level + 1].get(x / 2, y / 2).y * 2.0;
-			}
+	ImgVector<VECTOR_2D<double> > u(reference->width(), reference->height());
+	// Compute gradient and derivation
+	ImgVector<VECTOR_2D<double> > grad(reference->width(), reference->height());
+	for (int y = 0; y < reference->height(); y++) {
+		for (int x = 0; x < reference->width(); x++) {
+			grad.at(x, y).x =
+			    (interest->get(x + 1, y).L - interest->get_mirror(x, y).L
+			    + interest->get_mirror(x + 1, y + 1).L - interest->get_mirror(x, y + 1).L)
+			    / 2.0;
+			grad.at(x, y).y =
+			    (interest->get(x, y + 1).L - interest->get_mirror(x, y).L
+			    + interest->get_mirror(x + 1, y + 1).L - interest->get_mirror(x + 1, y).L)
+			    / 2.0;
 		}
 	}
-}
-
-template <class T>
-void
-LevelDown(ImgVector<double> *I_dt_levels, ImgVector<VECTOR_2D<double> > *u_levels, const ImgVector<double> *It_levels, const ImgVector<double> *Itp1_levels, int level, int MaxLevel, BlockMatching<T>* block_matching)
-{
-	if (level == MaxLevel) {
-		// Do NOT need projection from higher level
-		return;
-	}
-	double Scale;
-	if (block_matching == nullptr) {
-		Scale = double(It_levels[0].width()) / double(It_levels[level].width());
-	} else {
-		Scale = 0.5;
-	}
-
-	for (int y = 0; y < u_levels[level].height(); y++) {
-		for (int x = 0; x < u_levels[level].width(); x++) {
-			VECTOR_2D<double> u_offset;
-			if (block_matching == nullptr) {
-				u_offset = u_levels[level + 1].get(int(round(x * Scale)), int(round(y * Scale)));
-			} else {
-				u_offset = block_matching->get_prev(int(round(x * Scale)), int(round(y * Scale)));
-			}
-			u_offset /= Scale;
-
-			I_dt_levels[level].at(x, y) =
-			    (Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)), y + int(floor(u_offset.y)))
-			    - It_levels[level].get_zeropad(x, y)
-			    + Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)) + 1, y + int(floor(u_offset.y)))
-			    - It_levels[level].get_zeropad(x + 1, y)
-			    + Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)), y + int(floor(u_offset.y)) + 1)
-			    - It_levels[level].get_zeropad(x, y + 1)
-			    + Itp1_levels[level].get_zeropad(x + int(floor(u_offset.x)) + 1, y + int(floor(u_offset.y)) + 1)
-			    - It_levels[level].get_zeropad(x + 1, y + 1)) / 4.0;
-			u_levels[level].at(x, y).x = 0.0;
-			u_levels[level].at(x, y).y = 0.0;
+	ImgVector<double> dt(reference->width(), reference->height());
+	for (int y = 0; y < reference->height(); y++) {
+		for (int x = 0; x < reference->width(); x++) {
+			int x_t = x + int(floor(MV->get(x, y).x));
+			int y_t = y + int(floor(MV->get(x, y).y));
+			dt.at(x, y) =
+			    (reference->get_mirror(x_t, y_t).L - interest->get_mirror(x, y).L
+			    + reference->get_mirror(x_t + 1, y_t).L - interest->get_mirror(x + 1, y).L
+			    + reference->get_mirror(x_t, y_t + 1).L - interest->get_mirror(x, y + 1).L
+			    + reference->get_mirror(x_t + 1, y_t + 1).L - interest->get_mirror(x + 1, y + 1).L)
+			    / 4.0;
 		}
 	}
+	// Optical Flow estimation with IRLS
+	printf("\n    lambdaD = %f, lambdaS = %f\n    sigmaD = %f\n  sigmaS = %f\n    iteration = %d\n", lambdaD, lambdaS, sigmaD, sigmaS, IterMax);
+	IRLS_OpticalFlow_GradientMethod(
+	    &u,
+	    region_map,
+	    &grad,
+	    &dt,
+	    lambdaD, lambdaS, sigmaD, sigmaS,
+	    IterMax,
+	    Error_Min_Threshold);
+	return u;
 }
 
 
-
 void
-IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, double lambdaD, double lambdaS, double sigmaD, double sigmaS, int IterMax, double ErrorMinThreshold, int level)
+IRLS_OpticalFlow_GradientMethod(ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>* region_map, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS, const int IterMax, const double& Error_Min_Threshold)
 {
 	ERROR Error("IRLS_OpticalFlow_Pyramid_Block");
 
@@ -406,18 +331,14 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 	VECTOR_2D<double> sup;
 	double E = 0.0;
 	double E_prev = 0.0;
-	int ErrorIncrementCount = 0;
+	int Error_IncrementCount = 0;
 
 	if (u == nullptr) {
-		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *u");
-	} else if (Img_g == nullptr) {
-		throw std::invalid_argument("ImgVector<VECTOR_2D<double> > *Img_g");
-	} else if (Img_t == nullptr) {
-		throw std::invalid_argument("ImgVector<double> *Img_t");
+		throw std::invalid_argument("ImgVector<VECTOR_2D<double> >* u");
 	}
 	u_np1.copy(*u); // Initialize u_np1
 	// Reset sup_Error_uu max Img_g
-	sup_Error_uu_Block(Img_g, lambdaD, lambdaS, sigmaD, sigmaS);
+	sup_Error_uu_Block(grad, lambdaD, lambdaS, sigmaD, sigmaS);
 	sup = sup_Error_uu_Block(nullptr, lambdaD, lambdaS, sigmaD, sigmaS);
 	for (int n = 0; n < IterMax; n++) {
 		// Calc for all sites
@@ -427,7 +348,7 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 #endif
 		for (site = 0; site < u->size(); site++) {
 			VECTOR_2D<double> dE;
-			dE = Error_u_Block(site, u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
+			dE = Error_u_Block(site, u, region_map, grad, dt, lambdaD, lambdaS, sigmaD, sigmaS);
 			u_np1[site].x = u->get(site).x - dE.x / sup.x;
 			u_np1[site].y = u->get(site).y - dE.y / sup.y;
 		}
@@ -435,33 +356,27 @@ IRLS_OpticalFlow_Pyramid_Segment(ImgVector<VECTOR_2D<double> >* u, const ImgVect
 		for (site = 0; site < u->size(); site++) {
 			u->at(site) = u_np1.get(site);
 		}
-		if (level == 0) {
-			if ((n & 0x3F) == 0) {
-				E = Error_MultipleMotion_Block(u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
-			}
-		} else {
-			E_prev = E;
-			E = Error_MultipleMotion_Block(u, domain_map, Img_g, Img_t, lambdaD, lambdaS, sigmaD, sigmaS);
-			if (E > E_prev) {
-				ErrorIncrementCount++;
-			} else {
-				ErrorIncrementCount = 0;
-			}
-		}
-#ifdef SHOW_IRLS_OPTICALFLOW_PYRAMID_E
 		if ((n & 0x3F) == 0) {
+			E_prev = E;
+			E = Error_MultipleMotion_Block(u, region_map, grad, dt, lambdaD, lambdaS, sigmaD, sigmaS);
+#ifdef SHOW_IRLS_OPTICALFLOW_PYRAMID_E
 			printf("E(%4d) = %e\n", n, E);
-		}
 #endif
-		if (E < ErrorMinThreshold || ErrorIncrementCount > 3) {
-			break;
+			if (E > E_prev) {
+				Error_IncrementCount++;
+			} else {
+				Error_IncrementCount = 0;
+			}
+			if (E < Error_Min_Threshold || Error_IncrementCount > 3) {
+				break;
+			}
 		}
 	}
 }
 
 
 VECTOR_2D<double>
-Error_u_Block(const size_t& site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_u_Block(const size_t& site, const ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>* domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*psiD)(const double&, const double&) = Geman_McClure_psi;
 	double (*psiS)(const double&, const double&) = Geman_McClure_psi;
@@ -472,26 +387,26 @@ Error_u_Block(const size_t& site, const ImgVector<VECTOR_2D<double> >* u, const 
 
 	int x = static_cast<int>(site % size_t(u->width()));
 	int y = static_cast<int>(site / size_t(u->width()));
-	size_t center_domain = domain_map.get(x, y);
+	size_t center_domain = domain_map->get(x, y);
 
 	us = u->get(site);
 	Center = (*psiD)(Img_g->get(site).x * us.x + Img_g->get(site).y * us.y + Img_t->get(site), sigmaD);
 
 	Neighbor.x = .0;
 	Neighbor.y = .0;
-	if (x > 0 && domain_map.get(x - 1, y) == center_domain) {
+	if (x > 0 && domain_map->get(x - 1, y) == center_domain) {
 		Neighbor.x += (*psiS)(us.x - u->get(x - 1, y).x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u->get(x - 1, y).y, sigmaS);
 	}
-	if (x < u->width() - 1 && domain_map.get(x + 1, y) == center_domain) {
+	if (x < u->width() - 1 && domain_map->get(x + 1, y) == center_domain) {
 		Neighbor.x += (*psiS)(us.x - u->get(x + 1, y).x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u->get(x + 1, y).y, sigmaS);
 	}
-	if (y > 0 && domain_map.get(x, y - 1) == center_domain) {
+	if (y > 0 && domain_map->get(x, y - 1) == center_domain) {
 		Neighbor.x += (*psiS)(us.x - u->get(x, y - 1).x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u->get(x, y - 1).y, sigmaS);
 	}
-	if (y < u->height() - 1 && domain_map.get(x, y + 1) == center_domain) {
+	if (y < u->height() - 1 && domain_map->get(x, y + 1) == center_domain) {
 		Neighbor.x += (*psiS)(us.x - u->get(x, y + 1).x, sigmaS);
 		Neighbor.y += (*psiS)(us.y - u->get(x, y + 1).y, sigmaS);
 	}
@@ -526,7 +441,7 @@ sup_Error_uu_Block(const ImgVector<VECTOR_2D<double> >* Img_g, const double& lam
 
 
 double
-Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>& domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
+Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVector<size_t>* domain_map, const ImgVector<VECTOR_2D<double> >* Img_g, const ImgVector<double>* Img_t, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS)
 {
 	double (*rhoD)(const double&, const double&) = Geman_McClure_rho;
 	double (*rhoS)(const double&, const double&) = Geman_McClure_rho;
@@ -538,22 +453,22 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 #endif
 	for (y = 0; y < u->height(); y++) {
 		for (int x = 0; x < u->width(); x++) {
-			size_t center_domain = domain_map.get(x, y);
+			size_t center_domain = domain_map->get(x, y);
 			VECTOR_2D<double> us(u->get(x, y));
 			VECTOR_2D<double> Neighbor(0.0, 0.0);
-			if (x > 0 && domain_map.get(x - 1, y) == center_domain) {
+			if (x > 0 && domain_map->get(x - 1, y) == center_domain) {
 				Neighbor.x += (*rhoS)(us.x - u->get(x - 1, y).x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u->get(x - 1, y).y, sigmaS);
 			}
-			if (x < u->width() - 1 && domain_map.get(x + 1, y) == center_domain) {
+			if (x < u->width() - 1 && domain_map->get(x + 1, y) == center_domain) {
 				Neighbor.x += (*rhoS)(us.x - u->get(x + 1, y).x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u->get(x + 1, y).y, sigmaS);
 			}
-			if (y > 0 && domain_map.get(x, y - 1) == center_domain) {
+			if (y > 0 && domain_map->get(x, y - 1) == center_domain) {
 				Neighbor.x += (*rhoS)(us.x - u->get(x, y - 1).x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u->get(x, y - 1).y, sigmaS);
 			}
-			if (y < u->height() - 1 && domain_map.get(x, y + 1) == center_domain) {
+			if (y < u->height() - 1 && domain_map->get(x, y + 1) == center_domain) {
 				Neighbor.x += (*rhoS)(us.x - u->get(x, y + 1).x, sigmaS);
 				Neighbor.y += (*rhoS)(us.y - u->get(x, y + 1).y, sigmaS);
 			}

@@ -3,30 +3,34 @@
  * This motion estimation based on
  * M.J.Black and P.Anandan, "The Robust Estimation of Multiple Motions: Parametric and Piecewise-Smooth Flow Fields," Computer Vision and Image Understanding Vol. 63, No. 1, 1996, pp. 75-104.
  */
-
+#include <deque>
 #include <string>
 #include <vector>
 
-#include "MEstimator.h"
-#include "MultiResolution.h"
+#define OUTPUT_IMG_CLASS
 
 #include "../ImgClass/RGB.h"
 #include "../ImgClass/Lab.h"
 #include "../ImgClass/Vector.h"
+#include "../ImgClass/ImgClass.h"
+#include "../ImgClass/Segmentation.h"
 #include "../ImgClass/BlockMatching.h"
 
+#include "MEstimator.h"
 #include "../lib/Struct.h"
 #include "../Scratch_MeaningfulMotion.h"
 
 
 
 
-ImgVector<VECTOR_2D<double> >* OpticalFlow_Affine_BlockMatching(ImgVector<double> *It, ImgVector<double> *Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam);
+std::vector<ImgVector<Vector_ST<double> > > AffineParametric(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax);
 
-bool IRLS_Affine_Block(std::vector<VECTOR_AFFINE>* u, const std::vector<std::vector<VECTOR_2D<int> > >& connected_domains, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD, int IterMax, double ErrorMinThreshold);
 
-VECTOR_AFFINE Error_a_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& connected_domain, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD);
-VECTOR_AFFINE sup_Error_aa_Block(const std::vector<VECTOR_2D<int> >& connected_domain, const ImgVector<VECTOR_2D<double> > *Img_g, double sigmaD);
+void IRLS_AffineParametric_region(std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, const double& sigmaD, const int IterMax, const double& ErrorMinThreshold);
 
-double Error_Affine_Block(const VECTOR_AFFINE& u, const std::vector<VECTOR_2D<int> >& connected_domain, const ImgVector<VECTOR_2D<double> > *Img_g, const ImgVector<double> *Img_t, double sigmaD);
+std::vector<double> Error_a_region(const std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, double sigmaD);
+
+std::vector<double> sup_Error_aa_region(const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, double sigmaD);
+
+double Error_Affine_region(const std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, double sigmaD);
 
