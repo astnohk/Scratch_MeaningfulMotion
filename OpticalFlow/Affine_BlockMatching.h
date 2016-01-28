@@ -26,11 +26,11 @@
 std::vector<ImgVector<Vector_ST<double> > > AffineParametric(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax);
 
 
-void IRLS_AffineParametric_region(std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, const double& sigmaD, const int IterMax, const double& ErrorMinThreshold);
+void IRLS_AffineParametric_region(std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, const double& sigma, const int IterMax, const double& ErrorMinThreshold);
 
-std::vector<double> Error_a_region(const std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, double sigmaD);
+std::vector<double> Error_a_region(const std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, double sigma);
 
-std::vector<double> sup_Error_aa_region(const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, double sigmaD);
+std::vector<double> sup_Error_aa_region(const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, double sigma);
 
-double Error_Affine_region(const std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, double sigmaD);
+double Error_Affine_region(const std::vector<double>* u_affine, const std::vector<VECTOR_2D<int> >& region, const ImgVector<VECTOR_2D<double> >* grad, const ImgVector<double>* dt, double sigma);
 
