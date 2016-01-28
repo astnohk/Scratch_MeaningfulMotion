@@ -196,7 +196,6 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// ----- Optical Flow -----
 	std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
 	if (MotionParam.Level >= 0) {
-		std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
 		const ImgVector<ImgClass::Lab>* interest = nullptr;
 		const ImgVector<size_t>* region_map = nullptr;
 		std::vector<const ImgVector<ImgClass::Lab>*> references;

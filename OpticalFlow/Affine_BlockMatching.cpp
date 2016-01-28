@@ -293,7 +293,7 @@ IRLS_AffineParametric_region(std::vector<double>* u_affine, const std::vector<VE
 	const double omega = 1.0E-3;
 
 	// Initialize
-	for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+	for (size_t i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 		u_affine->at(i) = .0;
 	}
 	// Start IRLS
@@ -303,7 +303,7 @@ IRLS_AffineParametric_region(std::vector<double>* u_affine, const std::vector<VE
 		std::vector<double> sup = sup_Error_aa_region(region, grad, sigma);
 		double E = 0.0;
 
-		for (int i = 0; i < NUM_AFFINE_PARAMETER; i++) {
+		for (size_t i = 0; i < NUM_AFFINE_PARAMETER; i++) {
 			if (fabs(sup[i]) < 1.0E-10) {
 				u_np1[i] = u_affine->at(i) - omega * 1.0E+10 * SIGN_NOZERO(sup[i]) * dE[i];
 			} else {
