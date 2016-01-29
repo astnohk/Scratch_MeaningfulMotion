@@ -44,7 +44,8 @@ main(int argc, char *argv[])
 	    "      --filtered                       : output first filtered image\n"
 	    "      --binary                         : output middle data at Line Scratch detection\n"
 	    "      --multiple_affine                : output multiple motions' affine parameters estimated by method of M.J.Black\n"
-	    "      --multiple_opticalflow           : output multiple motions' optical flow estimated by method of M.J.Black\n"
+	    "      --affine_blockmatching           : output multiple motions' optical flow estimated by method of M.J.Black\n"
+	    "      --opticalflow_blockmatching      : output multiple motions' optical flow estimated by method of M.J.Black\n"
 	    "      --mm_level [value]               : set maximum level of multi resolution gaussian pyramid (default : 4)\n"
 	    "      --HOG                            : output block normalized Histograms of Oriented Gradients\n"
 	    "      --HOG_raw                        : output raw Histograms of Oriented Gradients\n"
@@ -234,9 +235,10 @@ main(int argc, char *argv[])
 				} else if (strcmp(argv[i], "--HOG_unsigned") == 0) {
 					Options.HOG_Param.SignedOrient = false;
 				} else if (strcmp(argv[i], "--multiple_affine") == 0) {
-					//Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
+					Options.mode = MODE_OUTPUT_MULTIPLE_MOTIONS_AFFINE;
+				} else if (strcmp(argv[i], "--affine_blockmatching") == 0) {
 					Options.mode = MODE_OUTPUT_AFFINE_BLOCKMATCHING;
-				} else if (strcmp(argv[i], "--multiple_opticalflow") == 0) {
+				} else if (strcmp(argv[i], "--opticalflow_blockmatching") == 0) {
 					Options.mode = MODE_OUTPUT_OPTICALFLOW;
 				} else if (strcmp(argv[i], "--mm_level") == 0) {
 					if (i + 1 >= argc) {

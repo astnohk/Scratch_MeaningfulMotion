@@ -190,9 +190,36 @@ AffineParametric(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgCl
 	}
 #endif
 
-	// ----- Optical Flow -----
+	// Copy the lowest vector for output
+	if (Bidirectional_with_Time) {
+		u.resize(1);
+		u[0].reset(It.width(), It.height());
+		for (int y = 0; y < block_matching.height(); y++) {
+			for (int x = 0; x < block_matching.width(); x++) {
+				u[0].at(x, y) = block_matching.get(x, y);
+			}
+		}
+	} else {
+		u.resize(2);
+		u[0].reset(It.width(), It.height());
+		u[1].reset(It.width(), It.height());
+		for (int y = 0; y < block_matching.height(); y++) {
+			for (int x = 0; x < block_matching.width(); x++) {
+				u[0].at(x, y) = block_matching.get_prev(x, y);
+				u[0].at(x, y).t = -1;
+				if (u.size() > 1) { // bi-directional
+					u[1].at(x, y) = block_matching.get_next(x, y);
+					u[1].at(x, y).t = 1;
+				}
+			}
+		}
+	}
+
+	// ----- Parametric Motion -----
+		std::cout << "OK\n" << std::endl;
 	std::vector<std::vector<double> > u_affine;
-	if (MotionParam.Level > 0) {
+	if (MotionParam.Level >= 0) {
+		std::cout << "OK\n" << std::endl;
 		const std::vector<std::vector<VECTOR_2D<int> > >* regions;
 		ImgVector<ImgClass::Lab>* interest = nullptr;
 		std::vector<ImgVector<ImgClass::Lab>*> references;
@@ -254,29 +281,12 @@ AffineParametric(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgCl
 				    IterMax,
 				    MotionParam.Error_Min_Threshold);
 			}
-		}
-	}
-
-	// Copy the lowest vector for output
-	if (Bidirectional_with_Time) {
-		u.resize(1);
-		u[0].reset(It.width(), It.height());
-		for (int y = 0; y < block_matching.height(); y++) {
-			for (int x = 0; x < block_matching.width(); x++) {
-				u[0].at(x, y) = block_matching.get(x, y);
-			}
-		}
-	} else {
-		u.resize(2);
-		u[0].reset(It.width(), It.height());
-		u[1].reset(It.width(), It.height());
-		for (int y = 0; y < block_matching.height(); y++) {
-			for (int x = 0; x < block_matching.width(); x++) {
-				u[0].at(x, y) = block_matching.get_prev(x, y);
-				u[0].at(x, y).t = -1;
-				if (u.size() > 1) { // bi-directional
-					u[1].at(x, y) = block_matching.get_next(x, y);
-					u[1].at(x, y).t = 1;
+			for (size_t n = 0; n < regions->size(); n++) {
+				for (const VECTOR_2D<int>& r : regions->at(n)) {
+					u[ref].at(r.x, r.y).x +=
+					    u_affine[n][0] + r.x * u_affine[n][1] + r.y * u_affine[n][2];
+					u[ref].at(r.x, r.y).y +=
+					    u_affine[n][3] + r.x * u_affine[n][4] + r.y * u_affine[n][5];
 				}
 			}
 		}
