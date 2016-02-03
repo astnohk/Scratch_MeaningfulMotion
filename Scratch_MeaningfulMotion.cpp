@@ -345,7 +345,7 @@ Scratch_MeaningfulMotion(const std::string& OutputName, const std::string& Input
 				printf("* Skip Calculate Multiple Motions by Affine while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Block Matching with Affine by method of Michael J. Black\n");
-				MotionVectors = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums);
+				MotionVectors = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums, MODE_OUTPUT_AFFINE_BLOCKMATCHING);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			// Computte Block Matching with Multiple Motion Optical Flow by method of M.J.Black
@@ -353,7 +353,7 @@ Scratch_MeaningfulMotion(const std::string& OutputName, const std::string& Input
 				printf("* Skip Calculate Optical Flow while there is NOT any previous frame\n");
 			} else {
 				printf("* Compute Optical Flow by method of Michael J. Black\n");
-				MotionVectors = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums);
+				MotionVectors = OpticalFlow_BlockMatching(imgd_prev, imgd_in, pnm_in.MaxInt(), Options.MultipleMotion_Param, OutputNameNums, MODE_OUTPUT_OPTICALFLOW);
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS) != 0
 		    || (Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0

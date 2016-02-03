@@ -19,13 +19,14 @@
 
 #include "MEstimator.h"
 #include "MultiResolution.h"
+#include "Affine_BlockMatching.h"
 #include "../lib/Struct.h"
 #include "../Scratch_MeaningfulMotion.h"
 
 
 
 
-std::vector<ImgVector<Vector_ST<double> > > OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It, const ImgVector<ImgClass::RGB>& Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax = 0);
+std::vector<ImgVector<Vector_ST<double> > > OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It, const ImgVector<ImgClass::RGB>& Itp1, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, const int Mode, const int IterMax = 2048);
 
 
 ImgVector<VECTOR_2D<double> > OpticalFlow_GradientMethod(const ImgVector<ImgClass::Lab>* reference, const ImgVector<ImgClass::Lab>* interest, const ImgVector<VECTOR_2D<double> >* MV, const ImgVector<size_t>* region_map, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS, const int IterMax, const double& Error_Min_Threshold);

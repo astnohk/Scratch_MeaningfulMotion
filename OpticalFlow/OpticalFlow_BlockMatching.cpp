@@ -10,10 +10,12 @@
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 std::vector<ImgVector<Vector_ST<double> > >
-OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, int IterMax)
+OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, const int Mode, const int IterMax)
 {
+	const bool Bidirectional = false;
 	const bool Bidirectional_with_Time = true; // on almost all cases it is true
 	const size_t History_Max = 4;
+
 	static std::deque<ImgVector<ImgClass::RGB> > sequence_sRGB;
 	static std::deque<ImgVector<double> > sequence_Grayscale;
 	static std::deque<ImgVector<ImgClass::Lab> > sequence_Lab;
@@ -104,10 +106,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 	}
 	int BlockMatching_BlockSize = 8;
-	if (sequence_Lab.size() <= 2) {
-		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, BlockMatching_BlockSize, Subpixel_Scale);
-	} else {
+	if (Bidirectional && sequence_Lab.size() >= 3) {
 		block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize, Subpixel_Scale);
+	} else {
+		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, BlockMatching_BlockSize, Subpixel_Scale);
 	}
 	block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
 #else
@@ -119,7 +121,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 9.0 / 255.0; // for images under about HD resolution
 #else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
-		double kernel_spatial = 10.0, kernel_intensity = 9.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = 16.0, kernel_intensity = 10.0 / 255.0; // for images under about HD resolution
 #endif
 
 		if (segmentations.empty()) {
@@ -167,8 +169,8 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		for (int y = 0; y < segmentations[0].height(); y++) {
 			for (int x = 0; x < segmentations[0].width(); x++) {
 				VECTOR_2D<double> v;
-				v.x = segmentations[0].ref_shift_vector().get(x, y).x - x;
-				v.y = segmentations[0].ref_shift_vector().get(x, y).y - y;
+				v.x = segmentations[0].ref_shift_vector_spatial().get(x, y).x - x;
+				v.y = segmentations[0].ref_shift_vector_spatial().get(x, y).y - y;
 				fwrite(&v.x, sizeof(double), 1, fp);
 				fwrite(&v.y, sizeof(double), 1, fp);
 			}
@@ -177,16 +179,23 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		// Arbitrary shaped Block Matching
 		printf("* * Compute Block Matching\n");
 		//block_matching.reset(segmentations.begin()->ref_segmentation_map(), It, Itp1);
-		if (sequence_Lab.size() <= 2) {
+		if (sequence_Lab.size() >= 3) {
+			if (Bidirectional) {
+				block_matching.reset(
+				    sequence_Lab[2], segmentations[2].ref_segmentation_map(),
+				    sequence_Lab[1], segmentations[1].ref_segmentation_map(),
+				    sequence_Lab[0], segmentations[0].ref_segmentation_map(),
+				    Subpixel_Scale);
+			} else {
+				block_matching.reset(
+				    sequence_Lab[2], segmentations[2].ref_segmentation_map(),
+				    sequence_Lab[1], segmentations[1].ref_segmentation_map(),
+				    Subpixel_Scale);
+			}
+		} else {
 			block_matching.reset(
 			    It_Lab_normalize, segmentations[1].ref_segmentation_map(),
 			    Itp1_Lab_normalize, segmentations[0].ref_segmentation_map(),
-			    Subpixel_Scale);
-		} else {
-			block_matching.reset(
-			    sequence_Lab[2], segmentations[2].ref_segmentation_map(),
-			    sequence_Lab[1], segmentations[1].ref_segmentation_map(),
-			    sequence_Lab[0], segmentations[0].ref_segmentation_map(),
 			    Subpixel_Scale);
 		}
 		block_matching.block_matching(BM_Search_Range, coeff_MAD, coeff_ZNCC);
@@ -197,75 +206,130 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
 	if (MotionParam.Level >= 0) {
 		const ImgVector<ImgClass::Lab>* interest = nullptr;
+		const std::vector<std::vector<VECTOR_2D<int> > >* regions = nullptr;
 		const ImgVector<size_t>* region_map = nullptr;
 		std::vector<const ImgVector<ImgClass::Lab>*> references;
-		std::vector<const ImgVector<VECTOR_2D<double> >*> MVs;
-		if (sequence_Lab.size() <= 2) {
-			u_optical.resize(1);
-			u_optical[0].resize(It_color.width(), It_color.height());
-			interest = &Itp1_Lab_normalize;
-			region_map = &(segmentations[0].ref_segmentation_map());
-			references.push_back(&It_Lab_normalize);
-			MVs.push_back(&block_matching.ref_motion_vector_prev());
-		} else {
+		std::vector<ImgVector<VECTOR_2D<double> > > MVs;
+		if (Bidirectional && sequence_Lab.size() >= 3) {
 			u_optical.resize(2);
 			u_optical[0].resize(It_color.width(), It_color.height());
 			u_optical[1].resize(It_color.width(), It_color.height());
 			interest = &sequence_Lab[1];
+			regions = &(segmentations[1].ref_regions());
 			region_map = &(segmentations[1].ref_segmentation_map());
 			references.push_back(&sequence_Lab[2]);
 			references.push_back(&sequence_Lab[0]);
-			MVs.push_back(&block_matching.ref_motion_vector_prev());
-			MVs.push_back(&block_matching.ref_motion_vector_next());
+			if (block_matching.vector_field_width() == It_color.width()
+			    && block_matching.vector_field_height() == It_color.height()) {
+				MVs.push_back(block_matching.ref_motion_vector_prev());
+				MVs.push_back(block_matching.ref_motion_vector_next());
+			} else {
+				MVs.resize(2);
+				MVs[0].reset(It_color.width(), It_color.height());
+				MVs[1].reset(It_color.width(), It_color.height());
+				for (int y = 0; y < It_color.height(); y++) {
+					for (int x = 0; x < It_color.width(); x++) {
+						MVs[0].at(x, y) = block_matching.get_prev(x, y);
+						MVs[1].at(x, y) = block_matching.get_next(x, y);
+					}
+				}
+			}
+		} else {
+			u_optical.resize(1);
+			u_optical[0].resize(It_color.width(), It_color.height());
+			interest = &Itp1_Lab_normalize;
+			regions = &(segmentations[0].ref_regions());
+			region_map = &(segmentations[0].ref_segmentation_map());
+			references.push_back(&It_Lab_normalize);
+			if (block_matching.vector_field_width() == It_color.width()
+			    && block_matching.vector_field_height() == It_color.height()) {
+				MVs.push_back(block_matching.ref_motion_vector_prev());
+			} else {
+				MVs.resize(1);
+				MVs[0].reset(It_color.width(), It_color.height());
+				for (int y = 0; y < It_color.height(); y++) {
+					for (int x = 0; x < It_color.width(); x++) {
+						MVs[0].at(x, y) = block_matching.get_prev(x, y);
+					}
+				}
+			}
 		}
-		for (size_t ref = 0; ref < references.size(); ref++) {
-			u_optical[ref] = OpticalFlow_GradientMethod(
-			    references[ref],
-			    interest,
-			    MVs[ref],
-			    region_map,
-			    lambdaD, lambdaS, sigmaD, sigmaS,
-			    IterMax,
-			    MotionParam.Error_Min_Threshold);
+		switch (Mode) {
+			case MODE_OUTPUT_AFFINE_BLOCKMATCHING: // Affine Parametric motion
+				for (size_t ref = 0; ref < references.size(); ref++) {
+					u_optical[ref] = AffineParametric(
+					    *references[ref],
+					    *interest,
+					    MVs[ref],
+					    *regions,
+					    MotionParam,
+					    IterMax);
+				}
+				break;
+			default: // A Gradient-based method
+				for (size_t ref = 0; ref < references.size(); ref++) {
+					u_optical[ref] = OpticalFlow_GradientMethod(
+					    references[ref],
+					    interest,
+					    &MVs[ref],
+					    region_map,
+					    lambdaD, lambdaS, sigmaD, sigmaS,
+					    IterMax,
+					    MotionParam.Error_Min_Threshold);
+				}
 		}
 	}
 	// Copy the lowest vector for output
-	if (Bidirectional_with_Time) {
-		u.resize(1);
-		u[0].reset(It.width(), It.height());
-		for (int y = 0; y < block_matching.height(); y++) {
-			for (int x = 0; x < block_matching.width(); x++) {
-				u[0].at(x, y) = block_matching.get(x, y);
-				if (u_optical.size() > 0) {
-					if (u[0].get(x, y).t < 0) {
+	if (Bidirectional) {
+		if (Bidirectional_with_Time) {
+			u.resize(1);
+			u[0].reset(It.width(), It.height());
+			for (int y = 0; y < It.height(); y++) {
+				for (int x = 0; x < It.width(); x++) {
+					u[0].at(x, y) = block_matching.get(x, y);
+					if (u_optical.size() > 0) {
+						if (u[0].get(x, y).t < 0) {
+							u[0].at(x, y).x += u_optical[0].get(x, y).x;
+							u[0].at(x, y).y += u_optical[0].get(x, y).y;
+						} else {
+							u[0].at(x, y).x += u_optical[1].get(x, y).x;
+							u[0].at(x, y).y += u_optical[1].get(x, y).y;
+						}
+					}
+				}
+			}
+		} else {
+			u.resize(2);
+			u[0].reset(It.width(), It.height());
+			u[1].reset(It.width(), It.height());
+			for (int y = 0; y < It.height(); y++) {
+				for (int x = 0; x < It.width(); x++) {
+					u[0].at(x, y) = block_matching.get_prev(x, y);
+					u[0].at(x, y).t = -1;
+					if (u_optical.size() > 0) {
 						u[0].at(x, y).x += u_optical[0].get(x, y).x;
 						u[0].at(x, y).y += u_optical[0].get(x, y).y;
-					} else {
-						u[0].at(x, y).x += u_optical[1].get(x, y).x;
-						u[0].at(x, y).y += u_optical[1].get(x, y).y;
+					}
+					if (u.size() > 1) { // bi-directional
+						u[1].at(x, y) = block_matching.get_next(x, y);
+						u[1].at(x, y).t = 1;
+						if (u_optical.size() > 1) {
+							u[1].at(x, y).x += u_optical[1].get(x, y).x;
+							u[1].at(x, y).y += u_optical[1].get(x, y).y;
+						}
 					}
 				}
 			}
 		}
 	} else {
-		u.resize(2);
+		u.resize(1);
 		u[0].reset(It.width(), It.height());
-		u[1].reset(It.width(), It.height());
-		for (int y = 0; y < block_matching.height(); y++) {
-			for (int x = 0; x < block_matching.width(); x++) {
-				u[0].at(x, y) = block_matching.get_prev(x, y);
-				u[0].at(x, y).t = -1;
+		for (int y = 0; y < It.height(); y++) {
+			for (int x = 0; x < It.width(); x++) {
+				u[0].at(x, y) = block_matching.get(x, y);
 				if (u_optical.size() > 0) {
 					u[0].at(x, y).x += u_optical[0].get(x, y).x;
 					u[0].at(x, y).y += u_optical[0].get(x, y).y;
-				}
-				if (u.size() > 1) { // bi-directional
-					u[1].at(x, y) = block_matching.get_next(x, y);
-					u[1].at(x, y).t = 1;
-					if (u_optical.size() > 1) {
-						u[1].at(x, y).x += u_optical[1].get(x, y).x;
-						u[1].at(x, y).y += u_optical[1].get(x, y).y;
-					}
 				}
 			}
 		}
