@@ -121,7 +121,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 9.0 / 255.0; // for images under about HD resolution
 #else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
-		double kernel_spatial = 16.0, kernel_intensity = 10.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = 16.0, kernel_intensity = 12.0 / 255.0; // for images under about HD resolution
 #endif
 
 		if (segmentations.empty()) {
