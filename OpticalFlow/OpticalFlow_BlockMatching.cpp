@@ -12,7 +12,7 @@
 std::vector<ImgVector<Vector_ST<double> > >
 OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, const int Mode, const int IterMax)
 {
-	const bool Bidirectional = false;
+	const bool Bidirectional = true;
 	const bool Bidirectional_with_Time = true; // on almost all cases it is true
 	const size_t History_Max = 4;
 
@@ -118,10 +118,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		printf("* * Compute Segmentation by Mean Shift\n");
 
 #ifdef MEANSHIFT_KERNEL_SPATIAL
-		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 9.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 16.0 / 255.0; // for images under about HD resolution
 #else
 		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
-		double kernel_spatial = 16.0, kernel_intensity = 12.0 / 255.0; // for images under about HD resolution
+		double kernel_spatial = 20.0, kernel_intensity = 16.0 / 255.0; // for images under about HD resolution
 #endif
 
 		if (segmentations.empty()) {
