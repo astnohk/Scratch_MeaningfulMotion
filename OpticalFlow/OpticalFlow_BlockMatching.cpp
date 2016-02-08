@@ -30,7 +30,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	const double coeff_ZNCC = 0.0;
 	BlockMatching<ImgClass::Lab> block_matching;
 	int BM_Search_Range = 61; // Block Matching search range
-	int Subpixel_Scale = 1;
+	int Subpixel_Scale = 2;
 
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
@@ -40,6 +40,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	ImgVector<ImgClass::Lab> Itp1_Lab_normalize;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
+	ImgVector<ImgClass::RGB> It_sRGB_quantized;
 	// M-estimator parameter
 	const double lambdaD = 5.0;
 	const double lambdaS = 1.0;
@@ -140,25 +141,38 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation_" + ofilename.substr(found);
 		printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
 		{
-			ImgVector<int> tmp_vector(segmentations[0].width(), segmentations[0].height());
-			for (size_t i = 0; i < segmentations[0].size(); i++) {
-				tmp_vector[i] = static_cast<int>(segmentations[0][i]);
+			ImgVector<int> tmp_vector(segmentations[1].width(), segmentations[1].height());
+			for (size_t i = 0; i < segmentations[1].size(); i++) {
+				tmp_vector[i] = static_cast<int>(segmentations[1][i]);
 			}
-			pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), int(tmp_vector.max()), tmp_vector.data());
+			pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[1].width(), segmentations[1].height(), int(tmp_vector.max()), tmp_vector.data());
 			pnm.write(ofilename_segmentation.c_str());
 			pnm.free();
 		}
 
-		ImgVector<int> quantized(segmentations[0].width(), segmentations[0].height());
-		for (size_t i = 0; i < segmentations[0].ref_color_quantized_image().size(); i++) {
-			quantized.at(i) = int(round(double(segmentations[0].ref_color_quantized_image().get(i)) / 100.0));
-			if (quantized.get(i) < 0) {
-				quantized.at(i) = 0;
+		int quantized[3 * segmentations[1].width() * segmentations[1].height()];
+		int width = sequence_sRGB[1].width();
+		int height = sequence_sRGB[1].height();
+		for (size_t i = 0; i < segmentations[1].ref_regions().size(); i++) {
+			for (const std::vector<VECTOR_2D<int> >& region : segmentations[1].ref_regions()) {
+				ImgClass::RGB color;
+				for (const VECTOR_2D<int>& r : region) {
+					color += sequence_sRGB[1].get(r.x, r.y);
+				}
+				color *= 255.0 / region.size();
+				color.R = color.R > 255.0 ? 255 : color.R;
+				color.G = color.G > 255.0 ? 255 : color.G;
+				color.B = color.B > 255.0 ? 255 : color.B;
+				for (const VECTOR_2D<int>& r : region) {
+					quantized[width * r.y + r.x] = color.R;
+					quantized[width * height + width * r.y + r.x] = color.G;
+					quantized[2 * width * height + width * r.y + r.x] = color.B;
+				}
 			}
 		}
 		std::string ofilename_quantized = ofilename.substr(0, found) + "color-quantized_" + ofilename.substr(found);
 		printf("* Output The color quantized image '%s'(binary)\n\n", ofilename_quantized.c_str());
-		pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), quantized.max(), quantized.data());
+		pnm.copy(PORTABLE_PIXMAP_BINARY, segmentations[0].width(), segmentations[0].height(), 255, quantized);
 		pnm.write(ofilename_quantized.c_str());
 		pnm.free();
 		// Output vectors
