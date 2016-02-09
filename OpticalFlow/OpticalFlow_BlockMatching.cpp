@@ -27,7 +27,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	ImgVector<size_t> domain_map;
 	const double coeff_MAD = 1.0;
-	const double coeff_ZNCC = 0.0;
+	const double coeff_ZNCC = 0.5;
 	BlockMatching<ImgClass::Lab> block_matching;
 	int BM_Search_Range = 61; // Block Matching search range
 	int Subpixel_Scale = 2;
@@ -121,7 +121,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #ifdef MEANSHIFT_KERNEL_SPATIAL
 		double kernel_spatial = MEANSHIFT_KERNEL_SPATIAL, kernel_intensity = 16.0 / 255.0; // for images under about HD resolution
 #else
-		//double kernel_spatial = 64.0, kernel_intensity = 12.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
+		//double kernel_spatial = 64.0, kernel_intensity = 16.0 / 255.0; // for 4K Film kernel(spatial = 64.0, intensity = 12.0 / 255.0)
 		double kernel_spatial = 20.0, kernel_intensity = 16.0 / 255.0; // for images under about HD resolution
 #endif
 
@@ -150,31 +150,33 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			pnm.free();
 		}
 
-		int quantized[3 * segmentations[1].width() * segmentations[1].height()];
-		int width = sequence_sRGB[1].width();
-		int height = sequence_sRGB[1].height();
-		for (size_t i = 0; i < segmentations[1].ref_regions().size(); i++) {
-			for (const std::vector<VECTOR_2D<int> >& region : segmentations[1].ref_regions()) {
-				ImgClass::RGB color;
-				for (const VECTOR_2D<int>& r : region) {
-					color += sequence_sRGB[1].get(r.x, r.y);
-				}
-				color *= 255.0 / region.size();
-				color.R = color.R > 255.0 ? 255 : color.R;
-				color.G = color.G > 255.0 ? 255 : color.G;
-				color.B = color.B > 255.0 ? 255 : color.B;
-				for (const VECTOR_2D<int>& r : region) {
-					quantized[width * r.y + r.x] = color.R;
-					quantized[width * height + width * r.y + r.x] = color.G;
-					quantized[2 * width * height + width * r.y + r.x] = color.B;
+		{
+			int quantized[3 * segmentations[1].width() * segmentations[1].height()];
+			int width = sequence_sRGB[1].width();
+			int height = sequence_sRGB[1].height();
+			for (size_t i = 0; i < segmentations[1].ref_regions().size(); i++) {
+				for (const std::vector<VECTOR_2D<int> >& region : segmentations[1].ref_regions()) {
+					ImgClass::RGB sum_sRGB(.0, .0, .0);
+					for (const VECTOR_2D<int>& r : region) {
+						sum_sRGB += sequence_sRGB[1].get(r.x, r.y);
+					}
+					sum_sRGB *= 255.0 / region.size();
+					sum_sRGB.R = sum_sRGB.R > 255.0 ? 255 : sum_sRGB.R;
+					sum_sRGB.G = sum_sRGB.G > 255.0 ? 255 : sum_sRGB.G;
+					sum_sRGB.B = sum_sRGB.B > 255.0 ? 255 : sum_sRGB.B;
+					for (const VECTOR_2D<int>& r : region) {
+						quantized[width * r.y + r.x] = sum_sRGB.R;
+						quantized[width * height + width * r.y + r.x] = sum_sRGB.G;
+						quantized[2 * width * height + width * r.y + r.x] = sum_sRGB.B;
+					}
 				}
 			}
+			std::string ofilename_quantized = ofilename.substr(0, found) + "color-quantized_" + ofilename.substr(found);
+			printf("* Output The color quantized image '%s'(binary)\n\n", ofilename_quantized.c_str());
+			pnm.copy(PORTABLE_PIXMAP_BINARY, segmentations[0].width(), segmentations[0].height(), 255, quantized);
+			pnm.write(ofilename_quantized.c_str());
+			pnm.free();
 		}
-		std::string ofilename_quantized = ofilename.substr(0, found) + "color-quantized_" + ofilename.substr(found);
-		printf("* Output The color quantized image '%s'(binary)\n\n", ofilename_quantized.c_str());
-		pnm.copy(PORTABLE_PIXMAP_BINARY, segmentations[0].width(), segmentations[0].height(), 255, quantized);
-		pnm.write(ofilename_quantized.c_str());
-		pnm.free();
 		// Output vectors
 		std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector_" + ofilename.substr(found);
 		FILE *fp;
@@ -563,7 +565,7 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 
 
 void
-MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename)
+MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename)
 {
 	ERROR Error("MultipleMotion_write");
 	FILE *fp = nullptr;
@@ -602,13 +604,13 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 	std::string::size_type found = filename.find_last_of("/\\");
 	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), MaxInt, compensated.ref_image_compensated().data(), 1.0);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
 }
 
 void
-MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
+MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 	FILE *fp = nullptr;
@@ -662,13 +664,13 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 		compensated_image[n + size] = int(compensated.ref_image_compensated().get(n).G);
 		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);
 	}
-	pnm.copy(PORTABLE_PIXMAP_BINARY, compensated.width(), compensated.height(), 255, compensated_image);
+	pnm.copy(PORTABLE_PIXMAP_BINARY, compensated.width(), compensated.height(), MaxInt, compensated_image);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
 }
 
 void
-MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const ImgVector<double>& img_next, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename)
+MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const ImgVector<double>& img_next, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename)
 {
 	ERROR Error("MultipleMotion_write");
 
@@ -714,13 +716,13 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 	std::string::size_type found = filename.find_last_of("/\\");
 	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
 	printf("* Output The Compensated Image from Optical Flow to '%s'(binary)\n\n", filename_compensated.c_str());
-	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), 255, compensated.ref_image_compensated().data(), 1.0);
+	pnm.copy(PORTABLE_GRAYMAP_BINARY, compensated.width(), compensated.height(), MaxInt, compensated.ref_image_compensated().data(), 1.0);
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
 }
 
 void
-MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
+MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 
@@ -789,7 +791,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 			image_tmp[n + size] = int(compensated_image.get(n).G);
 			image_tmp[n + 2 * size] = int(compensated_image.get(n).B);
 		}
-		pnm.copy(PORTABLE_PIXMAP_BINARY, compensated_image.width(), compensated_image.height(), 255, image_tmp);
+		pnm.copy(PORTABLE_PIXMAP_BINARY, compensated_image.width(), compensated_image.height(), MaxInt, image_tmp);
 	}
 	pnm.write(filename_compensated.c_str());
 	pnm.free();

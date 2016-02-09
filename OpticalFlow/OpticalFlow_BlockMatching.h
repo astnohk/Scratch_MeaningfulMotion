@@ -41,11 +41,11 @@ double Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const 
 
 
 // Output
-void MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
+void MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
 
-void MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
+void MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
 
 
-void MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const ImgVector<double>& img_next, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
-void MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
+void MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>& img_current, const ImgVector<double>& img_next, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
+void MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string& filename);
 

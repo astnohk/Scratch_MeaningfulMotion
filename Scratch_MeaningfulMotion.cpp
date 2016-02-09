@@ -539,17 +539,17 @@ Write:
 		} else if ((Options.mode & MODE_OUTPUT_AFFINE_BLOCKMATCHING) != 0) {
 			if (imgd_prev.isNULL() == false) {
 				if (sequence_RGB.size() == 2) {
-					MultipleMotion_write(imgd_prev, imgd_in, MotionVectors, OutputNameNums);
+					MultipleMotion_write(imgd_prev, imgd_in, pnm_orig.MaxInt(), MotionVectors, OutputNameNums);
 				} else {
-					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], sequence_RGB[0], MotionVectors, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
+					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], sequence_RGB[0], pnm_orig.MaxInt(), MotionVectors, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
 				}
 			}
 		} else if ((Options.mode & MODE_OUTPUT_OPTICALFLOW) != 0) {
 			if (imgd_prev.isNULL() == false) {
 				if (sequence_RGB.size() == 2) {
-					MultipleMotion_write(imgd_prev, imgd_in, MotionVectors, OutputNameNums);
+					MultipleMotion_write(imgd_prev, imgd_in, pnm_orig.MaxInt(), MotionVectors, OutputNameNums);
 				} else {
-					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], sequence_RGB[0], MotionVectors, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
+					MultipleMotion_write(sequence_RGB[2], sequence_RGB[1], sequence_RGB[0], pnm_orig.MaxInt(), MotionVectors, OutputNameNums_prev); // Use OutputNameNums_prev because Motion Estimation use ["prev of prev," "prev" and "current"] sequence as ["prev," "current" and "next"]
 				}
 			}
 		} else if ((Options.mode & MODE_OUTPUT_HISTOGRAMS_OF_ORIENTED_GRADIENTS_RAW_HOG) != 0) {
