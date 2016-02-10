@@ -27,7 +27,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	ImgVector<size_t> domain_map;
 	const double coeff_MAD = 1.0;
-	const double coeff_ZNCC = 0.5;
+	const double coeff_ZNCC = 0.0;
 	BlockMatching<ImgClass::Lab> block_matching;
 	int BM_Search_Range = 61; // Block Matching search range
 	int Subpixel_Scale = 2;
@@ -107,8 +107,12 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 	}
 	int BlockMatching_BlockSize = 8;
-	if (Bidirectional && sequence_Lab.size() >= 3) {
-		block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize, Subpixel_Scale);
+	if (sequence_Lab.size() >= 3) {
+		if (Bidirectional) {
+			block_matching.reset(sequence_Lab[2], sequence_Lab[1], sequence_Lab[0], BlockMatching_BlockSize, Subpixel_Scale);
+		} else {
+			block_matching.reset(sequence_Lab[2], sequence_Lab[1], BlockMatching_BlockSize, Subpixel_Scale);
+		}
 	} else {
 		block_matching.reset(It_Lab_normalize, Itp1_Lab_normalize, BlockMatching_BlockSize, Subpixel_Scale);
 	}
@@ -770,7 +774,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 	ImgVector<ImgClass::RGB> compensated_image(compensated.ref_image_compensated());
 	compensated_image.saturate(
 	    static_cast<ImgClass::RGB (*)(const ImgClass::RGB&, const double&, const double&)>(saturate),
-	    0.0, 255.0);
+	    0.0, double(MaxInt));
 	size_t size = compensated_image.size();
 	std::string::size_type found = filename.find_last_of("/\\");
 	filename_compensated = filename.substr(0, found + 1) + "compensated_" + filename.substr(found + 1);
