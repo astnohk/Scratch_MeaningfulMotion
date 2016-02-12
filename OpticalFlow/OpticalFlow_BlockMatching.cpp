@@ -10,7 +10,7 @@
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 std::vector<ImgVector<Vector_ST<double> > >
-OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string ofilename, const int Mode, const int IterMax)
+OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string newest_filename, const int Mode, const int IterMax)
 {
 	const bool Bidirectional = true;
 	const bool Bidirectional_with_Time = true; // on almost all cases it is true
@@ -138,31 +138,31 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 		}
 
 		PNM pnm;
-		std::string::size_type found = 1 + ofilename.find_last_not_of("0123456789", ofilename.find_last_of("0123456789"));
+		std::string::size_type found = 1 + newest_filename.find_last_not_of("0123456789", newest_filename.find_last_of("0123456789"));
 		if (found == std::string::npos) {
-			found = ofilename.find_last_of(".");
+			found = newest_filename.find_last_of(".");
 		}
-		std::string ofilename_segmentation = ofilename.substr(0, found) + "segmentation_" + ofilename.substr(found);
-		printf("* Output The Segmentation result to '%s'(binary)\n\n", ofilename_segmentation.c_str());
+		std::string newest_filename_segmentation = newest_filename.substr(0, found) + "segmentation_" + newest_filename.substr(found);
+		printf("* Output The Segmentation result to '%s'(binary)\n\n", newest_filename_segmentation.c_str());
 		{
-			ImgVector<int> tmp_vector(segmentations[1].width(), segmentations[1].height());
-			for (size_t i = 0; i < segmentations[1].size(); i++) {
-				tmp_vector[i] = static_cast<int>(segmentations[1][i]);
+			ImgVector<int> tmp_vector(segmentations[0].width(), segmentations[0].height());
+			for (size_t i = 0; i < segmentations[0].size(); i++) {
+				tmp_vector[i] = static_cast<int>(segmentations[0][i]);
 			}
-			pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[1].width(), segmentations[1].height(), int(tmp_vector.max()), tmp_vector.data());
-			pnm.write(ofilename_segmentation.c_str());
+			pnm.copy(PORTABLE_GRAYMAP_BINARY, segmentations[0].width(), segmentations[0].height(), int(tmp_vector.max()), tmp_vector.data());
+			pnm.write(newest_filename_segmentation.c_str());
 			pnm.free();
 		}
 
 		{
-			int quantized[3 * segmentations[1].width() * segmentations[1].height()];
-			int width = sequence_sRGB[1].width();
-			int height = sequence_sRGB[1].height();
-			for (size_t i = 0; i < segmentations[1].ref_regions().size(); i++) {
-				for (const std::vector<VECTOR_2D<int> >& region : segmentations[1].ref_regions()) {
+			int quantized[3 * segmentations[0].width() * segmentations[0].height()];
+			int width = sequence_sRGB[0].width();
+			int height = sequence_sRGB[0].height();
+			for (size_t i = 0; i < segmentations[0].ref_regions().size(); i++) {
+				for (const std::vector<VECTOR_2D<int> >& region : segmentations[0].ref_regions()) {
 					ImgClass::RGB sum_sRGB(.0, .0, .0);
 					for (const VECTOR_2D<int>& r : region) {
-						sum_sRGB += sequence_sRGB[1].get(r.x, r.y);
+						sum_sRGB += sequence_sRGB[0].get(r.x, r.y);
 					}
 					sum_sRGB *= 255.0 / region.size();
 					sum_sRGB.R = sum_sRGB.R > 255.0 ? 255 : sum_sRGB.R;
@@ -175,16 +175,16 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 					}
 				}
 			}
-			std::string ofilename_quantized = ofilename.substr(0, found) + "color-quantized_" + ofilename.substr(found);
-			printf("* Output The color quantized image '%s'(binary)\n\n", ofilename_quantized.c_str());
+			std::string newest_filename_quantized = newest_filename.substr(0, found) + "color-quantized_" + newest_filename.substr(found);
+			printf("* Output The color quantized image '%s'(binary)\n\n", newest_filename_quantized.c_str());
 			pnm.copy(PORTABLE_PIXMAP_BINARY, segmentations[0].width(), segmentations[0].height(), 255, quantized);
-			pnm.write(ofilename_quantized.c_str());
+			pnm.write(newest_filename_quantized.c_str());
 			pnm.free();
 		}
 		// Output vectors
-		std::string ofilename_vector = ofilename.substr(0, found) + "shift-vector_" + ofilename.substr(found);
+		std::string newest_filename_vector = newest_filename.substr(0, found) + "shift-vector_" + newest_filename.substr(found);
 		FILE *fp;
-		fp = fopen(ofilename_vector.c_str(), "w");
+		fp = fopen(newest_filename_vector.c_str(), "w");
 		fprintf(fp, "%d %d\n", segmentations[0].width(), segmentations[0].height());
 		for (int y = 0; y < segmentations[0].height(); y++) {
 			for (int x = 0; x < segmentations[0].width(); x++) {
