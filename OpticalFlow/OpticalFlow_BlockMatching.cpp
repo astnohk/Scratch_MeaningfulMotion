@@ -27,7 +27,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 	ImgVector<size_t> domain_map;
 	const double coeff_MAD = 1.0;
-	const double coeff_ZNCC = 0.0;
+	const double coeff_ZNCC = 0.5;
 	BlockMatching<ImgClass::Lab> block_matching;
 	int BM_Search_Range = 61; // Block Matching search range
 	int Subpixel_Scale = 2;
@@ -669,6 +669,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 		compensated_image[n + 2 * size] = int(compensated.ref_image_compensated().get(n).B);
 	}
 	pnm.copy(PORTABLE_PIXMAP_BINARY, compensated.width(), compensated.height(), MaxInt, compensated_image);
+	delete[] compensated_image;
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
 }
@@ -796,6 +797,8 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 			image_tmp[n + 2 * size] = int(compensated_image.get(n).B);
 		}
 		pnm.copy(PORTABLE_PIXMAP_BINARY, compensated_image.width(), compensated_image.height(), MaxInt, image_tmp);
+		delete[] image_tmp;
+		image_tmp = nullptr;
 	}
 	pnm.write(filename_compensated.c_str());
 	pnm.free();
