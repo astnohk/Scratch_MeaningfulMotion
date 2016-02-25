@@ -5,21 +5,21 @@
  */
 #include "OpticalFlow_BlockMatching.h"
 
+using namespace ImgClass;
 
 
 
 // This function will compute INVERSE Optical Flow it points the previous frame which will come to the current (next) frame.
 std::vector<ImgVector<Vector_ST<double> > >
-OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVector<ImgClass::RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string newest_filename, const int Mode, const int IterMax)
+OpticalFlow_BlockMatching(const ImgVector<RGB>& It_color, const ImgVector<RGB>& Itp1_color, double MaxInt, MULTIPLE_MOTION_PARAM MotionParam, const std::string newest_filename, const int Mode, const int IterMax)
 {
 	const bool Bidirectional = true;
 	const bool Bidirectional_with_Time = true; // on almost all cases it is true
 	const size_t History_Max = 4;
 
-	static std::deque<ImgVector<ImgClass::RGB> > sequence_sRGB;
-	static std::deque<ImgVector<double> > sequence_Grayscale;
-	static std::deque<ImgVector<ImgClass::Lab> > sequence_Lab;
-	static std::deque<Segmentation<ImgClass::Lab> > segmentations;
+	static std::deque<ImgVector<RGB> > sequence_sRGB;
+	static std::deque<ImgVector<Lab> > sequence_Lab;
+	static std::deque<Segmentation<Lab> > segmentations;
 
 	std::bad_alloc except_bad_alloc;
 
@@ -28,19 +28,19 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	ImgVector<size_t> domain_map;
 	const double coeff_MAD = 1.0;
 	const double coeff_ZNCC = 0.5;
-	BlockMatching<ImgClass::Lab> block_matching;
+	BlockMatching<Lab> block_matching;
 	int BM_Search_Range = 61; // Block Matching search range
 	int Subpixel_Scale = 2;
 
 	ImgVector<double> It;
 	ImgVector<double> Itp1;
-	ImgVector<ImgClass::RGB> It_sRGB_normalize;
-	ImgVector<ImgClass::RGB> Itp1_sRGB_normalize;
-	ImgVector<ImgClass::Lab> It_Lab_normalize;
-	ImgVector<ImgClass::Lab> Itp1_Lab_normalize;
+	ImgVector<RGB> It_sRGB_normalize;
+	ImgVector<RGB> Itp1_sRGB_normalize;
+	ImgVector<Lab> It_Lab_normalize;
+	ImgVector<Lab> Itp1_Lab_normalize;
 	ImgVector<double> It_normalize;
 	ImgVector<double> Itp1_normalize;
-	ImgVector<ImgClass::RGB> It_sRGB_quantized;
+	ImgVector<RGB> It_sRGB_quantized;
 	// M-estimator parameter
 	const double lambdaD = 5.0;
 	const double lambdaS = 1.0;
@@ -83,15 +83,12 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// Shift image sequence by 1 and assign current image
 	if (sequence_sRGB.empty()) {
 		sequence_sRGB.push_front(It_sRGB_normalize);
-		sequence_Grayscale.push_front(It_normalize);
 		sequence_Lab.push_front(It_Lab_normalize);
 	}
 	sequence_sRGB.push_front(Itp1_sRGB_normalize);
-	sequence_Grayscale.push_front(Itp1_normalize);
 	sequence_Lab.push_front(Itp1_Lab_normalize);
 	if (sequence_sRGB.size() >= History_Max) {
 		sequence_sRGB.pop_back();
-		sequence_Grayscale.pop_back();
 		sequence_Lab.pop_back();
 	}
 
@@ -130,9 +127,9 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 #endif
 
 		if (segmentations.empty()) {
-			segmentations.push_front(Segmentation<ImgClass::Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity));
+			segmentations.push_front(Segmentation<Lab>(It_Lab_normalize, kernel_spatial, kernel_intensity));
 		}
-		segmentations.push_front(Segmentation<ImgClass::Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity));
+		segmentations.push_front(Segmentation<Lab>(Itp1_Lab_normalize, kernel_spatial, kernel_intensity));
 		if (segmentations.size() >= History_Max) {
 			segmentations.pop_back();
 		}
@@ -161,7 +158,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 			int *quantized = new int[3 * segmentations[0].width() * segmentations[0].height()];
 			for (size_t i = 0; i < segmentations[0].ref_regions().size(); i++) {
 				for (const std::vector<VECTOR_2D<int> >& region : segmentations[0].ref_regions()) {
-					ImgClass::RGB sum_sRGB(.0, .0, .0);
+					RGB sum_sRGB(.0, .0, .0);
 					for (const VECTOR_2D<int>& r : region) {
 						sum_sRGB += sequence_sRGB[0].get(r.x, r.y);
 					}
@@ -228,10 +225,10 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 	// ----- Optical Flow -----
 	std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
 	if (MotionParam.Level >= 0) {
-		const ImgVector<ImgClass::Lab>* interest = nullptr;
+		const ImgVector<Lab>* interest = nullptr;
 		const std::vector<std::vector<VECTOR_2D<int> > >* regions = nullptr;
 		const ImgVector<size_t>* region_map = nullptr;
-		std::vector<const ImgVector<ImgClass::Lab>*> references;
+		std::vector<const ImgVector<Lab>*> references;
 		std::vector<ImgVector<VECTOR_2D<double> > > MVs;
 		if (Bidirectional && sequence_Lab.size() >= 3) {
 			u_optical.resize(2);
@@ -364,7 +361,7 @@ OpticalFlow_BlockMatching(const ImgVector<ImgClass::RGB>& It_color, const ImgVec
 
 
 ImgVector<VECTOR_2D<double> >
-OpticalFlow_GradientMethod(const ImgVector<ImgClass::Lab>* reference, const ImgVector<ImgClass::Lab>* interest, const ImgVector<VECTOR_2D<double> >* MV, const ImgVector<size_t>* region_map, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS, const int IterMax, const double& Error_Min_Threshold)
+OpticalFlow_GradientMethod(const ImgVector<Lab>* reference, const ImgVector<Lab>* interest, const ImgVector<VECTOR_2D<double> >* MV, const ImgVector<size_t>* region_map, const double& lambdaD, const double& lambdaS, const double& sigmaD, const double& sigmaS, const int IterMax, const double& Error_Min_Threshold)
 {
 	ImgVector<VECTOR_2D<double> > u(reference->width(), reference->height());
 	// Compute gradient and derivation
@@ -617,11 +614,11 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 }
 
 void
-MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
+MultipleMotion_write(const ImgVector<RGB>& img_prev, const ImgVector<RGB>& img_current, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 	FILE *fp = nullptr;
-	MotionCompensation<ImgClass::RGB> compensated(img_prev, img_current, u[0]);
+	MotionCompensation<RGB> compensated(img_prev, img_current, u[0]);
 	PNM pnm;
 	std::string filename_compensated;
 
@@ -663,7 +660,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 	}
 	catch (const std::bad_alloc& bad) {
 		std::cerr << bad.what() << std::endl;
-		fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
+		fprintf(stderr, "void MultipleMotion_write(const ImgVector<RGB>*, const ImgVector<RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
 		throw;
 	}
 	for (size_t n = 0; n < size; n++) {
@@ -730,14 +727,14 @@ MultipleMotion_write(const ImgVector<double>& img_prev, const ImgVector<double>&
 }
 
 void
-MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<ImgClass::RGB>& img_current, const ImgVector<ImgClass::RGB>& img_next, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
+MultipleMotion_write(const ImgVector<RGB>& img_prev, const ImgVector<RGB>& img_current, const ImgVector<RGB>& img_next, const int MaxInt, const std::vector<ImgVector<Vector_ST<double> > >& u, const std::string &filename)
 {
 	ERROR Error("MultipleMotion_write");
 
 	FILE *fp = nullptr;
 	VECTOR_2D<double> v;
 	int x, y;
-	MotionCompensation<ImgClass::RGB> compensated;
+	MotionCompensation<RGB> compensated;
 	PNM pnm;
 	std::string filename_compensated;
 
@@ -775,9 +772,9 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 
 	compensated.create_image_compensated(); // Make compensated image
 	// Saturation
-	ImgVector<ImgClass::RGB> compensated_image(compensated.ref_image_compensated());
+	ImgVector<RGB> compensated_image(compensated.ref_image_compensated());
 	compensated_image.saturate(
-	    static_cast<ImgClass::RGB (*)(const ImgClass::RGB&, const double&, const double&)>(saturate),
+	    static_cast<RGB (*)(const RGB&, const double&, const double&)>(saturate),
 	    0.0, double(MaxInt));
 	size_t size = compensated_image.size();
 	std::string::size_type found = filename.find_last_of("/\\");
@@ -790,7 +787,7 @@ MultipleMotion_write(const ImgVector<ImgClass::RGB>& img_prev, const ImgVector<I
 		}
 		catch (const std::bad_alloc& bad) {
 			std::cerr << bad.what() << std::endl;
-			fprintf(stderr, "void MultipleMotion_write(const ImgVector<ImgClass::RGB>*, const ImgVector<ImgClass::RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
+			fprintf(stderr, "void MultipleMotion_write(const ImgVector<RGB>*, const ImgVector<RGB>*, const ImgVector<VECTOR_2D<double> >*, const std::string&) : Cannot allocate memory\n");
 			throw;
 		}
 		// Copy for output
