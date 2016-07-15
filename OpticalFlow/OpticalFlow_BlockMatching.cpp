@@ -224,6 +224,14 @@ OpticalFlow_BlockMatching(const ImgVector<RGB>& It_color, const ImgVector<RGB>& 
 
 	// ----- Optical Flow -----
 	std::vector<ImgVector<VECTOR_2D<double> > > u_optical;
+	if (Bidirectional && sequence_Lab.size() >= 3) {
+		u_optical.resize(2);
+		u_optical[0].resize(It_color.width(), It_color.height());
+		u_optical[1].resize(It_color.width(), It_color.height());
+	} else {
+		u_optical.resize(1);
+		u_optical[0].resize(It_color.width(), It_color.height());
+	}
 	if (MotionParam.Level >= 0) {
 		const ImgVector<Lab>* interest = nullptr;
 		const std::vector<std::vector<VECTOR_2D<int> > >* regions = nullptr;
@@ -231,9 +239,6 @@ OpticalFlow_BlockMatching(const ImgVector<RGB>& It_color, const ImgVector<RGB>& 
 		std::vector<const ImgVector<Lab>*> references;
 		std::vector<ImgVector<VECTOR_2D<double> > > MVs;
 		if (Bidirectional && sequence_Lab.size() >= 3) {
-			u_optical.resize(2);
-			u_optical[0].resize(It_color.width(), It_color.height());
-			u_optical[1].resize(It_color.width(), It_color.height());
 			interest = &sequence_Lab[1];
 			regions = &(segmentations[1].ref_regions());
 			region_map = &(segmentations[1].ref_segmentation_map());
@@ -255,8 +260,6 @@ OpticalFlow_BlockMatching(const ImgVector<RGB>& It_color, const ImgVector<RGB>& 
 				}
 			}
 		} else {
-			u_optical.resize(1);
-			u_optical[0].resize(It_color.width(), It_color.height());
 			interest = &Itp1_Lab_normalize;
 			regions = &(segmentations[0].ref_regions());
 			region_map = &(segmentations[0].ref_segmentation_map());
@@ -288,6 +291,9 @@ OpticalFlow_BlockMatching(const ImgVector<RGB>& It_color, const ImgVector<RGB>& 
 				break;
 			default: // A Gradient-based method
 				for (size_t ref = 0; ref < references.size(); ref++) {
+					for (unsigned int i = 0; i < MVs[ref].size(); i++) { // for DEBUG
+						MVs[ref][i] = 0.0;
+					}
 					u_optical[ref] = OpticalFlow_GradientMethod(
 					    references[ref],
 					    interest,
@@ -369,11 +375,11 @@ OpticalFlow_GradientMethod(const ImgVector<Lab>* reference, const ImgVector<Lab>
 	for (int y = 0; y < reference->height(); y++) {
 		for (int x = 0; x < reference->width(); x++) {
 			grad.at(x, y).x =
-			    (interest->get(x + 1, y).L - interest->get_mirror(x, y).L
+			    (interest->get_mirror(x + 1, y).L - interest->get_mirror(x, y).L
 			    + interest->get_mirror(x + 1, y + 1).L - interest->get_mirror(x, y + 1).L)
 			    / 2.0;
 			grad.at(x, y).y =
-			    (interest->get(x, y + 1).L - interest->get_mirror(x, y).L
+			    (interest->get_mirror(x, y + 1).L - interest->get_mirror(x, y).L
 			    + interest->get_mirror(x + 1, y + 1).L - interest->get_mirror(x + 1, y).L)
 			    / 2.0;
 		}
@@ -392,7 +398,7 @@ OpticalFlow_GradientMethod(const ImgVector<Lab>* reference, const ImgVector<Lab>
 		}
 	}
 	// Optical Flow estimation with IRLS
-	printf("\n    lambdaD = %f, lambdaS = %f\n    sigmaD = %f\n  sigmaS = %f\n    iteration = %d\n", lambdaD, lambdaS, sigmaD, sigmaS, IterMax);
+	printf("\n    lambdaD = %f, lambdaS = %f\n    sigmaD = %f\n    sigmaS = %f\n    iteration = %d\n", lambdaD, lambdaS, sigmaD, sigmaS, IterMax);
 	IRLS_OpticalFlow_GradientMethod(
 	    &u,
 	    region_map,
@@ -467,6 +473,8 @@ Error_u_Block(const size_t& site, const ImgVector<VECTOR_2D<double> >* u, const 
 	double Center;
 	VECTOR_2D<double> Neighbor;
 	VECTOR_2D<double> E_u;
+	double inner_prod;
+	double coeff;
 
 	int x = static_cast<int>(site % size_t(u->width()));
 	int y = static_cast<int>(site / size_t(u->width()));
@@ -478,20 +486,28 @@ Error_u_Block(const size_t& site, const ImgVector<VECTOR_2D<double> >* u, const 
 	Neighbor.x = .0;
 	Neighbor.y = .0;
 	if (x > 0 && domain_map->get(x - 1, y) == center_domain) {
-		Neighbor.x += (*psiS)(us.x - u->get(x - 1, y).x, sigmaS);
-		Neighbor.y += (*psiS)(us.y - u->get(x - 1, y).y, sigmaS);
+		inner_prod = us * u->get(x - 1, y);
+		coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x - 1, y))));
+		Neighbor.x += coeff * (*psiS)(us.x - u->get(x - 1, y).x, sigmaS);
+		Neighbor.y += coeff * (*psiS)(us.y - u->get(x - 1, y).y, sigmaS);
 	}
 	if (x < u->width() - 1 && domain_map->get(x + 1, y) == center_domain) {
-		Neighbor.x += (*psiS)(us.x - u->get(x + 1, y).x, sigmaS);
-		Neighbor.y += (*psiS)(us.y - u->get(x + 1, y).y, sigmaS);
+		inner_prod = us * u->get(x + 1, y);
+		coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x + 1, y))));
+		Neighbor.x += coeff * (*psiS)(us.x - u->get(x + 1, y).x, sigmaS);
+		Neighbor.y += coeff * (*psiS)(us.y - u->get(x + 1, y).y, sigmaS);
 	}
 	if (y > 0 && domain_map->get(x, y - 1) == center_domain) {
-		Neighbor.x += (*psiS)(us.x - u->get(x, y - 1).x, sigmaS);
-		Neighbor.y += (*psiS)(us.y - u->get(x, y - 1).y, sigmaS);
+		inner_prod = us * u->get(x, y - 1);
+		coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x, y - 1))));
+		Neighbor.x += coeff * (*psiS)(us.x - u->get(x, y - 1).x, sigmaS);
+		Neighbor.y += coeff * (*psiS)(us.y - u->get(x, y - 1).y, sigmaS);
 	}
 	if (y < u->height() - 1 && domain_map->get(x, y + 1) == center_domain) {
-		Neighbor.x += (*psiS)(us.x - u->get(x, y + 1).x, sigmaS);
-		Neighbor.y += (*psiS)(us.y - u->get(x, y + 1).y, sigmaS);
+		inner_prod = us * u->get(x, y + 1);
+		coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x, y + 1))));
+		Neighbor.x += coeff * (*psiS)(us.x - u->get(x, y + 1).x, sigmaS);
+		Neighbor.y += coeff * (*psiS)(us.y - u->get(x, y + 1).y, sigmaS);
 	}
 
 	E_u.x += lambdaD * Img_g->get(site).x * Center + lambdaS * Neighbor.x;
@@ -539,21 +555,31 @@ Error_MultipleMotion_Block(const ImgVector<VECTOR_2D<double> >* u, const ImgVect
 			size_t center_domain = domain_map->get(x, y);
 			VECTOR_2D<double> us(u->get(x, y));
 			VECTOR_2D<double> Neighbor(0.0, 0.0);
+			double inner_prod;
+			double coeff;
 			if (x > 0 && domain_map->get(x - 1, y) == center_domain) {
-				Neighbor.x += (*rhoS)(us.x - u->get(x - 1, y).x, sigmaS);
-				Neighbor.y += (*rhoS)(us.y - u->get(x - 1, y).y, sigmaS);
+				inner_prod = us * u->get(x - 1, y);
+				coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x - 1, y))));
+				Neighbor.x += coeff * (*rhoS)(us.x - u->get(x - 1, y).x, sigmaS);
+				Neighbor.y += coeff * (*rhoS)(us.y - u->get(x - 1, y).y, sigmaS);
 			}
 			if (x < u->width() - 1 && domain_map->get(x + 1, y) == center_domain) {
-				Neighbor.x += (*rhoS)(us.x - u->get(x + 1, y).x, sigmaS);
-				Neighbor.y += (*rhoS)(us.y - u->get(x + 1, y).y, sigmaS);
+				inner_prod = us * u->get(x + 1, y);
+				coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x + 1, y))));
+				Neighbor.x += coeff * (*rhoS)(us.x - u->get(x + 1, y).x, sigmaS);
+				Neighbor.y += coeff * (*rhoS)(us.y - u->get(x + 1, y).y, sigmaS);
 			}
 			if (y > 0 && domain_map->get(x, y - 1) == center_domain) {
-				Neighbor.x += (*rhoS)(us.x - u->get(x, y - 1).x, sigmaS);
-				Neighbor.y += (*rhoS)(us.y - u->get(x, y - 1).y, sigmaS);
+				inner_prod = us * u->get(x, y - 1);
+				coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x, y - 1))));
+				Neighbor.x += coeff * (*rhoS)(us.x - u->get(x, y - 1).x, sigmaS);
+				Neighbor.y += coeff * (*rhoS)(us.y - u->get(x, y - 1).y, sigmaS);
 			}
 			if (y < u->height() - 1 && domain_map->get(x, y + 1) == center_domain) {
-				Neighbor.x += (*rhoS)(us.x - u->get(x, y + 1).x, sigmaS);
-				Neighbor.y += (*rhoS)(us.y - u->get(x, y + 1).y, sigmaS);
+				inner_prod = us * u->get(x, y + 1);
+				coeff = 0.5 * (1.0 + inner_prod / (norm(us) * norm(u->get(x, y + 1))));
+				Neighbor.x += coeff * (*rhoS)(us.x - u->get(x, y + 1).x, sigmaS);
+				Neighbor.y += coeff * (*rhoS)(us.y - u->get(x, y + 1).y, sigmaS);
 			}
 			double Center = (*rhoD)(Img_g->get(x, y).x * us.x
 			    + Img_g->get(x, y).y * us.y
