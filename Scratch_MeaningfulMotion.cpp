@@ -148,7 +148,7 @@ Scratch_MeaningfulMotion(const std::string& OutputName, const std::string& Input
 				size_out = size;
 			}
 		}
-		if (size_prev.height != pnm_orig.Height() || size_prev.width != pnm_orig.Width()) {
+		if (size_prev.height != int(pnm_orig.Height()) || size_prev.width != int(pnm_orig.Width())) {
 			Error.Others("Image size are not match with previous one");
 			goto ExitError;
 		}
@@ -276,7 +276,7 @@ Scratch_MeaningfulMotion(const std::string& OutputName, const std::string& Input
 		printf("\n      --- Parameters ---\n  %s\n", Bars);
 		if (size_res.width > 0 || size_res.height > 0) {
 			printf("  | Resample (%d), 0:z-hold, 1:bicubic\n", Options.ResampleMethod);
-			printf("  |   %dx%d -> %dx%d\n", pnm_orig.Width(), pnm_orig.Height(), size_res.width, size_res.height);
+			printf("  |   %dx%d -> %dx%d\n", int(pnm_orig.Width()), int(pnm_orig.Height()), size_res.width, size_res.height);
 		}
 		printf("  | filter type = %s\n", FilterNames[FilterParam.type < NUM_FILTER_TYPE ? FilterParam.type : 0].c_str());
 		printf("  | filter size = %dx%d\n", FilterParam.size.width, FilterParam.size.height);
