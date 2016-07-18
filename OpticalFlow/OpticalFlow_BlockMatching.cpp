@@ -156,21 +156,19 @@ OpticalFlow_BlockMatching(const ImgVector<RGB>& It_color, const ImgVector<RGB>& 
 			int height = sequence_sRGB[0].height();
 
 			int *quantized = new int[3 * segmentations[0].width() * segmentations[0].height()];
-			for (size_t i = 0; i < segmentations[0].ref_regions().size(); i++) {
-				for (const std::vector<VECTOR_2D<int> >& region : segmentations[0].ref_regions()) {
-					RGB sum_sRGB(.0, .0, .0);
-					for (const VECTOR_2D<int>& r : region) {
-						sum_sRGB += sequence_sRGB[0].get(r.x, r.y);
-					}
-					sum_sRGB *= 255.0 / region.size();
-					sum_sRGB.R = sum_sRGB.R > 255.0 ? 255 : sum_sRGB.R;
-					sum_sRGB.G = sum_sRGB.G > 255.0 ? 255 : sum_sRGB.G;
-					sum_sRGB.B = sum_sRGB.B > 255.0 ? 255 : sum_sRGB.B;
-					for (const VECTOR_2D<int>& r : region) {
-						quantized[width * r.y + r.x] = int(sum_sRGB.R);
-						quantized[width * height + width * r.y + r.x] = int(sum_sRGB.G);
-						quantized[2 * width * height + width * r.y + r.x] = int(sum_sRGB.B);
-					}
+			for (const std::vector<VECTOR_2D<int> >& region : segmentations[0].ref_regions()) {
+				RGB sum_sRGB(.0, .0, .0);
+				for (const VECTOR_2D<int>& r : region) {
+					sum_sRGB += sequence_sRGB[0].get(r.x, r.y);
+				}
+				sum_sRGB *= 255.0 / region.size();
+				sum_sRGB.R = sum_sRGB.R > 255.0 ? 255 : sum_sRGB.R;
+				sum_sRGB.G = sum_sRGB.G > 255.0 ? 255 : sum_sRGB.G;
+				sum_sRGB.B = sum_sRGB.B > 255.0 ? 255 : sum_sRGB.B;
+				for (const VECTOR_2D<int>& r : region) {
+					quantized[width * r.y + r.x] = int(sum_sRGB.R);
+					quantized[width * height + width * r.y + r.x] = int(sum_sRGB.G);
+					quantized[2 * width * height + width * r.y + r.x] = int(sum_sRGB.B);
 				}
 			}
 			std::string newest_filename_quantized = newest_filename.substr(0, found) + "color-quantized_" + newest_filename.substr(found);
