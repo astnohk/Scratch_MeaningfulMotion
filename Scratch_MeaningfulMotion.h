@@ -54,8 +54,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "ImgClass/RGB.h"
-#include "ImgClass/Lab.h"
+#include "ImgClass/Color.h"
 #include "ImgClass/Vector.h"
 #include "ImgClass/ImgClass.h"
 #include "ImgClass/ImgStatistics.h"

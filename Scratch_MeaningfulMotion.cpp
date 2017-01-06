@@ -1,4 +1,4 @@
-#include "ImgClass/RGB.h"
+#include "ImgClass/Color.h"
 #include "Scratch_MeaningfulMotion.h"
 #include "OpticalFlow/Affine_MultipleMotion.h"
 #include "OpticalFlow/OpticalFlow.h"
