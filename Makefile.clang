@@ -11,7 +11,7 @@ MEANINGFUL_CFILES = MeaningfulAlignments/Detection.cpp MeaningfulAlignments/Excl
 OPTICALFLOW_CFILES = OpticalFlow/MultiResolution.cpp OpticalFlow/MEstimator.cpp OpticalFlow/Affine_MultipleMotion.cpp OpticalFlow/OpticalFlow.cpp OpticalFlow/OpticalFlow_BlockMatching.cpp OpticalFlow/Affine_BlockMatching.cpp
 HOG_CFILES = HOG/HOG.cpp HOG/HOG_struct.cpp HOG/HOG_match.cpp
 PLOT_CFILES = Plot/Plotting.cpp Plot/Plot_X11.cpp Plot/Plot_X11_Struct.cpp
-PNM_CFILES = PNM/pnm.cpp PNM/pnm_double.cpp PNM/pnm_library.cpp
+PNM_CFILES = pnm_lib_cpp/pnm.cpp pnm_lib_cpp/pnm_double.cpp pnm_lib_cpp/pnm_library.cpp
 
 CFILES = main.cpp Scratch_Struct.cpp Scratch_MeaningfulMotion.cpp $(LIBRARY_CFILES) $(IMGCLASS_CFILES) $(MEANINGFUL_CFILES) $(OPTICALFLOW_CFILES) $(HOG_CFILES) $(PLOT_CFILES) $(PNM_CFILES)
 
@@ -123,13 +123,13 @@ Plot_X11.o: Plot/Plot_X11.cpp
 Plot_X11_Struct.o: Plot/Plot_X11_Struct.cpp
 	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
-pnm.o: PNM/pnm.cpp
+pnm.o: pnm_lib_cpp/pnm.cpp
 	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
-pnm_double.o: PNM/pnm_double.cpp
+pnm_double.o: pnm_lib_cpp/pnm_double.cpp
 	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
-pnm_library.o: PNM/pnm_library.cpp
+pnm_library.o: pnm_lib_cpp/pnm_library.cpp
 	$(CC) $(WARNING) $(OPTION) $(MACROS) -c $^
 
 
