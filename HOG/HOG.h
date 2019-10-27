@@ -1,7 +1,7 @@
 #include <string>
 #include "../ImgClass/ImgClass.h"
 #include "../lib/ExtVector.h"
-#include "../PNM/pnm.h"
+#include "../pnm_lib_cpp/pnm.h"
 #include "HOG_struct.h"
 
 

@@ -66,7 +66,7 @@
 #include "Plot/Plot_X11_Struct.h"
 #include "HOG/HOG_struct.h"
 #include "Scratch_Struct.h"
-#include "PNM/pnm.h"
+#include "pnm_lib_cpp/pnm.h"
 
 
 #define REGEXP_MAX_DIGITS 10
